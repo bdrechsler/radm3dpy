@@ -1,0 +1,50 @@
+
+V0.3
+
+- image sub-module
+	plotimage -> check all keyword arguments for consistency
+
+- analyze sub-module
+
+	BUGFIX: The calculated surface density by radmc3dData.get_sigmadust() and 
+			radmc3dData.get_sigmagas() was a factor of 2 lower than it should be.
+ 
+	radmc3dGrid.grid_style 
+		-> radmc3dGrid.crd_sys
+
+	radmc3dGrid.act_dim 
+		New attribute: 3 element list with 1 or 0 if a dimension is active or not
+	
+	radmc3dGrid.make_spatial_grid()
+		* For the grid boundaries I use now xbound, ybound, zbound exclusively
+		  xmin,xmax,y_ext, etc were rejected
+
+		* If a dimension is not active I set x to [0.], xi to [0., 0.], 
+			nx to 1 and nxi to 1 (same for the y and z axes)
+		
+	radmc3dGrid.read_grid()	
+		* crd_sys and act_dim are read from amr_grid.inp
+
+	radmc3dGrid.write_grid()
+		* crd_sys and act_dim are added 
+
+	New class: radmc3dPar:
+		* Instead of using a list of classes to read the parameters I use the radmc3dPar
+			which contains dictionaries attributes for the parameters
+
+		* Added functions to write a parameterfile and to load default parameters
+			for the code, radiation sources, grid, dust opacity and also model, if the model
+			name is specified
+			TODO: There should be a check whether or not a given model (sub-module) contains
+				  a get_default_params() function.
+
+		* The parameter reader function now reads also block names 
+			In the writer function I write out the parameters on the basis of the block names
+			they belong to. Without block names no parameter will be written out unless the
+			one loads them from the defaults parameters.
+
+	model_xxxx.py
+		* Added the get_default_params() function that returns a list of parameters required
+		  by the model as well as their value and a description of the parameter. These are
+		  used when a default parameter file is written. 	
+
