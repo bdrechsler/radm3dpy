@@ -6,7 +6,7 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 
-from radmc3d.natconst import *
+from radmc3dPy.natconst import *
 try:
     from matplotlib.pylab import *
 except:
@@ -16,7 +16,7 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 
-from radmc3d.crd_trans import vrot
+from radmc3dPy.crd_trans import vrot
 import sys
 
 """

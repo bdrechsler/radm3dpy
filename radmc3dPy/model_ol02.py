@@ -6,7 +6,7 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 
-from radmc3d.natconst import *
+from radmc3dPy.natconst import *
 try:
     from matplotlib.pylab import *
 except:
@@ -20,7 +20,7 @@ try:
     ppdisk = __import__('model_ppdisk')
 except:
     try:
-        ppdisk  = __import__('radmc3d.model_ppdisk', fromlist=['']) 
+        ppdisk  = __import__('radmc3dPy.model_ppdisk', fromlist=['']) 
     except:
         print 'ERROR'
         print ' model_ppdisk.py could not be imported (required by the selected warp_model "m97")'
@@ -28,7 +28,7 @@ except:
         print ' in the radmc3d python module directory'
 
 
-from radmc3d.crd_trans import vrot
+from radmc3dPy.crd_trans import vrot
 import sys
 
 def get_default_params():

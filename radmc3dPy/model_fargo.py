@@ -20,7 +20,7 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 
-from radmc3d.natconst import *
+from radmc3dPy.natconst import *
 try:
     from matplotlib.pylab import *
 except:
@@ -30,16 +30,24 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 
-from radmc3d.crd_trans import vrot
+from radmc3dPy.crd_trans import vrot
 import sys, os
 
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011/2012
+(c) Attila Juhasz 2011,2012
 
 Generic protoplanetary disk model
 
 """
+
+def get_desc():
+    """
+    Function to provide a brief description of the model
+    """
+
+    return "Protoplanetary disk model. The surface density is taken from the output "+\
+            "of the hydrodynamic code FARGO. Vertical structure is calculated analytically"
 
 def get_default_params():
     """
@@ -72,7 +80,61 @@ def get_default_params():
     return defpar
 
 # -----------------------------------------------------------------------------------------------
-def get_density(grid=None, ppar=None):
+def get_dust_density(grid=None, ppar=None):
+    """
+    Function to generate a 3D volume density distribtion from the surface density output frames of FARGO
+    
+    INPUT:
+    ------
+        grid : a radmc3dGgrid class containing the spatial grid onto which the FARGO output should
+                be interpolated
+        ppar : dictionary containing all parameters of the RADMC3D setup
+
+    OUTPUT:
+    -------
+        Returns the volume density of the gas in g/cm^3
+    """
+
+
+# Get the gas surface density
+    rhogas = self.get_gas_density(grid=grid, ppar=ppar)
+    rho    = array(rhogas)*0.
+
+# Split up the dust density if we have a grain size distribution
+    if ppar.has_key('dustkappa_ext'):
+        ngs  = len(ppar['dustkappa_ext'])
+        if ppar.has_key('mfrac'):
+            gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+        else:
+            ngs = 1
+    else:
+        ngs = ppar['ngs']
+        #
+        # WARNING!!!!!!
+        # At the moment I assume that the multiple dust population differ from each other only in 
+        # grain size but not in bulk density thus when I calculate the abundances / mass fractions 
+        # they are independent of the grains bulk density since abundances/mass fractions are normalized
+        # to the total mass. Thus I use 1g/cm^3 for all grain sizes.
+        # TODO: Add the possibility to handle multiple dust species with different bulk densities and 
+        # with multiple grain sizes.
+        #
+        gdens = zeros(ngs, dtype=float) + 1.0
+        gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
+        gmass = 4./3.*np.pi*gs**3. * gdens
+        gsfact = gmass * gs**(ppar['gsdist_powex']+1)
+        gsfact = gsfact / gsfact.sum()
+
+    if (ngs>1):
+       
+        rho_old = array(rho)
+        rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
+        for igs in range(ngs):
+            rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
+    
+    return rho
+
+# -----------------------------------------------------------------------------------------------
+def get_gas_density(grid=None, ppar=None):
     """
     Function to generate a 3D volume density distribtion from the surface density output frames of FARGO
     
@@ -141,13 +203,13 @@ def get_density(grid=None, ppar=None):
             sigma[iiro,iz] = od_sigma[iz,:]
 
 
-    fig = figure()
-    x = fig.add_subplot(111)
-    plot(grid.x, sigma[:,0])
-    x.set_xscale('log')
-    x.set_yscale('log')
+    #fig = figure()
+    #x = fig.add_subplot(111)
+    #plot(grid.x, sigma[:,0])
+    #x.set_xscale('log')
+    #x.set_yscale('log')
 
-    show()
+    #show()
     
 
     rho = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
@@ -158,12 +220,12 @@ def get_density(grid=None, ppar=None):
                 np.exp(-0.5 * ((zz[iy,:])-z0[:,iz])*((zz[iy,:])-z0[:,iz]) /(hp[:,iz]*hp[:,iz]))
 
 
-    if (ppar['gap_rout']>ppar['rin']):
-        for igap in range(len(ppar['gap_rout'])):
-            for iy in range(grid.ny):
-                for ix in range(grid.nx):
-                    if ((rcyl[iy,ix]<ppar['gap_rout'][igap])&(rcyl[iy,ix]>ppar['gap_rin'][igap])):
-                        rho[ix,iy,:] = rho[ix,iy,:] * ppar['gap_drfact'][igap]
+    #if (ppar['gap_rout']>ppar['rin']):
+        #for igap in range(len(ppar['gap_rout'])):
+            #for iy in range(grid.ny):
+                #for ix in range(grid.nx):
+                    #if ((rcyl[iy,ix]<ppar['gap_rout'][igap])&(rcyl[iy,ix]>ppar['gap_rin'][igap])):
+                        #rho[ix,iy,:] = rho[ix,iy,:] * ppar['gap_drfact'][igap]
         
     
     return rho

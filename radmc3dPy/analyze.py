@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011/2012
+(c) Attila Juhasz 2011,2012,2013
 
 This sub-module contains classes and functions to read and write input/output data to/from RADMC3D
 
@@ -29,7 +29,7 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 
-from radmc3d.natconst import *
+from radmc3dPy.natconst import *
 try:
     from matplotlib.pylab import *
 except:
@@ -39,7 +39,7 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 
-from radmc3d.crd_trans import vrot, ctrans_sph2cart
+from radmc3dPy.crd_trans import vrot, ctrans_sph2cart
 
 
 from subprocess import Popen
@@ -71,6 +71,9 @@ class radmc3dGrid():
         zi         - Cell interfaces in the z (cartesian) / z (cylindrical) / phi (spherical)  dimension
         wav        - Wavelengh  grid
         freq       - Frequency  grid
+
+    METHODS:
+    --------
     """
 # --------------------------------------------------------------------------------------------------
 
@@ -161,7 +164,7 @@ class radmc3dGrid():
 
         INPUT:
         ------
-            crd_sys  - 'car'/'cyl'/'sph'  Coordinate system of the spatial grid
+            crd_sys     - 'car'/'sph'  Coordinate system of the spatial grid
             xbound      - List (with at least two elements) of boundaries for the grid along the first dimension
             ybound      - List (with at least two elements) of boundaries for the grid along the second dimension
             zbound      - List (with at least two elements) of boundaries for the grid along the third dimension
@@ -228,22 +231,101 @@ class radmc3dGrid():
                     self.act_dim[2] = 0
                     nzi = [0]
 
-#            if not xbound : xbound   = [ppar['xmin'], ppar['xmax']]
-#            if not ybound:
-#                if ppar.has_key('y_ext'):
-#                    ybound   = [0., ppar['y_ext'], pi-ppar['y_ext'], pi]
-#                else:
-#                    ybound   = [0., pi]
-#            if not zbound: zbound = [0., 2.*pi]
-#
-#            if not nxi: nxi = ppar['nx']+1
-#            if not nyi: 
-#                if ppar.has_key('y_ext'):
-#                    nyi       = [ppar['ny_ext'], ppar['ny']+1, ppar['ny_ext']]
-#                else:
-#                    nyi = ppar['ny']+1
-#            if not nzi: nzi = ppar['nz']+1
-                
+        #if (crd_sys=='car'):
+##
+## First check whether the grid boundaries are specified
+##
+            #if (xbound==None): 
+                #print 'ERROR'
+                #print 'Boundaries on the cartesian x-axis is not specified'
+                #print 'Without the boundaries no grid can be created'
+                #return
+            
+            #if (ybound==None): 
+                #print 'ERROR'
+                #print 'Boundaries on the cartesian y-axis is not specified'
+                #print 'Without the boundaries no grid can be created'
+                #return
+            #if (zbound==None): 
+                #print 'ERROR'
+                #print 'Boundaries on the cartesian z-axis is not specified'
+                #print 'Without the boundaries no grid can be created'
+                #return
+            
+            #if ((nxi==None)|(nyi==None)|(nzi==None)):
+                #print 'ERROR'
+                #print 'Number of grid points is not specified'
+                #return
+
+##
+## Type checking (what is in the dimension numbers)
+##
+
+            #if (type(nxi).__name__=='int'):  nxi = [nxi]
+            #if (type(nyi).__name__=='int'):  nyi = [nyi]
+            #if (type(nzi).__name__=='int'):  nzi = [nzi]
+
+
+
+##
+## Create the x-axis
+##
+            #if (len(nxi)>1): 
+                #self.nxi = sum(nxi)
+                #self.nx  = self.nxi-1
+                #self.xi  = xbound[0] + (xbound[1] - xbound[0])*(arange(nxi[0], dtype=float64)/float(nxi[0]))
+                #for ipart in range(1,len(nxi)-1):
+                    #dum = xbound[ipart] + (xbound[ipart+1] - xbound[ipart])*(arange(nxi[ipart], dtype=float64)/float(nxi[ipart]))
+                    #self.xi = append(self.xi, dum)
+
+                #ipart = len(nxi)-1 
+                #dum = xbound[ipart] + (xbound[ipart+1] - xbound[ipart])*(arange(nxi[ipart], dtype=float64)/float(nxi[ipart]-1))
+                #self.xi = append(self.xi, dum)
+                #self.x  = 0.5*(self.xi[0:self.nx] + self.xi[1:self.nx+1])
+            #else:
+                #if self.act_dim[0]==1:
+                    #self.nxi = nxi[0]
+                    #self.xi = xbound[0] + (xbound[1] - xbound[0])*(arange(self.nxi, dtype=float64)/float(self.nxi-1.))
+                    #self.nx = self.nxi-1
+                    #self.x  = 0.5*(self.xi[0:self.nx] + self.xi[1:self.nx+1])
+                #else:
+                    #self.x = [0.]
+                    #self.xi = [0., 0.,]
+                    #self.nx = 1
+                    #self.nxi = 2
+
+##
+## Create the x-axis
+##
+            #if (len(nyi)>1): 
+                #self.nyi = sum(nyi)
+                #self.ny  = self.nyi-1
+                #self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))
+                #for ipart in range(1,len(nyi)-1):
+                    #dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]))
+                    #self.yi = append(self.yi, dum)
+
+                #ipart = len(nyi)-1 
+                #dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]-1))
+                #self.yi = append(self.yi, dum)
+                #self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
+            #else:
+                #if self.act_dim[0]==1:
+                    #self.nyi = nyi[0]
+                    #self.yi = ybound[0] + (ybound[1] - ybound[0])*(arange(self.nyi, dtype=float64)/float(self.nyi-1.))
+                    #self.ny = self.nyi-1
+                    #self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
+                #else:
+                    #self.y = [0.]
+                    #self.yi = [0., 0.,]
+                    #self.ny = 1
+                    #self.nyi = 2
+
+            #print self.x
+            #print self.xi
+            #exit()
+            
+
 
         if (crd_sys=='sph'): 
 #
@@ -271,7 +353,7 @@ class radmc3dGrid():
             if (type(nyi).__name__=='int'):  nyi = [nyi]
             if (type(nzi).__name__=='int'):  nzi = [nzi]
 
-            
+
 #
 # Create the x axis
 #
@@ -590,6 +672,7 @@ class radmc3dData():
         self.rhodust   = -1
         self.dusttemp  = -1
         self.rhogas    = -1
+        self.gasabun   = -1
         self.gasvel    = -1
         self.gastemp   = -1
         self.vturb     = -1
@@ -1390,7 +1473,7 @@ class radmc3dData():
 # --------------------------------------------------------------------------------------------------
 class radmc3dStars():
     """
-    Class of the radiation sources 
+    Class of the radiation sources (currently only stars)
 
     ATTRIBUTES:
     -----------
@@ -1532,6 +1615,17 @@ class radmc3dStars():
 
 # --------------------------------------------------------------------------------------------------
     def write_starsinp(self, wav=None, freq=None, pstar=None, tstar=None):
+        """
+        Writes the stars.inp file
+
+        INPUT:
+        ------
+            wav   - Wavelength grid for the stellar spectrum
+            freq  - Frequency grid for the stellar spectrum (either freq or wav should be set)
+            pstar - List of the cartesian coordinates of the stars (each element of pstar should be a list of three elements
+                    with the [x,y,z] coordinate of the individual stars)
+            tstar - List containing the effective temperature of the stars
+        """
 
         if freq!=None:
             self.wav  = cc/array(freq)
@@ -1576,6 +1670,7 @@ class radmc3dStars():
         Function to calculate a blackbody stellar spectrum
 
         INPUT:
+        ------
             tstar : Effective temperature of the star in [K]
             rstar : Radius of the star in [cm]
             lstar : Bolometric luminosity of the star [erg/s] (either rstar or lstar should be given)
@@ -1638,7 +1733,7 @@ class radmc3dStars():
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 class radmc3dDustOpac():
     """
-    Class for dust opacities
+    Dust opacity class
 
     ATTRIBUTES:
     -----------
@@ -1652,11 +1747,13 @@ class radmc3dDustOpac():
         therm   - if False the dust grains are quantum-heated (default: True)
         idust   - index of the dust species in the dust density distribution array
 
-    FUNCTIONS:
-    ----------
-        readopac()
-        read_masteropac() 
-        write_masteropac() 
+    METHODS:
+    --------
+        readopac()          - Read the dust opacity files
+        read_masteropac()   - Read the master opacity file
+        write_masteropac()  - Write the master opacity file
+        makeopac()          - Calculates opacities with the Mie-code that comes with RADMC-3D (using the run_makedust() function)
+        run_makedust()      - Runs the Mie-code to calculate dust opacities
 
     """
 # --------------------------------------------------------------------------------------------------
@@ -2432,8 +2529,6 @@ class radmc3dPar():
 # --------------------------------------------------------------------------------------------------
     def readparams(self, fname=''):
         """
-        (c) 2011 Attila Juhasz, Leiden
-
         Function to read a parameter file 
         The parameters in the files should follow the python syntax
 
@@ -2650,6 +2745,7 @@ class radmc3dPar():
                 print ' The argument of radmc3dPar.add_par() should be a four element list if a new'
                 print ' parameter is defined 1) parameter name, 2) parameter expression/value as a string'
                 print ' 3) Parameter description (= comment field in the parameter file)'
+                print ' 4) The name of the block in which the parameter must be placed in the problem_params.inp file'
                 return
         else:
             new_par = True
@@ -2673,10 +2769,12 @@ class radmc3dPar():
 
         self.pvalstr[parname] = parlist[1].strip()
         
-        if new_par: 
-            self.pdesc[parname] = parlist[2].strip()
+        if new_par:
+            if not self.pdesc.has_key(parname):
+                self.pdesc[parname] = parlist[2].strip()
             if len(parlist)==4:
-                self.pblock[parname] = parlist[3].strip()
+                if not self.pblock.has_key(parname):
+                    self.pblock[parname] = parlist[3].strip()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -2710,28 +2808,6 @@ class radmc3dPar():
         self.add_par(['tstar','[4000.0]', '# Effective temperature of the star(s) [K]', 'Radiation sources'])
         self.add_par(['pstar','[0.0, 0.0, 0.0]', '# Position of the star(s) (cartesian coordinates)', 'Radiation sources'])
         #
-        # Model parameters
-        #
-
-        if model!='':
-            try:
-                mdl = __import__('model_'+model)
-            except:
-                try:
-                    mdl  = __import__('radmc3d.model_'+model, fromlist=['']) 
-                except:
-                    print 'ERROR'
-                    print ' model_'+model+'.py could not be imported'
-                    print ' The model files should either be in the current working directory or'
-                    print ' in the radmc3d python module directory'
-                    return
-
-            modpar = mdl.get_default_params()
-            for i in range(len(modpar)):
-                dum = modpar[i]
-                dum.append('Model '+model)
-                self.add_par(dum)
-        #
         # Grid parameters
         #
         self.add_par(['crd_sys', "'sph'", '  Coordinate system used (car/sph/cyl)', 'Grid parameters']) 
@@ -2763,6 +2839,7 @@ class radmc3dPar():
         self.add_par(['gasspec_dbase_type',"'leiden'", '  leiden or linelist', 'Gas line RT'])
         self.add_par(['gasspec_abun', '1e-4/(2.3*mp)', '  Abundance of the molecule', 'Gas line RT']) 
         self.add_par(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
+        self.add_par(['write_gastemp', 'False', '  Whether or not to write a separate dust temperature file (gas_temperature.inp)', 'Gas line RT'])
         #
         # Code parameters
         #
@@ -2773,13 +2850,32 @@ class radmc3dPar():
         self.add_par(['istar_sphere', '0', '  1 - take into account the finite size of the star, 0 - take the star to be point-like', 'Code parameters'])
         self.add_par(['itempdecoup', '1', '  Enable for different dust components to have different temperatures', 'Code parameters'])
         self.add_par(['tgas_eq_tdust', '1', '  Take the dust temperature to identical to the gas temperature', 'Code parameters'])
+        #
+        # Model parameters
+        #
+        if model!='':
+            try:
+                mdl = __import__('model_'+model)
+            except:
+                try:
+                    mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
+                except:
+                    print 'ERROR'
+                    print ' model_'+model+'.py could not be imported'
+                    print ' The model files should either be in the current working directory or'
+                    print ' in the radmc3d python module directory'
+                    return
+
+            modpar = mdl.get_default_params()
+            for i in range(len(modpar)):
+                dum = modpar[i]
+                dum.append('Model '+model)
+                self.add_par(dum)
         
 
 # --------------------------------------------------------------------------------------------------
     def write_parfile(self, fname=''):
         """
-        (c) 2012 Attila Juhasz, Leiden
-
         Function to write a parameter file 
 
 
@@ -2851,7 +2947,7 @@ class radmc3dPar():
 def readopac(ext=[''], idust=None, used=False):
     """
     Function to read the dust opacity files 
-    This function is only an interface to radmc3dDustOpac.readopac()
+    This function is an interface to radmc3dDustOpac.readopac()
 
     INPUT:
     ------
@@ -2859,6 +2955,21 @@ def readopac(ext=[''], idust=None, used=False):
         idust: index of the dust species in the master opacity file (dustopac.inp')
         used : if set to True the used dust opacity file ('dustkappa_ext.inp.used') file is read, 
                 which is interpolated to the frequency grid of the RADMC3D run
+
+    OUTPUT:
+    -------
+        Returns an instance of the radmc3dDustOpac class with the following attributes:
+        
+        wav     - wavelength grid
+        freq    - frequency grid
+        nwav    - number of wavelengths
+        kabs    - absorption coefficient per unit mass
+        ksca    - scattering coefficient per unit mass
+        phase_g - phase function
+        ext     - if set it contains the file name extension of the duskappa_ext.Kappa file
+        therm   - if False the dust grains are quantum-heated (default: True)
+        idust   - index of the dust species in the dust density distribution array
+    
     """
 
 
@@ -2871,7 +2982,31 @@ def readopac(ext=[''], idust=None, used=False):
 # --------------------------------------------------------------------------------------------------
 def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None):
     """
-    Function to read the dust density distribution
+    Function to read the model data (e.g. density, velocity, temperature)
+
+    INPUT:
+    ------
+        ddens - If True dust density will be read (all dust species and grain sizes)
+        dtemp - If True dust temperature will be read (all dust species and grain sizes)
+        gdens - If True gas density will be read (NOTE: the gas density will be number density in 1/cm^3)
+        gtemp - If True gas temperature will be read (all dust species and grain sizes)
+        gvel  - If True the velocity field will be read
+        ispec - Name of the molecule in the 'molecule_ispec.inp' filename
+
+    OUTPUT:
+    ------
+        Returns an instance of the radmc3dData class with the following attributes:
+            rhodust   -  Dust density in g/cm^3 
+            dusttemp  -  Dust temperature in K 
+            rhogas    -  Gas density in molecule/cm^3
+            gasvel    -  Gas velocity in cm/s 
+            gastemp   -  Gas temperature in K
+            vturb     -  Mictroturbulence in cm/s
+            taux      -  Optical depth along the x (cartesian) / r (cylindrical) / r (spherical) dimension
+            tauy      -  Optical depth along the y (cartesian) / theta (cylindrical) / theta (spherical) dimension
+            tauz      -  Optical depth along the z (cartesian) / z (cylindrical) / phi (spherical) dimension
+            sigmadust -  Dust surface density in g/cm^2
+            sigmagas  -  Gas surface density in molecule/cm^2 (or g/cm^2 depending on the dimension of rhogas)
     """
 
     res = radmc3dData()
@@ -2895,6 +3030,30 @@ def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, is
 def read_grid():
     """
     Function to read the spatial and frequency grid
+
+    OUTPUT
+    ------
+
+        Returns an instance of the radmc3dGrid class with the following attributes:
+
+        crd_sys    - 'car'/'cyl'/'sph' coordinate system of the spatial grid
+        act_dim    - A three element vector the i-th element is 1 if the i-th dimension is active, otherwize the i-th element is zero
+        nx         - Number of grid points in the x (cartesian) / r (cylindrical) / r (spherical) dimension
+        ny         - Number of grid points in the y (cartesian) / theta (cylindrical) / theta (spherical) dimension
+        nz         - Number of grid points in the z (cartesian) / z (cylindrical) / phi (spherical) dimension
+        nxi        - Number of cell interfaces in the x (cartesian) / r (cylindrical) / r (spherical) dimension
+        nyi        - Number of cell interfaces in the y (cartesian) / theta (cylindrical) / theta (spherical) dimension
+        nzi        - Number of cell interfaces in the z (cartesian) / z (cylindrical) / phi (spherical) dimension
+        nwav       - Number of wavelengths in the wavelength grid
+        freq       - Number of frequencies in the grid (equal to nwav)
+        x          - Cell centered x (cartesian) / r (cylindrical) / r (spherical)  grid points
+        y          - Cell centered y (cartesian) / theta (cylindrical) / theta (spherical)  grid points
+        z          - Cell centered z (cartesian) / z (cylindrical) / phi (spherical)  grid points
+        xi         - Cell interfaces in the x (cartesian) / r (cylindrical) / r (spherical)  dimension
+        yi         - Cell interfaces in the y (cartesian) / theta (cylindrical) / theta (spherical)  dimension
+        zi         - Cell interfaces in the z (cartesian) / z (cylindrical) / phi (spherical)  dimension
+        wav        - Wavelengh  grid
+        freq       - Frequency  grid
     """
 
     grid = radmc3dGrid()
@@ -2905,7 +3064,16 @@ def read_grid():
 # --------------------------------------------------------------------------------------------------
 def readparams():
     """
-    Interface function to  radmc3dPar.readparams()
+    Function to read the problem_params.inp file (interface function to radmc3dPar.readparams())
+
+    OUTPUT:
+    -------
+        Returns an instance of the radmc3dPar class with the following attributes:
+
+        ppar   : Dictionary containing parameter values with parameter names as keys 
+        pdesc  : Disctionary containing parameter description (comments in the parameter file) with parameter names as keys
+        pblock : Dictionary containing the block names in the parameter file and parameter names as values 
+        pvalstr: Dictionary containing parameter values as strings with parameter names as keys
     """
 
     dum = radmc3dPar()
@@ -2914,7 +3082,7 @@ def readparams():
 # --------------------------------------------------------------------------------------------------
 def write_default_parfile(model='', fname=''):
     """
-    Function to write a parameter file with default parameters for a given model
+    Function to write a parameter file (problem_params.inp) with default parameters for a given model
 
     INPUT:
     ------

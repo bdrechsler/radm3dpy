@@ -27,7 +27,7 @@ except:
         print ' The model files should either be in the current working directory or'
         print ' in the radmc3d python module directory'
 
-from radmc3d.natconst import *
+from radmc3dPy.natconst import *
 import sys
 
 def get_default_params():

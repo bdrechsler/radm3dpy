@@ -1,3 +1,28 @@
+"""
+PYTHON module for RADMC3D 
+(c) Attila Juhasz 2011,2012,2013
+
+Generic protoplanetary disk model 
+
+    The density is given by 
+
+                Sigma(r,phi)          /   z^2    \
+        rho =  ---------------- * exp| - -------- |
+                Hp * sqrt(2*pi)       \   2*Hp^2 /
+
+        Sigma - surface density
+        Hp    - Pressure scale height
+        Hp/r  = hrdisk * (r/rdisk)^plh
+
+FUNCTIONS:
+----------
+
+    get_dust_density() - Calculates the dust volume density in g/cm^3
+    get_gas_density()  - Calculates the gas volume density in g/cm^3
+    get_velocity()     - Calculates the velocity field
+    get_desc()         - Returns the short description of this model
+
+"""
 try:
     import numpy as np
 except:
@@ -6,7 +31,7 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 
-from radmc3d.natconst import *
+from radmc3dPy.natconst import *
 try:
     from matplotlib.pylab import *
 except:
@@ -16,22 +41,19 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 
-from radmc3d.crd_trans import vrot
+from radmc3dPy.crd_trans import vrot
 import sys
 
-"""
-PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011/2012
 
-Generic protoplanetary disk model
+def get_desc():
+    """
+    Function to provide a brief description of the model
+    """
 
-FUNCTIONS:
-----------
+    return "Generic protoplanetary disk model"
+           
 
-    get_density()
-    get_velocity()
 
-"""
 def get_default_params():
     """
     Function to provide default parameter values 
@@ -51,7 +73,8 @@ def get_default_params():
 
     defpar = {}
 
-    defpar = [['rin', '1.0*au', ' Inner radius of the disk'],
+    defpar = [ ['nx', '230', 'Number of radial grid points'],
+    ['rin', '1.0*au', ' Inner radius of the disk'],
     ['rdisk', '200.0*au', ' Outer radius of the disk'],
     ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
     ['hrpivot', "200.0*au", ' Reference radius at which Hp/R is taken'],
@@ -68,7 +91,57 @@ def get_default_params():
 
     return defpar
 
-def get_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
+def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
+    """
+    Function to create the density distribution in a protoplanetary disk
+    
+    OUTPUT:
+    -------
+        returns the volume density in g/cm^3, whether the density is that of the gas
+        or dust or both depends on what is specified in the surface density/mass
+    """
+
+# Get the gas density
+    rhogas = get_gas_density(rcyl=rcyl, phi=phi, z=z, z0=z0, hp=hp, sigma=sigma, grid=grid, ppar=ppar)
+
+    rho = array(rhogas)*0. * ppar['dusttogas']
+
+# Split up the disk density distribution according to the given abundances
+    if ppar.has_key('dustkappa_ext'):
+        ngs  = len(ppar['dustkappa_ext'])
+        if ppar.has_key('mfrac'):
+            gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+        else:
+            ngs = 1
+            
+            
+    else:
+        ngs = ppar['ngs']
+        #
+        # WARNING!!!!!!
+        # At the moment I assume that the multiple dust population differ from each other only in 
+        # grain size but not in bulk density thus when I calculate the abundances / mass fractions 
+        # they are independent of the grains bulk density since abundances/mass fractions are normalized
+        # to the total mass. Thus I use 1g/cm^3 for all grain sizes.
+        # TODO: Add the possibility to handle multiple dust species with different bulk densities and 
+        # with multiple grain sizes.
+        #
+        gdens = zeros(ngs, dtype=float) + 1.0
+        gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
+        gmass = 4./3.*np.pi*gs**3. * gdens
+        gsfact = gmass * gs**(ppar['gsdist_powex']+1)
+        gsfact = gsfact / gsfact.sum()
+
+    if (ngs>1):
+       
+        rho_old = array(rho)
+        rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
+        for igs in range(ngs):
+            rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
+
+    return rho
+
+def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
     """
     Function to create the density distribution in a protoplanetary disk
     
@@ -174,38 +247,38 @@ def get_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=
 
 
     
-    # Split up the disk density distribution according to the given abundances
-    if ppar.has_key('dustkappa_ext'):
-        ngs  = len(ppar['dustkappa_ext'])
-        if ppar.has_key('mfrac'):
-            gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
-        else:
-            ngs = 1
+    ## Split up the disk density distribution according to the given abundances
+    #if ppar.has_key('dustkappa_ext'):
+        #ngs  = len(ppar['dustkappa_ext'])
+        #if ppar.has_key('mfrac'):
+            #gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+        #else:
+            #ngs = 1
             
             
-    else:
-        ngs = ppar['ngs']
-        #
-        # WARNING!!!!!!
-        # At the moment I assume that the multiple dust population differ from each other only in 
-        # grain size but not in bulk density thus when I calculate the abundances / mass fractions 
-        # they are independent of the grains bulk density since abundances/mass fractions are normalized
-        # to the total mass. Thus I use 1g/cm^3 for all grain sizes.
-        # TODO: Add the possibility to handle multiple dust species with different bulk densities and 
-        # with multiple grain sizes.
-        #
-        gdens = zeros(ngs, dtype=float) + 1.0
-        gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
-        gmass = 4./3.*np.pi*gs**3. * gdens
-        gsfact = gmass * gs**(ppar['gsdist_powex']+1)
-        gsfact = gsfact / gsfact.sum()
+    #else:
+        #ngs = ppar['ngs']
+        ##
+        ## WARNING!!!!!!
+        ## At the moment I assume that the multiple dust population differ from each other only in 
+        ## grain size but not in bulk density thus when I calculate the abundances / mass fractions 
+        ## they are independent of the grains bulk density since abundances/mass fractions are normalized
+        ## to the total mass. Thus I use 1g/cm^3 for all grain sizes.
+        ## TODO: Add the possibility to handle multiple dust species with different bulk densities and 
+        ## with multiple grain sizes.
+        ##
+        #gdens = zeros(ngs, dtype=float) + 1.0
+        #gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
+        #gmass = 4./3.*np.pi*gs**3. * gdens
+        #gsfact = gmass * gs**(ppar['gsdist_powex']+1)
+        #gsfact = gsfact / gsfact.sum()
 
-    if (ngs>1):
+    #if (ngs>1):
        
-        rho_old = array(rho)
-        rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
-        for igs in range(ngs):
-            rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
+        #rho_old = array(rho)
+        #rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
+        #for igs in range(ngs):
+            #rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
 
     return rho
 # -----------------------------------------------------------------------------------------------
