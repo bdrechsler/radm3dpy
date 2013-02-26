@@ -3225,6 +3225,9 @@ class radmc3dPar():
         self.add_par(['xbound', '[1.0*au, 100.*au]', '  Boundaries for the x grid', 'Grid parameters'])
         self.add_par(['ybound', '[0.0, pi]', '  Boundaries for the y grid', 'Grid parameters'])
         self.add_par(['zbound', '[0.0, 2.0*pi]', '  Boundraries for the z grid', 'Grid parameters'])
+        self.add_par(['xres_nlev', '3', 'Number of refinement levels (spherical coordinates only', 'Grid parameters'])
+        self.add_par(['xres_nspan', '3', 'Number of the original grid cells to refine (spherical coordinates only)', 'Grid parameters'])
+        self.add_par(['xres_nstep', '3', 'Number of grid cells to create in a refinement level (spherical coordinates only)', 'Grid parameters'])
         self.add_par(['wbound', '[0.1, 7.0, 25., 1e4]', '  Boundraries for the wavelength grid', 'Grid parameters'])
         self.add_par(['nw', '[19, 50, 30]', '  Number of points in the wavelength grid', 'Grid parameters'])
 
