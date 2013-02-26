@@ -295,6 +295,26 @@ class radmc3dGrid():
                     self.nx = 1
                     self.nxi = 2
 
+            # Refinement of the inner edge of the grid
+            # This has to be done properly
+            if ppar.has_key('xres_nlev'):
+                ri_ext = array([self.xi[0], self.xi[ppar['xres_nspan']]])
+                for i in range(ppar['xres_nlev']):
+                    dum_ri = ri_ext[0] + (ri_ext[1]-ri_ext[0]) * arange(ppar['xres_nstep']+1, dtype=float64) / float(ppar['xres_nstep'])
+                    print ri_ext[0:2]/au
+                    print dum_ri/au
+                    ri_ext_old = array(ri_ext)
+                    ri_ext = array(dum_ri)
+                    ri_ext = append(ri_ext,ri_ext_old[2:])
+                    print ri_ext/au
+                    print '----------'
+                    
+                r_ext = (ri_ext[1:] + ri_ext[:-1]) * 0.5
+
+                self.xi = append(ri_ext, self.xi[ppar['xres_nspan']+1:])
+                self.x = append(r_ext, self.x[ppar['xres_nspan']:])
+                self.nx = self.x.shape[0]
+                self.nxi = self.xi.shape[0]
 #
 # Create the y-ayis
 #
@@ -918,7 +938,7 @@ class radmc3dData():
             else:
                 self.rhodust = -1
 
-        rfile.close()
+            rfile.close()
 # --------------------------------------------------------------------------------------------------
     def read_dusttemp(self, fname='', binary=True):
         """

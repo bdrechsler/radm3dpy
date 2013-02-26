@@ -30,6 +30,21 @@ except:
 
 from radmc3dPy.crd_trans import vrot
 import sys
+"""
+PYTHON module for RADMC3D 
+(c) Attila Juhasz 2011,2012,2013
+
+Circumstellar disk with spiral waves
+
+"""
+
+def get_desc():
+    """
+    Function to provide a brief description of the model
+    """
+
+    return "Circumstellar disk model with spiral waves (spiral wake equation is taken from Oglivie & Lubov 2002)"
+           
 
 def get_default_params():
     """
@@ -255,7 +270,7 @@ def get_spiral_amp_ol02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa
 # ***********************************************************************************************
 # 
 # ***********************************************************************************************
-def get_density(grid=None, ppar=None):
+def get_dust_density(grid=None, ppar=None):
 
 #
 # Apply perturbations 
@@ -325,7 +340,7 @@ def get_density(grid=None, ppar=None):
                 hp = hp * (1.0 + sp_amp) 
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+                rho = ppdisk.get_dust_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
 
 
 
@@ -367,7 +382,7 @@ def get_density(grid=None, ppar=None):
                 sigma = sigma * (1.0 + sp_amp)
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_density(grid=grid, sigma=sigma,ppar=ppar)
+                rho = ppdisk.get_dust_density(grid=grid, sigma=sigma,ppar=ppar)
 
 
 # ------------------------------------------------------------------------------------------
@@ -414,7 +429,173 @@ def get_density(grid=None, ppar=None):
                 hp = hp * (1.0 + sp_amp) 
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+                rho = ppdisk.get_dust_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+
+
+    return rho
+# ***********************************************************************************************
+# 
+# ***********************************************************************************************
+def get_gas_density(grid=None, ppar=None):
+
+#
+# Apply perturbations 
+#
+
+    rr, th = np.meshgrid(grid.x, grid.y)
+    rcyl = rr * np.sin(th)    
+
+    sp_amp  = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+
+    if ppar.has_key('do_spiral_ol02'):
+        if ppar['do_spiral_ol02']:
+            init = init_spiral_amp_ol02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
+                                            nr=ppar['nx'])
+            if ppar.has_key('sp_sig'):
+                sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+                                         spa=ppar['spa'], sp_sig=ppar['sp_sig'], \
+                                         nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
+                                         location=ppar['spiral_location'])
+            else:
+                sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+                                         spa=ppar['spa'], \
+                                         nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
+                                         location=ppar['spiral_location'])
+
+            sp_amp = sp_amp.swapaxes(1,2)
+# ------------------------------------------------------------------------------------------
+# Do the perturbation in the pressure scale height only
+# ------------------------------------------------------------------------------------------
+            if (ppar['pert_var']==1):
+                sigma = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+             
+# Calculate the surface density
+                if ppar.has_key('sig0'):
+                    if ppar['sig0']!=0.:
+                        sig0 = ppar['sig0']
+
+                if ppar.has_key('mdisk'):
+                    if (ppar['mdisk']!=0.0):
+                        sig0 = 1.0
+                        
+                dum    = sig0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                dum = dum.swapaxes(0,1)
+                for iz in range(grid.nz):
+                    sigma[:,:,iz] = dum
+
+                mass = 0.0
+                for ix in range(grid.nx):
+                    dum = sigma[ix,:,0] * (grid.xi[ix+1]**2. - grid.xi[ix]**2.) * np.pi * \
+                        (grid.zi[1] - grid.zi[0]) / (2.0*np.pi)
+                    mass = mass + dum.sum()
+                    
+                if ppar.has_key('mdisk'):
+                    if (ppar['mdisk']!=0.0):
+                        sigma = sigma * ppar['mdisk'] / mass
+ 
+# Calculate the pressure scale height
+
+                hp = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+                dum = ppar['hrdisk'] * (rcyl/ppar['rdisk'])**ppar['plh'] * rcyl
+                dum = dum.swapaxes(0,1)
+                for iz in range(grid.nz):
+                    hp[:,:,iz] = dum
+
+# Now do the perturbation
+
+                hp = hp * (1.0 + sp_amp) 
+
+# Calculate the volume density of the whole disk
+                rho = ppdisk.get_gas_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+
+
+
+# ------------------------------------------------------------------------------------------
+# Do the perturbation in the surface density only
+# ------------------------------------------------------------------------------------------
+
+
+            if (ppar['pert_var']==2):
+
+                sigma = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+
+# Calculate the surface density
+                if ppar.has_key('sig0'):
+                    if ppar['sig0']!=0.:
+                        sig0 = ppar['sig0']
+
+                if ppar.has_key('mdisk'):
+                    if (ppar['mdisk']!=0.0):
+                        sig0 = 1.0
+                        
+                dum    = sig0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                dum = dum.swapaxes(0,1)
+                for iz in range(grid.nz):
+                    sigma[:,:,iz] = dum
+
+                mass = 0.0
+                for ix in range(grid.nx):
+                    dum = sigma[ix,:,0] * (grid.xi[ix+1]**2. - grid.xi[ix]**2.) * np.pi * \
+                        (grid.zi[1] - grid.zi[0]) / (2.0*np.pi)
+                    mass = mass + dum.sum()
+                    
+                if ppar.has_key('mdisk'):
+                    if (ppar['mdisk']!=0.0):
+                        sigma = sigma * ppar['mdisk'] / mass
+                
+# Now do the perturbation
+
+                sigma = sigma * (1.0 + sp_amp)
+
+# Calculate the volume density of the whole disk
+                rho = ppdisk.get_gas_density(grid=grid, sigma=sigma,ppar=ppar)
+
+
+# ------------------------------------------------------------------------------------------
+# Do the perturbation both in the surface density and in the pressure scale height
+# ------------------------------------------------------------------------------------------
+            if (ppar['pert_var']==3):
+                sigma = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+
+# Calculate the surface density
+                if ppar.has_key('sig0'):
+                    if ppar['sig0']!=0.:
+                        sig0 = ppar['sig0']
+                
+                if ppar.has_key('mdisk'):
+                    if (ppar['mdisk']!=0.0):
+                        sig0 = 1.0
+                        
+                dum    = sig0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                dum = dum.swapaxes(0,1)
+                for iz in range(grid.nz):
+                    sigma[:,:,iz] = dum
+
+                mass = 0.0
+                for ix in range(grid.nx):
+                    dum = sigma[ix,:,0] * (grid.xi[ix+1]**2. - grid.xi[ix]**2.) * np.pi * \
+                        (grid.zi[1] - grid.zi[0]) / (2.0*np.pi)
+                    mass = mass + dum.sum()
+                    
+                if ppar.has_key('mdisk'):
+                    if (ppar['mdisk']!=0.0):
+                        sigma = sigma * ppar['mdisk'] / mass
+                
+# Calculate the pressure scale height
+
+                hp = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+                dum = ppar['hrdisk'] * (rcyl/ppar['rdisk'])**ppar['plh'] * rcyl
+                dum = dum.swapaxes(0,1)
+                for iz in range(grid.nz):
+                    hp[:,:,iz] = dum
+
+# Now do the perturbation
+
+                sigma = sigma * (1.0 + sp_amp)
+                hp = hp * (1.0 + sp_amp) 
+
+# Calculate the volume density of the whole disk
+                rho = ppdisk.get_gas_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
 
 
     return rho

@@ -78,7 +78,11 @@ def get_default_params():
 
     defpar = {}
 
-    defpar = [ ['nx', '[30,50]', 'Number of grid points in the first dimension'],
+    defpar = [ 
+    ['xres_nlev', '3', 'Number of refinement levels'],
+    ['xres_nspan', '3', 'Number of the original grid cells to refine'],
+    ['xres_nstep', '3', 'Number of grid cells to create in a refinement level'],
+    ['nx', '[30,50]', 'Number of grid points in the first dimension'],
     ['xbound', '[1.0*au,1.05*au, 100.0*au]', 'Number of radial grid points'],
     ['ny', '[10,30,30,10]', 'Number of grid points in the first dimension'],
     ['ybound', '[0., pi/3., pi/2., 2.*pi/3., pi]', 'Number of radial grid points'],

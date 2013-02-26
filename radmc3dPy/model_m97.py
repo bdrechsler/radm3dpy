@@ -31,6 +31,20 @@ from radmc3dPy.natconst import *
 import sys
 
 
+"""
+PYTHON module for RADMC3D 
+(c) Attila Juhasz 2011,2012,2013
+
+Warped protoplanetary disk model of Mouillet et al. 1997
+
+"""
+
+def get_desc():
+    """
+    A one line description of the model
+    """
+
+    return 'Warped circumstellar disk model of Mouillet et al. 1997'
 
 def get_default_params():
     """
@@ -53,10 +67,10 @@ def get_default_params():
     defpar = ppdisk.get_default_params()
 
     defpar.append(['warp_model', "'m97'", ' Name of the warp model'])
-    defpar.append(['dcomp', '5.0*au', ' Distance of the companion, causing the perturbation, from the central star'])
-    defpar.append(['icomp', '10./180.*pi', ' Incliation of the companion with respecto the disk plane in radians'])
-    defpar.append(['mcomp', '1.0*mju', ' Mass of the perturber companion'])
-    defpar.append(['t', '1e5*year', ' Time at which the perturbation should be calculated'])
+    defpar.append(['warp_dcomp', '5.0*au', ' Distance of the companion, causing the perturbation, from the central star'])
+    defpar.append(['warp_icomp', '10./180.*pi', ' Incliation of the companion with respecto the disk plane in radians'])
+    defpar.append(['warp_mcomp', '1.0*mju', ' Mass of the perturber companion'])
+    defpar.append(['warp_t', '1e5*year', ' Time at which the perturbation should be calculated'])
 
     return defpar
 
@@ -150,9 +164,11 @@ def get_warp_omega_prec(rcyl=None, phi=None, mstar=None, dcomp=None, icomp=None,
     return omega_prec
 
 # -----------------------------------------------------------------------------------------------
-# 
 # -----------------------------------------------------------------------------------------------
-def get_density(grid=None, ppar=None):
+def get_gas_density(grid=None, ppar=None):
+    """
+    Calculates dust density in g/cm^3
+    """
 
 #
 # Apply perturbations 
@@ -162,10 +178,10 @@ def get_density(grid=None, ppar=None):
 
 
     if ppar.has_key('warp_model'):
-        if ppar['warp_model']=='m97':
+        if ppar['warp_model'].lower()=='m97':
             z0 =get_warp_z0_m97(grid=grid, mstar=ppar['mstar'], \
-                                    dcomp=ppar['dcomp'],  icomp=ppar['icomp'], mcomp=ppar['mcomp'],\
-                                    t=ppar['t'])
+                                    dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
+                                    t=ppar['warp_t'])
 
     rr, th = np.meshgrid(grid.x, grid.y)
     rcyl = rr * np.sin(th)
@@ -173,11 +189,45 @@ def get_density(grid=None, ppar=None):
 
     for ix in range(grid.nx):
         for iy in range(grid.ny):
-            if (rcyl[iy,ix]<ppar['dcomp']):
+            if (rcyl[iy,ix]<ppar['warp_dcomp']):
                 z0[ix,:,iy] = 0.0
 
 
-    rho = ppdisk.get_density(z0=z0, grid=grid, ppar=ppar)
+    rho = ppdisk.get_gas_density(z0=z0, grid=grid, ppar=ppar)
+
+
+    return rho
+# -----------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+def get_dust_density(grid=None, ppar=None):
+    """
+    Calculates dust density in g/cm^3
+    """
+
+#
+# Apply perturbations 
+#
+    
+    z0      = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
+
+
+    if ppar.has_key('warp_model'):
+        if ppar['warp_model'].lower()=='m97':
+            z0 =get_warp_z0_m97(grid=grid, mstar=ppar['mstar'], \
+                                    dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
+                                    t=ppar['warp_t'])
+
+    rr, th = np.meshgrid(grid.x, grid.y)
+    rcyl = rr * np.sin(th)
+    zz   = rr * np.cos(th)
+
+    for ix in range(grid.nx):
+        for iy in range(grid.ny):
+            if (rcyl[iy,ix]<ppar['warp_dcomp']):
+                z0[ix,:,iy] = 0.0
+
+
+    rho = ppdisk.get_dust_density(z0=z0, grid=grid, ppar=ppar)
 
 
     return rho

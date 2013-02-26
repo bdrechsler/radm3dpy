@@ -35,9 +35,9 @@ import sys, os
 
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012
+(c) Attila Juhasz 2011,2012,2013
 
-Generic protoplanetary disk model
+Protoplanetary disk model with surface density taken from the 2D hydrodynamic code FARGO
 
 """
 
@@ -47,7 +47,7 @@ def get_desc():
     """
 
     return "Protoplanetary disk model. The surface density is taken from the output "+\
-            "of the hydrodynamic code FARGO. Vertical structure is calculated analytically"
+            "of the hydrodynamic code FARGO. Vertical structure is calculated analytically."
 
 def get_default_params():
     """

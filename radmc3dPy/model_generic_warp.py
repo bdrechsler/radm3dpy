@@ -29,6 +29,19 @@ except:
 
 from radmc3dPy.natconst import *
 import sys
+"""
+PYTHON module for RADMC3D 
+(c) Attila Juhasz 2011,2012,2013
+
+Generic warped protoplanetary disk model
+
+"""
+def get_desc():
+    """
+    A one line description of the model
+    """
+
+    return 'A generic warped disk model with analyitcal description for the warp'
 
 def get_default_params():
     """
