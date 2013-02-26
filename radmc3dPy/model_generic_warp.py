@@ -20,7 +20,7 @@ try:
     ppdisk = __import__('model_ppdisk')
 except:
     try:
-        ppdisk  = __import__('radmc3d.model_ppdisk', fromlist=['']) 
+        ppdisk  = __import__('radmc3dPy.model_ppdisk', fromlist=['']) 
     except:
         print 'ERROR'
         print ' model_ppdisk.py could not be imported (required by the selected warp_model "m97")'
@@ -131,7 +131,7 @@ def warp_angles(grid=None, ppar=None, outer=False):
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_density(grid=None, ppar=None):
+def get_dust_density(grid=None, ppar=None):
 
 #
 # Apply perturbations 
@@ -157,9 +157,9 @@ def get_density(grid=None, ppar=None):
 
     if ppar.has_key('warp_model'):
         if ppar['warp_model']=='generic_warp':
-            rho = ppdisk.get_density(z0=z0, grid=grid, ppar=ppar)
+            rho = ppdisk.get_dust_density(z0=z0, grid=grid, ppar=ppar)
         else:
-            rho = ppdisk.get_density(grid=grid, ppar=ppar)
+            rho = ppdisk.get_dust_density(grid=grid, ppar=ppar)
     else:
         rho = ppdisk.get_density(grid=grid, ppar=ppar)
 

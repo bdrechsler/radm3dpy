@@ -144,8 +144,10 @@ def problem_setup_dust(model='', **kwargs):
     """
   
     # Read the parameters from the problem_params.inp file 
-    dum = readparams()
-    ppar = dum.ppar
+    modpar = readparams()
+
+    # Make a local copy of the ppar dictionary
+    ppar = modpar.ppar
 
 
     if model=='':
@@ -240,7 +242,7 @@ def problem_setup_dust(model='', **kwargs):
     #Dust density distribution
     data.write_dustdens()
     #radmc3d.inp
-    write_radmc3d_inp(ppar=ppar)
+    write_radmc3d_inp(modpar=modpar)
 
 # --------------------------------------------------------------------------------------------
 # Calculate optical depth for diagnostics purposes
@@ -478,7 +480,7 @@ def problem_setup_gas(model='', fullsetup=False, **kwargs):
     # Write the lines.inp the main control file for the line RT
     write_lines_inp(ppar=ppar)
 # --------------------------------------------------------------------------------------------------
-def write_radmc3d_inp(ppar=None):
+def write_radmc3d_inp(modpar=None):
     """
     Function to write the radmc3d.inp master command file for RADMC3D
 
@@ -488,15 +490,21 @@ def write_radmc3d_inp(ppar=None):
 
     """
 
+    # Select those keywords, whose block name is 'Code parameters'
+    ppar = {}
+
+    for ikey in modpar.pblock.keys():
+        if modpar.pblock[ikey]=='Code parameters':
+            ppar[ikey] = modpar.ppar[ikey]
+
     print 'Writing radmc3d.inp'
 
     wfile = open('radmc3d.inp', 'w')
-    radmc3d_runkeys = ['nphot', 'nphot_scat', 'scattering_mode_max', 'lines_mode', 'istar_sphere', 'itempdecoup', 'tgas_eq_tdust']
-    radmc3d_runkeys.sort()
-
-    for key in radmc3d_runkeys:
-        if ppar.has_key(key):
-            wfile.write('%s %d\n'%(key+' =',ppar[key]))
+    keys = ppar.keys()
+    keys.sort()
+    for key in keys:
+        #if modpar.ppar.has_key(key):
+        wfile.write('%s %d\n'%(key+' =',ppar[key]))
 
     wfile.close()
 

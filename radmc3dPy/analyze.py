@@ -182,7 +182,8 @@ class radmc3dGrid():
         self.act_dim = [1,1,1]
         if ppar:
             if not crd_sys : crd_sys = ppar['crd_sys']
-            
+            self.crd_sys =  crd_sys
+           
             if not xbound : 
                 if ppar.has_key('xbound'):
                     xbound = ppar['xbound']
@@ -231,100 +232,123 @@ class radmc3dGrid():
                     self.act_dim[2] = 0
                     nzi = [0]
 
-        #if (crd_sys=='car'):
-##
-## First check whether the grid boundaries are specified
-##
-            #if (xbound==None): 
-                #print 'ERROR'
-                #print 'Boundaries on the cartesian x-axis is not specified'
-                #print 'Without the boundaries no grid can be created'
-                #return
+        if (crd_sys=='car'):
+#
+# First check whether the grid boundaries are specified
+#
+            if (xbound==None): 
+                print 'ERROR'
+                print 'Boundaries on the cartesian x-axis is not specified'
+                print 'Without the boundaries no grid can be created'
+                return
             
-            #if (ybound==None): 
-                #print 'ERROR'
-                #print 'Boundaries on the cartesian y-axis is not specified'
-                #print 'Without the boundaries no grid can be created'
-                #return
-            #if (zbound==None): 
-                #print 'ERROR'
-                #print 'Boundaries on the cartesian z-axis is not specified'
-                #print 'Without the boundaries no grid can be created'
-                #return
+            if (ybound==None): 
+                print 'ERROR'
+                print 'Boundaries on the cartesian y-axis is not specified'
+                print 'Without the boundaries no grid can be created'
+                return
+            if (zbound==None): 
+                print 'ERROR'
+                print 'Boundaries on the cartesian z-axis is not specified'
+                print 'Without the boundaries no grid can be created'
+                return
             
-            #if ((nxi==None)|(nyi==None)|(nzi==None)):
-                #print 'ERROR'
-                #print 'Number of grid points is not specified'
-                #return
+            if ((nxi==None)|(nyi==None)|(nzi==None)):
+                print 'ERROR'
+                print 'Number of grid points is not specified'
+                return
 
-##
-## Type checking (what is in the dimension numbers)
-##
+#
+# Type checking (what is in the dimension numbers)
+#
 
-            #if (type(nxi).__name__=='int'):  nxi = [nxi]
-            #if (type(nyi).__name__=='int'):  nyi = [nyi]
-            #if (type(nzi).__name__=='int'):  nzi = [nzi]
+            if (type(nxi).__name__=='int'):  nxi = [nxi]
+            if (type(nyi).__name__=='int'):  nyi = [nyi]
+            if (type(nzi).__name__=='int'):  nzi = [nzi]
 
 
 
-##
-## Create the x-axis
-##
-            #if (len(nxi)>1): 
-                #self.nxi = sum(nxi)
-                #self.nx  = self.nxi-1
-                #self.xi  = xbound[0] + (xbound[1] - xbound[0])*(arange(nxi[0], dtype=float64)/float(nxi[0]))
-                #for ipart in range(1,len(nxi)-1):
-                    #dum = xbound[ipart] + (xbound[ipart+1] - xbound[ipart])*(arange(nxi[ipart], dtype=float64)/float(nxi[ipart]))
-                    #self.xi = append(self.xi, dum)
+#
+# Create the x-axis
+#
+            if (len(nxi)>1): 
+                self.nxi = sum(nxi)
+                self.nx  = self.nxi-1
+                self.xi  = xbound[0] + (xbound[1] - xbound[0])*(arange(nxi[0], dtype=float64)/float(nxi[0]))
+                for ipart in range(1,len(nxi)-1):
+                    dum = xbound[ipart] + (xbound[ipart+1] - xbound[ipart])*(arange(nxi[ipart], dtype=float64)/float(nxi[ipart]))
+                    self.xi = append(self.xi, dum)
 
-                #ipart = len(nxi)-1 
-                #dum = xbound[ipart] + (xbound[ipart+1] - xbound[ipart])*(arange(nxi[ipart], dtype=float64)/float(nxi[ipart]-1))
-                #self.xi = append(self.xi, dum)
-                #self.x  = 0.5*(self.xi[0:self.nx] + self.xi[1:self.nx+1])
-            #else:
-                #if self.act_dim[0]==1:
-                    #self.nxi = nxi[0]
-                    #self.xi = xbound[0] + (xbound[1] - xbound[0])*(arange(self.nxi, dtype=float64)/float(self.nxi-1.))
-                    #self.nx = self.nxi-1
-                    #self.x  = 0.5*(self.xi[0:self.nx] + self.xi[1:self.nx+1])
-                #else:
-                    #self.x = [0.]
-                    #self.xi = [0., 0.,]
-                    #self.nx = 1
-                    #self.nxi = 2
+                ipart = len(nxi)-1 
+                dum = xbound[ipart] + (xbound[ipart+1] - xbound[ipart])*(arange(nxi[ipart], dtype=float64)/float(nxi[ipart]-1))
+                self.xi = append(self.xi, dum)
+                self.x  = 0.5*(self.xi[0:self.nx] + self.xi[1:self.nx+1])
+            else:
+                if self.act_dim[0]==1:
+                    self.nxi = nxi[0]
+                    self.xi = xbound[0] + (xbound[1] - xbound[0])*(arange(self.nxi, dtype=float64)/float(self.nxi-1.))
+                    self.nx = self.nxi-1
+                    self.x  = 0.5*(self.xi[0:self.nx] + self.xi[1:self.nx+1])
+                else:
+                    self.x = [0.]
+                    self.xi = [0., 0.,]
+                    self.nx = 1
+                    self.nxi = 2
 
-##
-## Create the x-axis
-##
-            #if (len(nyi)>1): 
-                #self.nyi = sum(nyi)
-                #self.ny  = self.nyi-1
-                #self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))
-                #for ipart in range(1,len(nyi)-1):
-                    #dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]))
-                    #self.yi = append(self.yi, dum)
+#
+# Create the y-ayis
+#
+            if (len(nyi)>1): 
+                self.nyi = sum(nyi)
+                self.ny  = self.nyi-1
+                self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))
+                for ipart in range(1,len(nyi)-1):
+                    dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]))
+                    self.yi = append(self.yi, dum)
 
-                #ipart = len(nyi)-1 
-                #dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]-1))
-                #self.yi = append(self.yi, dum)
-                #self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
-            #else:
-                #if self.act_dim[0]==1:
-                    #self.nyi = nyi[0]
-                    #self.yi = ybound[0] + (ybound[1] - ybound[0])*(arange(self.nyi, dtype=float64)/float(self.nyi-1.))
-                    #self.ny = self.nyi-1
-                    #self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
-                #else:
-                    #self.y = [0.]
-                    #self.yi = [0., 0.,]
-                    #self.ny = 1
-                    #self.nyi = 2
+                ipart = len(nyi)-1 
+                dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]-1))
+                self.yi = append(self.yi, dum)
+                self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
+            else:
+                if self.act_dim[0]==1:
+                    self.nyi = nyi[0]
+                    self.yi = ybound[0] + (ybound[1] - ybound[0])*(arange(self.nyi, dtype=float64)/float(self.nyi-1.))
+                    self.ny = self.nyi-1
+                    self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
+                else:
+                    self.y = [0.]
+                    self.yi = [0., 0.,]
+                    self.ny = 1
+                    self.nyi = 2
 
-            #print self.x
-            #print self.xi
-            #exit()
-            
+#
+# Create the z-azis
+#
+            if (len(nzi)>1): 
+                self.nzi = sum(nzi)
+                self.nz  = self.nzi-1
+                self.zi  = zbound[0] + (zbound[1] - zbound[0])*(arange(nzi[0], dtype=float64)/float(nzi[0]))
+                for ipart in range(1,len(nzi)-1):
+                    dum = zbound[ipart] + (zbound[ipart+1] - zbound[ipart])*(arange(nzi[ipart], dtype=float64)/float(nzi[ipart]))
+                    self.zi = append(self.zi, dum)
+
+                ipart = len(nzi)-1 
+                dum = zbound[ipart] + (zbound[ipart+1] - zbound[ipart])*(arange(nzi[ipart], dtype=float64)/float(nzi[ipart]-1))
+                self.zi = append(self.zi, dum)
+                self.z  = 0.5*(self.zi[0:self.nz] + self.zi[1:self.nz+1])
+            else:
+                if self.act_dim[0]==1:
+                    self.nzi = nzi[0]
+                    self.zi = zbound[0] + (zbound[1] - zbound[0])*(arange(self.nzi, dtype=float64)/float(self.nzi-1.))
+                    self.nz = self.nzi-1
+                    self.z  = 0.5*(self.zi[0:self.nz] + self.zi[1:self.nz+1])
+                else:
+                    self.z = [0.]
+                    self.zi = [0., 0.,]
+                    self.nz = 1
+                    self.nzi = 2
+
 
 
         if (crd_sys=='sph'): 
@@ -472,10 +496,10 @@ class radmc3dGrid():
                     self.nzi = 2
                 
 
-        if (crd_sys!='sph'):
-            print 'WARNING:'
-            print 'Currently only spherical coordinate system is supported!'
-            return
+        #if (crd_sys!='sph'):
+            #print 'WARNING:'
+            #print 'Currently only spherical coordinate system is supported!'
+            #return
 
 # --------------------------------------------------------------------------------------------------
     def write_spatial_grid(self, fname=''):
@@ -566,14 +590,19 @@ class radmc3dGrid():
         self.xi           = zeros(self.nx+1, dtype=float64)
         self.yi           = zeros(self.ny+1, dtype=float64)
         self.zi           = zeros(self.nz+1, dtype=float64)
-        
+       
         for i in range(self.nxi): self.xi[i] = float(rfile.readline())
         for i in range(self.nyi): self.yi[i] = float(rfile.readline())
         for i in range(self.nzi): self.zi[i] = float(rfile.readline())
 
-        self.x = sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
-        self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
-        self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+        if self.crd_sys=='car':
+            self.x = (self.xi[0:self.nx] +  self.xi[1:self.nx+1]) * 0.5
+            self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+            self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+        else: 
+            self.x = sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
+            self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+            self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
 
         rfile.close()
 
@@ -808,274 +837,515 @@ class radmc3dData():
                     self.tauy = self.tauy + dum['tauy']
 
 # --------------------------------------------------------------------------------------------------
-    def read_dustdens(self, fname=''):
+    def read_dustdens(self, fname='', binary=True):
         """
         Function to read the dust density
 
         OPTIONS:
         --------
-            fname - Name of the file that contains the dust density. If omitted 'dust_density.inp' is used.
+            fname - Name of the file that contains the dust density. If omitted 'dust_density.inp' is used
+                    (or if binary=True the 'dust_density.binp' is used).
         """
     
         if (self.grid.nx==-1):
             self.grid.read_grid()
-
-        if fname=='':
-            fname = 'dust_density.inp'
             
         print 'Reading dust density'
 
-        rfile = -1
-        try :
-            rfile = open(fname, 'r')
-        except:
-            print 'Error!' 
-            print 'dust_density.inp was not found!'
-            
-           
-        if (rfile!=(-1)):
-            dum = rfile.readline()
-            dum = int(rfile.readline())
-            
-            if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                print 'Error!'
-                print 'Number of grid points in amr_grid.inp is not equal to that in dust_density.inp'
-            else:
-                
-                self.ngs     = int(rfile.readline())
-                self.rhodust = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.ngs], dtype=float64)
+        if binary:
+            if fname=='':
+                fname = 'dust_density.binp'
 
-                
-                for igs in range(self.ngs):
-                    for k in range(self.grid.nz):
-                        for j in range(self.grid.ny):
-                            for i in range(self.grid.nx):
-                                self.rhodust[i,j,k,igs] = float(rfile.readline())
-                                
-                    print 'Reading dust component ', igs
+            # hdr[0] = format number
+            # hdr[1] = data precision (4=single, 8=double)
+            # hdr[2] = nr of cells
+            # hdr[3] = nr of dust species
+            hdr = fromfile(fname, count=4, dtype=int)
+            
+            if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                print 'ERROR'
+                print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                print self.grid.nx, self.grid.ny, self.grid.nz
+                print hdr[1]
+                return
+
+            if hdr[1]==8:
+                self.rhodust = fromfile(fname, count=-1, dtype=float64)
+            elif hdr[1]==4:
+                self.rhodust = fromfile(fname, count=-1, dtype=float)
+            else:
+                print 'ERROR'
+                print 'Unknown datatype in '+fname
+                return
+
+            self.rhodust = reshape(self.rhodust[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
+            # uses Fortran-order
+            self.rhodust = swapaxes(self.rhodust,0,3)
+            self.rhodust = swapaxes(self.rhodust,1,2)
         else:
-            self.rhodust = -1
+
+            if fname=='':
+                fname = 'dust_density.inp'
+            rfile = -1
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print 'dust_density.inp was not found!'
+                
+             
+            if (rfile!=(-1)):
+                dum = rfile.readline()
+                dum = int(rfile.readline())
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    print 'Error!'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in dust_density.inp'
+                else:
+                    
+                    self.ngs     = int(rfile.readline())
+                    self.rhodust = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.ngs], dtype=float64)
+
+                    
+                    for igs in range(self.ngs):
+                        for k in range(self.grid.nz):
+                            for j in range(self.grid.ny):
+                                for i in range(self.grid.nx):
+                                    self.rhodust[i,j,k,igs] = float(rfile.readline())
+                                    
+                        print 'Reading dust component ', igs
+            else:
+                self.rhodust = -1
+
+        rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def read_dusttemp(self, fname=''):
+    def read_dusttemp(self, fname='', binary=True):
         """
         Function to read the dust temperature
 
         OPTIONS:
         --------
-            fname - Name of the file that contains the dust temperature. If omitted 'dust_temperature.inp' is used.
+            fname - Name of the file that contains the dust temperature. 
+            If omitted 'dust_temperature.dat' (if binary=True 'dust_temperature.bdat')is used.
         """
        
         if (self.grid.nx==-1):
             self.grid.read_grid()
 
-        if fname=='':
-            fname = 'dust_temperature.dat'
+        if binary:
+            if fname=='':
+                fname ='dust_temperature.bdat'
 
-        print 'Reading dust temperature'
-
-        rfile = -1
-        try :
-            rfile = open(fname, 'r')            
-        except:
-            print 'Error!' 
-            print 'dust_temperature.dat was not found!'
-
-
-        if (rfile!=(-1)):
-
-            dum = rfile.readline()
-            dum = int(rfile.readline())
+            # hdr[0] = format number
+            # hdr[1] = data precision (4=single, 8=double)
+            # hdr[2] = nr of cells
+            # hdr[3] = nr of dust species
+            hdr = fromfile(fname, count=4, dtype=int)
             
-            if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                print 'Error!'
-                print 'Number of grid points in amr_grid.inp is not equal to that in dust_density.inp'
+            if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                print 'ERROR'
+                print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                print self.grid.nx, self.grid.ny, self.grid.nz
+                print hdr[1]
+                return
+
+            if hdr[1]==8:
+                self.dusttemp = fromfile(fname, count=-1, dtype=float64)
+            elif hdr[1]==4:
+                self.dusttemp = fromfile(fname, count=-1, dtype=float)
             else:
+                print 'ERROR'
+                print 'Unknown datatype in '+fname
+                return
 
-                self.ngs      = int(rfile.readline())
-                self.dusttemp = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.ngs], dtype=float64)
+            self.dusttemp = reshape(self.dusttemp[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
+            # uses Fortran-order
+            self.dusttemp = swapaxes(self.dusttemp,0,3)
+            self.dusttemp = swapaxes(self.dusttemp,1,2)
+
+        else:
+            if fname=='':
+                fname = 'dust_temperature.dat'
+
+            print 'Reading dust temperature'
+
+            rfile = -1
+            try :
+                rfile = open(fname, 'r')            
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+
+
+            if (rfile!=(-1)):
+
+                dum = rfile.readline()
+                dum = int(rfile.readline())
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    print 'Error!'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in dust_density.inp'
+                else:
+
+                    self.ngs      = int(rfile.readline())
+                    self.dusttemp = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.ngs], dtype=float64)
+                
+                    for igs in range(self.ngs):
+                        for k in range(self.grid.nz):
+                            for j in range(self.grid.ny):
+                                for i in range(self.grid.nx):
+                                    self.dusttemp[i,j,k,igs] = float(rfile.readline())
+            else:
+                self.dusttemp = -1                            
+
+            rfile.close()
+# --------------------------------------------------------------------------------------------------
+    def read_gasvel(self, fname='', binary=True):
+        """
+        Function to read the gas velocity.  
+        
+        OPTIONS:
+        --------
+            fname - Name of the file that contains the gas velocity
+            If omitted 'gas_velocity.inp' (if binary=True 'gas_velocity.binp')is used.
+
+        """
+
+        if binary:
+            if fname=='':
+                fname = 'gas_velocity.binp'
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
+
+            print 'Reading gas velocity'
+
+            if (rfile!=(-1)):            
+                hdr = fromfile(fname, count=3, dtype=int)
+                if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                    print 'ERROR'
+                    print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                    print self.grid.nx, self.grid.ny, self.grid.nz
+                    print hdr[1]
+                    return
+
+                if hdr[1]==8:
+                    self.gasvel = fromfile(fname, count=-1, dtype=float64)
+                elif hdr[1]==4:
+                    self.gasvel = fromfile(fname, count=-1, dtype=float)
+                else:
+                    print 'ERROR'
+                    print 'Unknown datatype in '+fname
+                    return
+                self.gasvel = reshape(self.gasvel[3:], [self.grid.nz,self.grid.ny,self.grid.nx,3])
+                self.gasvel = swapaxes(self.gasvel, 0, 2)
+
+            else:
+                self.gasvel=-1
             
-                for igs in range(self.ngs):
+
+        else:
+            if fname=='':
+                fname = 'gas_velocity.inp'
+
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
+
+            print 'Reading gas velocity'
+
+            rfile = -1
+
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+                
+            if (rfile!=(-1)):            
+                dum = rfile.readline()
+                dum = int(rfile.readline())
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    print 'Error!'
+                    print 'Number of self.grid.points in amr_grid.inp is not equal to that in gas_velocity.inp'
+                else:
+                    
+                    self.gasvel = zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=float64)
+                    
                     for k in range(self.grid.nz):
                         for j in range(self.grid.ny):
                             for i in range(self.grid.nx):
-                                self.dusttemp[i,j,k,igs] = float(rfile.readline())
-        else:
-            self.dusttemp = -1                            
+                                dum = rfile.readline().split()
+                                self.gasvel[i,j,k,0] = float(dum[0])
+                                self.gasvel[i,j,k,1] = float(dum[1])
+                                self.gasvel[i,j,k,2] = float(dum[2])
+    #                            self.gasvel[i,j,k,:] = [float(dum[i]) for i in range(3)]
 
-# --------------------------------------------------------------------------------------------------
-    def read_gasvel(self):
-        """
-        Function to read the gas velocity
-
-        """
-
-        if (self.grid.nx==-1):
-            self.grid.read_grid()
-
-        print 'Reading gas velocity'
-
-        rfile = -1
-
-        try :
-            rfile = open('gas_velocity.inp', 'r')
-        except:
-            print 'Error!' 
-            print 'gas_velocity.inp was not found!'
-            
-        if (rfile!=(-1)):            
-            dum = rfile.readline()
-            dum = int(rfile.readline())
-            
-            if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                print 'Error!'
-                print 'Number of self.grid.points in amr_grid.inp is not equal to that in gas_velocity.inp'
             else:
-                
-                self.gasvel = zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=float64)
-                
-                for k in range(self.grid.nz):
-                    for j in range(self.grid.ny):
-                        for i in range(self.grid.nx):
-                            dum = rfile.readline().split()
-                            self.gasvel[i,j,k,0] = float(dum[0])
-                            self.gasvel[i,j,k,1] = float(dum[1])
-                            self.gasvel[i,j,k,2] = float(dum[2])
-#                            self.gasvel[i,j,k,:] = [float(dum[i]) for i in range(3)]
+                self.gasvel = -1                            
 
-        else:
-            self.gasvel = -1                            
-
+            rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def read_vturb(self):
+    def read_vturb(self, fname='', binary=True):
         """
-        Function to read the microturbulence.inp file
-        """
+        Function to read the turbulent velocity field. 
         
+        OPTIONS:
+        --------
+            fname - Name of the file that contains the turbulent velocity field
+            If omitted 'microturbulence.inp' (if binary=True 'microturbulence.binp') is used.
+        """
+       
+        if binary:
+            if fname=='':
+                fname = 'microturbulence.binp'
         if (self.grid.nx==-1):
             self.grid.read_grid()
-
-        print 'Reading microturbulence'
-
-        rfile = -1
-
-        try :
-            rfile = open('microturbulence.inp', 'r')
-        except:
-            print 'Error!' 
-            print 'microturbulence.inp was not found!'
             
-        if (rfile!=(-1)):            
-            dum = rfile.readline()
-            dum = int(rfile.readline())
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
+
+            print 'Reading microturbulence'
+
+            # hdr[0] = format number
+            # hdr[1] = data precision (4=single, 8=double)
+            # hdr[2] = nr of cells
+            hdr = fromfile(fname, count=3, dtype=int)
             
-            if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                print 'Error!'
-                print 'Number of grid points in amr_grid.inp is not equal to that in microturbulence.inp'
+            if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                print 'ERROR'
+                print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                print self.grid.nx, self.grid.ny, self.grid.nz
+                print hdr[1]
+                return
+
+            if hdr[1]==8:
+                self.vturb = fromfile(fname, count=-1, dtype=float64)
+            elif hdr[1]==4:
+                self.vturb = fromfile(fname, count=-1, dtype=float)
             else:
-                
-                self.vturb = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
-                
-                for k in range(self.grid.nz):
-                    for j in range(self.grid.ny):
-                        for i in range(self.grid.nx):
-                            dum = rfile.readline().split()
-                            self.vtrub[i,j,k] = float(dum)
+                print 'ERROR'
+                print 'Unknown datatype in '+fname
+                return
+
+            self.vturb = reshape(self.vturb[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
+            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
+            # uses Fortran-order
+            self.vturb = swapaxes(self.vturb,0,2)
 
         else:
-            self.vtrub = -1                            
+            if fname=='':
+                fname = 'microturbulence.inp'
+        
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
 
+            print 'Reading microturbulence'
+
+            rfile = -1
+
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+                
+            if (rfile!=(-1)):            
+                dum = rfile.readline()
+                dum = int(rfile.readline())
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    print 'Error!'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in microturbulence.inp'
+                else:
+                    
+                    self.vturb = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
+                    
+                    for k in range(self.grid.nz):
+                        for j in range(self.grid.ny):
+                            for i in range(self.grid.nx):
+                                dum = rfile.readline().split()
+                                self.vtrub[i,j,k] = float(dum)
+
+            else:
+                self.vtrub = -1                            
+
+            rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def read_gasdens(self,ispec=''):
+    def read_gasdens(self,ispec='',binary=True):
         """
         Function to read the gas density
 
         INPUT:
         ------
-        ispec - File name extension of the 'numberdens_ispec.inp' file 
+            ispec - File name extension of the 'numberdens_ispec.inp' (or if binary=True 'numberdens_ispec.binp') file.
+
+
+        OPTIONS:
+        --------
+            binary - if set to True reads binary files
+
         """
 
+        if binary:
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
 
-        if (self.grid.nx==-1):
-            self.grid.read_grid()
+            print 'Reading gas density'
 
 
-        print 'Reading gas density'
-
-        rfile = -1
-        try :
-            rfile = open('numberdens_'+ispec+'.inp', 'r')
-        except:
-            print 'Error!' 
-            print 'numberdens_'+ispec+'.inp was not found!'
-
-        if (rfile!=(-1)):
-
-            dum = rfile.readline()
-            dum = int(rfile.readline())
+            # hdr[0] = format number
+            # hdr[1] = data precision (4=single, 8=double)
+            # hdr[2] = nr of cells
+            hdr = fromfile(fname, count=3, dtype=int)
             
-            if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                print 'Error!'
-                print 'Number of grid points in amr_grid.inp is not equal to that in numberdens_'+ispec+'.inp'
-                print self.grid.nx * self.grid.ny * self.grid.nz, dum
+            if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                print 'ERROR'
+                print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
                 print self.grid.nx, self.grid.ny, self.grid.nz
+                print hdr[1]
+                return
+
+            if hdr[1]==8:
+                self.rhogas = fromfile(fname, count=-1, dtype=float64)
+            elif hdr[1]==4:
+                self.rhogas = fromfile(fname, count=-1, dtype=float)
             else:
-                
-                self.rhogas = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
-                
-                for k in range(self.grid.nz):
-                    for j in range(self.grid.ny):
-                        for i in range(self.grid.nx):
-                            self.rhogas[i,j,k] = float(rfile.readline())
+                print 'ERROR'
+                print 'Unknown datatype in '+fname
+                return
+
+            self.rhogas = reshape(self.rhogas[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
+            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
+            # uses Fortran-order
+            self.rhogas = swapaxes(self.rhogas,0,2)
 
         else:
-            self.rhogas = -1                            
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
 
+
+            print 'Reading gas density'
+
+            rfile = -1
+            try :
+                rfile = open('numberdens_'+ispec+'.inp', 'r')
+            except:
+                print 'Error!' 
+                print 'numberdens_'+ispec+'.inp was not found!'
+                return
+
+            if (rfile!=(-1)):
+
+                dum = rfile.readline()
+                dum = int(rfile.readline())
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    print 'Error!'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in numberdens_'+ispec+'.inp'
+                    print self.grid.nx * self.grid.ny * self.grid.nz, dum
+                    print self.grid.nx, self.grid.ny, self.grid.nz
+                else:
+                    
+                    self.rhogas = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
+                    
+                    for k in range(self.grid.nz):
+                        for j in range(self.grid.ny):
+                            for i in range(self.grid.nx):
+                                self.rhogas[i,j,k] = float(rfile.readline())
+
+            else:
+                self.rhogas = -1                            
+
+            rfile.close()
 # --------------------------------------------------------------------------------------------------
 
-    def read_gastemp(self, fname=''):
+    def read_gastemp(self, fname='', binary=True):
         """
         Function to read the gas temperature
 
         OPTIONS:
         --------
-            fname - Name of the file that contains the gas temperature. If omitted 'gas_temperature.inp' is used.
+            fname - Name of the file that contains the gas temperature. If omitted 'gas_temperature.inp' 
+            (or if binary=True 'gas_tempearture.binp') is used.
         """
-        
-        if (self.grid.nx==-1):
-            self.grid.read_grid()
+       
+        if binary:
+            if fname=='':
+                fname = 'gas_temperature.binp'
 
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
 
-        if fname=='':
-            fname = 'gas_temperature.inp'
+            rfile = -1
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+                return
 
-        rfile = -1
-        try :
-            rfile = open(fname, 'r')
-        except:
-            print 'Error!' 
-            print 'gas_temperature.inp was not found!'
-
-        if (rfile!=(-1)):
-            dum = rfile.readline()
-            dim = rfile.readline()
-
-            if (dim!=self.grid.nx*self.grid.ny*self.grid.nz):
+            # hdr[0] = format number
+            # hdr[1] = data precision (4=single, 8=double)
+            # hdr[2] = nr of cells
+            hdr = fromfile(fname, count=3, dtype=int)
+            
+            if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
                 print 'ERROR'
-                print 'Number of grid points in amr_grid.inp is not equal to that in gas_temperature.inp'
-                print self.grid.nx * self.grid.ny * self.grid.nz, dim
+                print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
                 print self.grid.nx, self.grid.ny, self.grid.nz
-                rfile.close()
-                return 0
+                print hdr[1]
+                return
+
+            if hdr[1]==8:
+                self.gastemp = fromfile(fname, count=-1, dtype=float64)
+            elif hdr[1]==4:
+                self.gastemp = fromfile(fname, count=-1, dtype=float)
             else:
-                self.gastemp = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
-                for iz in range(self.grid.nz):
-                    for iy in range(self.grid.ny):
-                        for ix in range(self.grid.nx):
-                            self.gastemp[ix,iy,iz] = float(rfile.readline())
-        
+                print 'ERROR'
+                print 'Unknown datatype in '+fname
+                return
+
+            self.gastemp = reshape(self.gastemp[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
+            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
+            # uses Fortran-order
+            self.gastemp = swapaxes(self.gastemp,0,2)
+        else:
+            if fname=='':
+                fname = 'gas_temperature.inp'
+
+            if (self.grid.nx==-1):
+                self.grid.read_grid()
+
+            rfile = -1
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+
+            if (rfile!=(-1)):
+                dum = rfile.readline()
+                dim = rfile.readline()
+
+                if (dim!=self.grid.nx*self.grid.ny*self.grid.nz):
+                    print 'ERROR'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in gas_temperature.inp'
+                    print self.grid.nx * self.grid.ny * self.grid.nz, dim
+                    print self.grid.nx, self.grid.ny, self.grid.nz
+                    rfile.close()
+                    return 0
+                else:
+                    self.gastemp = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
+                    for iz in range(self.grid.nz):
+                        for iy in range(self.grid.ny):
+                            for ix in range(self.grid.nx):
+                                self.gastemp[ix,iy,iz] = float(rfile.readline())
+            
             rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def write_dustdens(self, fname=''):
+    def write_dustdens(self, fname='', binary=True):
         """
         Function to write the dust density
 
@@ -1084,42 +1354,71 @@ class radmc3dData():
             fname - Name of the file into which the dust density should be written. If omitted 'dust_density.inp' is used.
         """
     
-        if fname=='':
-            fname = 'dust_density.inp'
 
-        wfile = open(fname, 'w')
-        
-        wfile.write('%d\n'%1)
-        wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
-        if len(self.rhodust.shape)>3:
-            wfile.write('%d\n'%self.rhodust.shape[3])
-            Ngs = self.rhodust.shape[3]
-            for igs in range(Ngs):
+        if binary:
+            if fname=='':
+                fname = 'dust_density.binp'
+            
+            wfile = open(fname, 'w')
+            hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
+            hdr.tofile(wfile)
+            # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
+            # array always in C-order while we need Fortran-order to be written
+            if len(self.rhodust.shape)==4:
+                self.rhodust = swapaxes(self.rhodust,0,3)
+                self.rhodust = swapaxes(self.rhodust,1,2)
+                self.rhodust.tofile(wfile)
+                self.rhodust = swapaxes(self.rhodust,0,3)
+                self.rhodust = swapaxes(self.rhodust,1,2)
+            elif len(self.rhodust.shape)==3:
+                self.rhodust = swapaxes(self.rhodust,0,2)
+                self.rhodust.tofile(wfile)
+                self.rhodust = swapaxes(self.rhodust,0,2)
+            else:
+                print 'ERROR'
+                print 'Unknown array shape for rhodust : '
+                print self.rhodust.shape
+                return
+
+
+        else: 
+            if fname=='':
+                fname = 'dust_density.inp'
+
+            wfile = open(fname, 'w')
+
+            wfile.write('%d\n'%1)
+            wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+            if len(self.rhodust.shape)>3:
+                wfile.write('%d\n'%self.rhodust.shape[3])
+                Ngs = self.rhodust.shape[3]
+                for igs in range(Ngs):
+                    for iz in range(self.rhodust.shape[2]):
+                        for iy in range(self.rhodust.shape[1]):
+                            dum = array(self.rhodust[:,iy,iz,igs])
+                            dum.tofile(wfile, sep=" ", format='%.9e\n')
+                print 'Writing dust component : ', igs
+                
+            else:
+                wfile.write('%d\n'%1)
+                Ngs = 1
                 for iz in range(self.rhodust.shape[2]):
                     for iy in range(self.rhodust.shape[1]):
-                        dum = array(self.rhodust[:,iy,iz,igs])
+                        dum = array(self.rhodust[:,iy,iz])
                         dum.tofile(wfile, sep=" ", format='%.9e\n')
-            print 'Writing dust component : ', igs
-            
-        else:
-            wfile.write('%d\n'%1)
-            Ngs = 1
-            for iz in range(self.rhodust.shape[2]):
-                for iy in range(self.rhodust.shape[1]):
-                    dum = array(self.rhodust[:,iy,iz])
-                    dum.tofile(wfile, sep=" ", format='%.9e\n')
 
-                
-        wfile.close()
+                    
+            wfile.close()
         print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
-    def write_gasdens(self, ispec=''):
+    def write_gasdens(self, ispec='',binary=True):
         """
         Function to write the gas density
 
         INPUT:
         ------
-        ispec - File name extension of the 'numberdens_ispec.inp' file into which the gas density should be written
+        ispec - File name extension of the 'numberdens_ispec.inp' (if binary=True 'numberdens_ispec.binp') 
+                file into which the gas density should be written
         """
     
         if ispec=='':
@@ -1128,95 +1427,168 @@ class radmc3dData():
             print "output file name 'numberdens_ispec.dat'" 
             return -1
         else:
-            fname = 'numberdens_'+ispec+'.inp'
+            if binary:
+                fname = 'numberdens_'+ispec+'.binp'
+            else:
+                fname = 'numberdens_'+ispec+'.inp'
 
-        wfile = open(fname, 'w')
-        
-        wfile.write('%d\n'%1)
-        wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+        if binary:
 
-        for iz in range(self.grid.nz):
-            for iy in range(self.grid.ny):
-                dum = array(self.rhogas[:,iy,iz]) 
-                dum.tofile(wfile, sep=" ", format='%.9e\n')
-                
-        wfile.close()
+            wfile = open(fname, 'w')
+            hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+            hdr.tofile(wfile)
+            # Now we need to change the axis orders since the Ndarray.tofile function writes the 
+            # array always in C-order while we need Fortran-order to be written
+            self.rhogas = swapaxes(self.rhogas,0,2)
+            self.rhogas.tofile(wfile)
+
+            # Switch back to the original axis order
+            self.rhogas = swapaxes(self.rhogas,0,2)
+            wfile.close()
+
+        else:
+            wfile = open(fname, 'w')
+            
+            wfile.write('%d\n'%1)
+            wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+
+            for iz in range(self.grid.nz):
+                for iy in range(self.grid.ny):
+                    dum = array(self.rhogas[:,iy,iz]) 
+                    dum.tofile(wfile, sep=" ", format='%.9e\n')
+                    
+            wfile.close()
         print 'Writing '+fname
 
 # --------------------------------------------------------------------------------------------------
-    def write_gastemp(self, fname=''):
+    def write_gastemp(self, fname='', binary=True):
         """
         Function to write the gas temperature
 
         OPTIONS:
         --------
-            fname - Name of the file into which the gas temperature should be written. If omitted 'gas_temperature.inp' is used.
+            fname - Name of the file into which the gas temperature should be written. If omitted 
+                    'gas_temperature.inp' (if binary=True 'gas_tempearture.binp') is used.
         """
-    
-        if fname=='':
-            fname = 'gas_temperature.inp'
+   
+        if binary:
+            if fname=='':
+                fname = 'gas_temperature.binp'
 
-        wfile = open(fname, 'w')
-        
-        wfile.write('%d\n'%1)
-        wfile.write('%d\n'%(grid.nx*grid.ny*grid.nz))
+            wfile = open(fname, 'w')
+            hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+            hdr.tofile(wfile)
+            # Now we need to change the axis orders since the Ndarray.tofile function writes the 
+            # array always in C-order while we need Fortran-order to be written
+            self.gastemp = swapaxes(self.gastemp,0,2)
+            self.gastemp.tofile(wfile)
 
-        for iz in range(grid.nz):
-            for iy in range(grid.ny):
-                dum = np.array(gastemp[:,iy,iz])
-                dum.tofile(wfile, sep=" ", format='%.9e\n')
-                
-        wfile.close()
+            # Switch back to the original axis order
+            self.gastemp = swapaxes(self.gastemp,0,2)
+            wfile.close()
+
+
+        else:
+            if fname=='':
+                fname = 'gas_temperature.inp'
+
+            wfile = open(fname, 'w')
+            
+            wfile.write('%d\n'%1)
+            wfile.write('%d\n'%(grid.nx*grid.ny*grid.nz))
+
+            for iz in range(grid.nz):
+                for iy in range(grid.ny):
+                    dum = np.array(gastemp[:,iy,iz])
+                    dum.tofile(wfile, sep=" ", format='%.9e\n')
+                    
+            wfile.close()
         print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
-    def write_gasvel(self, fname=''):
+    def write_gasvel(self, fname='', binary=True):
         """
         Function to write the gas velocity
 
         OPTIONS:
         --------
-            fname - Name of the file into which the gas temperature should be written. If omitted 'gas_velocity.inp' is used.
+            fname - Name of the file into which the gas temperature should be written. 
+            If omitted 'gas_velocity.inp' (if binary=True 'gas_velocity.binp') is used.
         """
-    
-        if fname=='':
-            fname = 'gas_velocity.inp'
+   
+        if binary:
+            if fname=='':
+                fname = 'gas_velocity.binp'
 
-        wfile = open(fname, 'w')
-        
-        wfile.write('%d\n'%1)
-        wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+            wfile = open(fname, 'w')
+            hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+            hdr.tofile(wfile)
+            # Now we need to change the axis orders since the Ndarray.tofile function writes the 
+            # array always in C-order while we need Fortran-order to be written
+            self.gasvel = swapaxes(self.gasvel,0,2)
+            self.gasvel.tofile(wfile)
 
-        for iz in range(self.grid.nz):
-            for iy in range(self.grid.ny):
-                for ix in range(self.grid.nx):
-                    wfile.write("%9e %9e %9e\n"%(self.gasvel[ix,iy,iz,0], self.gasvel[ix,iy,iz,1], self.gasvel[ix,iy,iz,2]))
-                
-        wfile.close()
+            # Switch back to the original axis order
+            self.gasvel = swapaxes(self.gasvel,0,2)
+            wfile.close()
+        else:
+            if fname=='':
+                fname = 'gas_velocity.inp'
+
+            wfile = open(fname, 'w')
+            
+            wfile.write('%d\n'%1)
+            wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+
+            for iz in range(self.grid.nz):
+                for iy in range(self.grid.ny):
+                    for ix in range(self.grid.nx):
+                        wfile.write("%9e %9e %9e\n"%(self.gasvel[ix,iy,iz,0], self.gasvel[ix,iy,iz,1], self.gasvel[ix,iy,iz,2]))
+                    
+            wfile.close()
         print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
-    def write_vturb(self, fname=''):
+    def write_vturb(self, fname='', binary=True):
         """
         Function to write the microturbulence file
 
         OPTIONS:
         --------
-            fname - Name of the file into which the turubulent velocity field should be written. If omitted 'microturbulence.inp' is used.
+            fname - Name of the file into which the turubulent velocity field should be written. 
+            If omitted 'microturbulence.inp' (if binary=True 'microturbuulence.binp') is used.
         """
-    
-        if fname=='':
-            fname = 'microturbulence.inp'
+   
+        if binary:
+            if fname=='':
+                fname = 'microturbulence.binp'
+            
+            wfile = open(fname, 'w')
+            hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+            hdr.tofile(wfile)
+            # Now we need to change the axis orders since the Ndarray.tofile function writes the 
+            # array always in C-order while we need Fortran-order to be written
+            self.vturb = swapaxes(self.vturb,0,2)
+            self.vturb.tofile(wfile)
 
-        wfile = open(fname, 'w')
-        
-        wfile.write('%d\n'%1)
-        wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+            # Switch back to the original axis order
+            self.vturb = swapaxes(self.vturb,0,2)
+            wfile.close()
 
-        for iz in range(self.grid.nz):
-            for iy in range(self.grid.ny):
-                for ix in range(self.grid.nx):
-                    wfile.write("%9e\n"%(self.vturb[ix,iy,iz]))
-                
-        wfile.close()
+
+        else:
+            if fname=='':
+                fname = 'microturbulence.inp'
+
+            wfile = open(fname, 'w')
+            
+            wfile.write('%d\n'%1)
+            wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+
+            for iz in range(self.grid.nz):
+                for iy in range(self.grid.ny):
+                    for ix in range(self.grid.nx):
+                        wfile.write("%9e\n"%(self.vturb[ix,iy,iz]))
+                    
+            wfile.close()
         print 'Writing '+fname
 
 # --------------------------------------------------------------------------------------------------
@@ -1504,9 +1876,21 @@ class radmc3dStars():
         self.nfreq    = 0
 
         if ppar:
-            self.mstar = ppar['mstar']
-            self.tstar = ppar['tstar']
-            self.rstar = ppar['rstar']
+            if type(ppar['mstar']).__name__=='list':
+                self.mstar = ppar['mstar']
+            else:
+                self.mstar = [ppar['mstar']]
+                
+            if type(ppar['tstar']).__name__=='list':
+                self.tstar = ppar['tstar']
+            else:
+                self.tstar = [ppar['tstar']]
+
+            if type(ppar['rstar']).__name__=='list':
+                self.rstar = ppar['rstar']
+            else:
+                self.rstar = [ppar['rstar']]
+
             self.nstar = len(self.rstar)
             for istar in range(self.nstar):
                 self.lstar.append(4.*pi*self.rstar[istar]**2. * ss* self.tstar[istar]**4.)
@@ -1698,6 +2082,8 @@ class radmc3dStars():
 
 
         if tstar:
+            if type(tstar).__name__!='list':
+                tstar = [tstar]
             dum1 = len(tstar)
             if lstar and rstar: 
                 print 'ERROR'
@@ -1787,10 +2173,12 @@ class radmc3dDustOpac():
         if idust!=None:
             if (type(idust).__name__=='int'):  idust = [idust]
 
-        if (len(ext)==1)&(ext[0]==''):
+        if (len(ext)==1)&(ext[0]!=''):
             if idust!=None:
                 print 'ERROR'
                 print 'Either idust or ext should be specified, but not both'
+                print idust
+                print ext
                 return [-1]
         
         # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
@@ -2810,15 +3198,15 @@ class radmc3dPar():
         #
         # Grid parameters
         #
-        self.add_par(['crd_sys', "'sph'", '  Coordinate system used (car/sph/cyl)', 'Grid parameters']) 
+        self.add_par(['crd_sys', "'sph'", '  Coordinate system used (car/cyl)', 'Grid parameters']) 
         self.add_par(['nx', '50', '  Number of grid points in the first dimension', 'Grid parameters']) 
         self.add_par(['ny', '30', '  Number of grid points in the second dimension', 'Grid parameters'])
-        self.add_par(['nz', '36', '  Number of grid pointsin the third dimension', 'Grid parameters'])
+        self.add_par(['nz', '36', '  Number of grid points in the third dimension', 'Grid parameters'])
         self.add_par(['xbound', '[1.0*au, 100.*au]', '  Boundaries for the x grid', 'Grid parameters'])
         self.add_par(['ybound', '[0.0, pi]', '  Boundaries for the y grid', 'Grid parameters'])
         self.add_par(['zbound', '[0.0, 2.0*pi]', '  Boundraries for the z grid', 'Grid parameters'])
-        self.add_par(['wbound', '[0.1, 7.0, 25., 1e4]', '  Boundraries for the z grid', 'Grid parameters'])
-        self.add_par(['nw', '[19, 50, 30]', '  Boundraries for the z grid', 'Grid parameters'])
+        self.add_par(['wbound', '[0.1, 7.0, 25., 1e4]', '  Boundraries for the wavelength grid', 'Grid parameters'])
+        self.add_par(['nw', '[19, 50, 30]', '  Number of points in the wavelength grid', 'Grid parameters'])
 
         #
         # Dust opacity
@@ -2837,14 +3225,15 @@ class radmc3dPar():
         #
         self.add_par(['gasspec_name', "'co'", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
         self.add_par(['gasspec_dbase_type',"'leiden'", '  leiden or linelist', 'Gas line RT'])
-        self.add_par(['gasspec_abun', '1e-4/(2.3*mp)', '  Abundance of the molecule', 'Gas line RT']) 
+        self.add_par(['gasspec_abun', '1e-4', '  Abundance of the molecule', 'Gas line RT']) 
         self.add_par(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
         self.add_par(['write_gastemp', 'False', '  Whether or not to write a separate dust temperature file (gas_temperature.inp)', 'Gas line RT'])
         #
         # Code parameters
         #
         self.add_par(['nphot', 'long(1e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
-        self.add_par(['nphot_scat','long(3e4)', '  Nr of photons for the scattering Monte Carlo', 'Code parameters'])
+        self.add_par(['nphot_scat','long(3e4)', '  Nr of photons for the scattering Monte Carlo (for images)', 'Code parameters'])
+        self.add_par(['nphot_spec','long(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)', 'Code parameters'])
         self.add_par(['scattering_mode_max','1', '  0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering', 'Code parameters'])
         self.add_par(['lines_mode', '-1', '  Line raytracing mode', 'Code parameters'])
         self.add_par(['istar_sphere', '0', '  1 - take into account the finite size of the star, 0 - take the star to be point-like', 'Code parameters'])
@@ -2980,7 +3369,7 @@ def readopac(ext=[''], idust=None, used=False):
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None):
+def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, binary=True):
     """
     Function to read the model data (e.g. density, velocity, temperature)
 
@@ -3010,10 +3399,10 @@ def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, is
     """
 
     res = radmc3dData()
-    if ddens: res.read_dustdens()
-    if dtemp: res.read_dusttemp()
-    if gvel: res.read_gasvel()
-    if gtemp: res.read_gastemp()
+    if ddens: res.read_dustdens(binary=binary)
+    if dtemp: res.read_dusttemp(binary=binary)
+    if gvel: res.read_gasvel(binary=binary)
+    if gtemp: res.read_gastemp(binary=binary)
     if gdens:
         if not ispec:
             print 'ERROR'
@@ -3022,7 +3411,7 @@ def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, is
             print ' numberdens_gasspecname.inp'
             return 0
         else:
-            res.read_gasdens(ispec=ispec)
+            res.read_gasdens(ispec=ispec,binary=binary)
 
     return res
 
@@ -3103,4 +3492,42 @@ def write_default_parfile(model='', fname=''):
     dum  = radmc3dPar()
     dum.load_defaults(model=model)
     dum.write_parfile()
+# --------------------------------------------------------------------------------------------------
+def read_spectrum(fname=''):
+    """
+    Function to read the spectrum / SED
+
+
+    OPTIONS:
+    --------
+        fname - Name of the file to be read
+
+
+    OUTPUT:
+    -------
+        Returns a two dimensional Numpy array with [Nwavelength, 2] dimensions 
+        [Nwavelength,0] is the wavelength / velocity and
+        [Nwavelength,1] is the flux density
+        
+    """
+   
+    if fname.strip()=='':
+        fname = 'spectrum.out'
+
+    
+    rfile = open(fname, 'r')
+    # Read the format number
+    dum = rfile.readline()
+    # Read the number of wavelengths 
+    nwav = int(rfile.readline())
+    # Read a blank line
+    dum = rfile.readline()
+    
+    res = zeros([nwav, 2], dtype=float64)
+    for iwav in range(nwav):
+        dum = rfile.readline().split()
+        res[iwav,0] = float(dum[0])
+        res[iwav,1] = float(dum[1])
+    rfile.close()
+    return res
 

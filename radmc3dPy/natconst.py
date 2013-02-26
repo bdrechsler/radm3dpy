@@ -1,3 +1,10 @@
+"""
+PYTHON module for RADMC3D 
+(c) Attila Juhasz 2011,2012,2013
+
+This sub-module contains natural constants in CGS units 
+(Translated from RADMC's IDL function problem_natconst.pro)
+"""
 gg = 6.672e-8   # Gravitational constant
 mp = 1.6726e-24 # Mass of proton [g]
 me = 9.1095e-28 # Mass of electron [g]

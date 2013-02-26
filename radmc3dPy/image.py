@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011/2012
+(c) Attila Juhasz 2011,2012,2013
 
 This sub-module contains classes/functions to create and read images with radmc3d and to calculate
 interferometric visibilities and write fits files
@@ -21,15 +21,40 @@ FUNCTIONS:
     readimage() - Reads RADMC3D image(s)
 
 """
-from matplotlib.pyplot import *
-from numpy import *
-import subprocess as sp
-import sys, copy, os
-import my_colormaps as mcm
-import pyfits as pf
+try:
+    from matplotlib.pylab import *
+except:
+    print ' WARNING'
+    print ' matploblib.pylab cannot be imported ' 
+    print ' To used the visualization functionality of the python module of RADMC-3D you need to install matplotlib'
+    print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
+    print ' display images'
+try:
+    from numpy import *
+except:
+    print 'ERROR'
+    print ' Numpy cannot be imported '
+    print ' To use the python module of RADMC-3D you need to install Numpy'
+
+try:
+    from scipy.interpolate import RectBivariateSpline as rbs
+    from scipy.interpolate import BivariateSpline as bvspline
+except:
+    print 'WARNING'
+    print ' Scipy.interpolate.BivariateSpline or Scipy.interpolate.RectBivariateSpline cannot be imported '
+
+try:
+    import pyfits as pf
+except:
+    print 'WARNING'
+    print ' PyFits cannot be imported'
+    print ' The PyFits module is needed to write RADMC-3D images to FITS format'
+    print ' Without PyFits no fits file can be written'
+
 from copy import deepcopy
-from scipy.interpolate import RectBivariateSpline as rbs
-from scipy.interpolate import BivariateSpline as bvspline
+import subprocess as sp
+import sys, os
+
 
 # **************************************************************************************************
 class radmc3dVisibility():
@@ -686,7 +711,7 @@ class radmc3dImage():
   
 # Return the convolved image (copy the image class and replace the image attribute to the convolved image)
 
-        res = copy.deepcopy(self)
+        res = deepcopy(self)
         res.image = cimage
         res.psf   = psf
         res.fwhm  = fwhm
@@ -848,16 +873,16 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
     if (bunit==None):
         if log:
-            cb_label = 'log(I'+r'$_\nu$'+'/max(I'+r'$_\nu$'+'))'
+            cb_label = 'log(F'+r'$_\nu$'+'/max(F'+r'$_\nu$'+'))'
         else:
-            cb_label = 'I'+r'$_\nu$'+'/max(I'+r'$_\nu$'+')'
+            cb_label = 'F'+r'$_\nu$'+'/max(F'+r'$_\nu$'+')'
     elif (bunit=='abs'):
         if log:
             data    = data - log10(dpc*dpc) 
-            cb_label = 'log(I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster])'
+            cb_label = 'log(F'+r'$_\nu$'+' [erg/s/cm/cm/Hz])'
         else:
             data    = data / (dpc*dpc) 
-            cb_label = 'I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster]'
+            cb_label = 'F'+r'$_\nu$'+' [erg/s/cm/cm/Hz/]'
 
     elif (bunit=='Jy'):
         if dpc==None:
@@ -1058,7 +1083,7 @@ def get_visibility(image=None, bl=None, pa=None, dpc=None):
 
 def cmask(im=None, rad=0.0, au=False, arcsec=False, dpc=None):
     """
-    Function to simply simulate a coronographic mask by
+    Function to simulate a coronographic mask by
     setting the image values to zero within circle of a given radius around the
     image center
 

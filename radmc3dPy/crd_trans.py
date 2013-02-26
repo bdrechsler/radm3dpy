@@ -1,4 +1,17 @@
-import numpy as np
+"""
+PYTHON module for RADMC3D 
+(c) Attila Juhasz 2011,2012,2013
+
+This sub-module contains functions for coordinate transformations (e.g. rotation)
+"""
+try:
+    import numpy as np
+except:
+    print 'ERROR'
+    print ' Numpy cannot be imported '
+    print ' To use the python module of RADMC-3D you need to install Numpy'
+
+
 #import scipy.linalg as la
 
 def ctrans_sph2cyl(crd=None, theta=None, reverse=False):
@@ -158,20 +171,20 @@ def csrot(crd=None, ang=None, xang=0.0, yang=0.0, zang=0.0, deg=False):
     X-axis
 
      |      1               0            0        |
-     |      0          cos(alpha)     -sin(alpha)  | 
-     |      0         sin(alpha)     cos(alpha)  |
+     |      0          cos(alpha)    -sin(alpha)  | 
+     |      0          sin(alpha)     cos(alpha)  |
 
     Y-axis
 
-     |   cos(beta)          0        sin(beta)   |
+     |   cos(beta)          0         sin(beta)   |
      |      0               1            0        |
-     |   -sin(beta)          0         cos(beta)   |
+     |   -sin(beta)         0         cos(beta)   |
 
     Z-axis
  
      |   cos(gamma)     -sin(gamma)       0        |
-     |  sin(gamma)     cos(gamma)       0        |
-     |      0               0            1        |
+     |  sin(gamma)       cos(gamma)       0        |
+     |      0                0            1        |
 
     """
 

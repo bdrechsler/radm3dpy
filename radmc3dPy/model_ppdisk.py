@@ -45,6 +45,9 @@ from radmc3dPy.crd_trans import vrot
 import sys
 
 
+# ============================================================================================================================
+#
+# ============================================================================================================================
 def get_desc():
     """
     Function to provide a brief description of the model
@@ -53,7 +56,9 @@ def get_desc():
     return "Generic protoplanetary disk model"
            
 
-
+# ============================================================================================================================
+#
+# ============================================================================================================================
 def get_default_params():
     """
     Function to provide default parameter values 
@@ -73,7 +78,12 @@ def get_default_params():
 
     defpar = {}
 
-    defpar = [ ['nx', '230', 'Number of radial grid points'],
+    defpar = [ ['nx', '[30,50]', 'Number of grid points in the first dimension'],
+    ['xbound', '[1.0*au,1.05*au, 100.0*au]', 'Number of radial grid points'],
+    ['ny', '[10,30,30,10]', 'Number of grid points in the first dimension'],
+    ['ybound', '[0., pi/3., pi/2., 2.*pi/3., pi]', 'Number of radial grid points'],
+    ['nz', '30', 'Number of grid points in the first dimension'],
+    ['zbound', '[0., 2.0*pi]', 'Number of radial grid points'],
     ['rin', '1.0*au', ' Inner radius of the disk'],
     ['rdisk', '200.0*au', ' Outer radius of the disk'],
     ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
@@ -91,6 +101,9 @@ def get_default_params():
 
     return defpar
 
+# ============================================================================================================================
+#
+# ============================================================================================================================
 def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
     """
     Function to create the density distribution in a protoplanetary disk
@@ -104,7 +117,7 @@ def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, 
 # Get the gas density
     rhogas = get_gas_density(rcyl=rcyl, phi=phi, z=z, z0=z0, hp=hp, sigma=sigma, grid=grid, ppar=ppar)
 
-    rho = array(rhogas)*0. * ppar['dusttogas']
+    rho = array(rhogas) * ppar['dusttogas']
 
 # Split up the disk density distribution according to the given abundances
     if ppar.has_key('dustkappa_ext'):
@@ -113,6 +126,7 @@ def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, 
             gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
         else:
             ngs = 1
+            gsfact = [1.0]
             
             
     else:
@@ -132,15 +146,19 @@ def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, 
         gsfact = gmass * gs**(ppar['gsdist_powex']+1)
         gsfact = gsfact / gsfact.sum()
 
-    if (ngs>1):
+    #if (ngs>1):
        
-        rho_old = array(rho)
-        rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
-        for igs in range(ngs):
-            rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
+    rho_old = array(rho)
+    rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
+    for igs in range(ngs):
+        rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
+
 
     return rho
 
+# ============================================================================================================================
+#
+# ============================================================================================================================
 def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
     """
     Function to create the density distribution in a protoplanetary disk
@@ -241,49 +259,10 @@ def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, g
             for ix in range(grid.nx):
                 if (grid.x[ix]>=ppar['gap_rin'][igap])&(grid.x[ix]<=ppar['gap_rout'][igap]):
                     rho[ix,:,:] = rho[ix,:,:] * ppar['gap_drfact'][igap]
-#                for iy in range(grid.ny):
-#                    if ((rcyl[iy,ix]>=ppar['gap_rin'][igap])&(rcyl[iy,ix]<=ppar['gap_rout'][igap])):
-#                        rho[ix,iy,:] = rho[ix,iz,:] * ppar['gap_drfact'][igap] 
-
-
-    
-    ## Split up the disk density distribution according to the given abundances
-    #if ppar.has_key('dustkappa_ext'):
-        #ngs  = len(ppar['dustkappa_ext'])
-        #if ppar.has_key('mfrac'):
-            #gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
-        #else:
-            #ngs = 1
-            
-            
-    #else:
-        #ngs = ppar['ngs']
-        ##
-        ## WARNING!!!!!!
-        ## At the moment I assume that the multiple dust population differ from each other only in 
-        ## grain size but not in bulk density thus when I calculate the abundances / mass fractions 
-        ## they are independent of the grains bulk density since abundances/mass fractions are normalized
-        ## to the total mass. Thus I use 1g/cm^3 for all grain sizes.
-        ## TODO: Add the possibility to handle multiple dust species with different bulk densities and 
-        ## with multiple grain sizes.
-        ##
-        #gdens = zeros(ngs, dtype=float) + 1.0
-        #gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
-        #gmass = 4./3.*np.pi*gs**3. * gdens
-        #gsfact = gmass * gs**(ppar['gsdist_powex']+1)
-        #gsfact = gsfact / gsfact.sum()
-
-    #if (ngs>1):
-       
-        #rho_old = array(rho)
-        #rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
-        #for igs in range(ngs):
-            #rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
-
     return rho
-# -----------------------------------------------------------------------------------------------
-# 
-# -----------------------------------------------------------------------------------------------
+# ============================================================================================================================
+#
+# ============================================================================================================================
 def get_velocity(rcyl=None, phi=None, z=None, z0=None, grid=None, ppar=None):
     """
     Function to create the velocity field in a protoplanetary disk
