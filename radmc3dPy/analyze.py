@@ -195,6 +195,8 @@ class radmc3dGrid():
                     if (type(ppar['nx']).__name__!='list'): 
                         ppar['nx'] = [ppar['nx']]
                     nxi = [i+1 for i in ppar['nx']] #nxi = ppar['nx']+1
+                    if ppar['nx'][0]==0:
+                        self.act_dim[0] = 0
                 else:
                     self.act_dim[0] = 0
 
@@ -214,6 +216,9 @@ class radmc3dGrid():
                     else:
                         ppar['ny'] = ppar['ny']
                         nyi = [i for i in ppar['ny']] #ppar['ny']+1
+                    
+                    if ppar['ny'][0]==0:
+                        self.act_dim[1] = 0
                 else:
                     self.act_dim[1] = 0
 
@@ -228,6 +233,8 @@ class radmc3dGrid():
                     if (type(ppar['nz']).__name__!='list'): 
                         ppar['nz'] = [ppar['nz']]
                     nzi = [i+1 for i in ppar['nz']] #nzi = ppar['nz']+1
+                    if ppar['nz'][0]==0:
+                        self.act_dim[2] = 0
                 else:
                     self.act_dim[2] = 0
                     nzi = [0]
@@ -295,26 +302,6 @@ class radmc3dGrid():
                     self.nx = 1
                     self.nxi = 2
 
-            # Refinement of the inner edge of the grid
-            # This has to be done properly
-            if ppar.has_key('xres_nlev'):
-                ri_ext = array([self.xi[0], self.xi[ppar['xres_nspan']]])
-                for i in range(ppar['xres_nlev']):
-                    dum_ri = ri_ext[0] + (ri_ext[1]-ri_ext[0]) * arange(ppar['xres_nstep']+1, dtype=float64) / float(ppar['xres_nstep'])
-                    print ri_ext[0:2]/au
-                    print dum_ri/au
-                    ri_ext_old = array(ri_ext)
-                    ri_ext = array(dum_ri)
-                    ri_ext = append(ri_ext,ri_ext_old[2:])
-                    print ri_ext/au
-                    print '----------'
-                    
-                r_ext = (ri_ext[1:] + ri_ext[:-1]) * 0.5
-
-                self.xi = append(ri_ext, self.xi[ppar['xres_nspan']+1:])
-                self.x = append(r_ext, self.x[ppar['xres_nspan']:])
-                self.nx = self.x.shape[0]
-                self.nxi = self.xi.shape[0]
 #
 # Create the y-ayis
 #
@@ -425,13 +412,34 @@ class radmc3dGrid():
                     self.nx = 1
                     self.nxi = 2
                 
+            ## This has to be done properly
+            #if ppar.has_key('xres_nlev'):
+                #ri_ext = array([self.xi[0], self.xi[ppar['xres_nspan']]])
+                #for i in range(ppar['xres_nlev']):
+                    #dum_ri = ri_ext[0] + (ri_ext[1]-ri_ext[0]) * arange(ppar['xres_nstep']+1, dtype=float64) / float(ppar['xres_nstep'])
+                    #print ri_ext[0:2]/au
+                    #print dum_ri/au
+                    #ri_ext_old = array(ri_ext)
+                    #ri_ext = array(dum_ri)
+                    #ri_ext = append(ri_ext,ri_ext_old[2:])
+                    #print ri_ext/au
+                    #print '----------'
+                    
+                #r_ext = (ri_ext[1:] + ri_ext[:-1]) * 0.5
+
+                #self.xi = append(ri_ext, self.xi[ppar['xres_nspan']+1:])
+                #self.x = append(r_ext, self.x[ppar['xres_nspan']:])
+                #self.nx = self.x.shape[0]
+                #self.nxi = self.xi.shape[0]
+
+            # Refinement of the inner edge of the grid
             # This has to be done properly
             if ppar.has_key('xres_nlev'):
                 ri_ext = array([self.xi[0], self.xi[ppar['xres_nspan']]])
                 for i in range(ppar['xres_nlev']):
                     dum_ri = ri_ext[0] + (ri_ext[1]-ri_ext[0]) * arange(ppar['xres_nstep']+1, dtype=float64) / float(ppar['xres_nstep'])
-                    print ri_ext[0:2]/au
-                    print dum_ri/au
+                    #print ri_ext[0:2]/au
+                    #print dum_ri/au
                     ri_ext_old = array(ri_ext)
                     ri_ext = array(dum_ri)
                     ri_ext = append(ri_ext,ri_ext_old[2:])

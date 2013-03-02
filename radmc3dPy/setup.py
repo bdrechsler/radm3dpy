@@ -111,7 +111,7 @@ def get_model_desc(model=''):
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problem_setup_dust(model='', **kwargs):
+def problem_setup_dust(model='', binary=True, **kwargs):
     """
     Function to set up a dust model for RADMC3D 
     
@@ -123,6 +123,9 @@ def problem_setup_dust(model='', **kwargs):
                 it should be in the current working directory)
                 and the file name should be 'model_xxx.py', where xxx stands for the string
                 that should be specified in this variable
+        
+        binary : If True input files will be written in binary format, if False input files are
+                written as formatted ascii text. 
 
     OPTIONS:
     --------
@@ -240,7 +243,7 @@ def problem_setup_dust(model='', **kwargs):
     #Input radiation field
     stars.write_starsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
     #Dust density distribution
-    data.write_dustdens()
+    data.write_dustdens(binary=binary)
     #radmc3d.inp
     write_radmc3d_inp(modpar=modpar)
 
@@ -256,7 +259,7 @@ def problem_setup_dust(model='', **kwargs):
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problem_setup_gas(model='', fullsetup=False, **kwargs):
+def problem_setup_gas(model='', fullsetup=False, binary=True, **kwargs):
     """
     Function to set up a gas model for RADMC3D 
     
@@ -273,6 +276,9 @@ def problem_setup_gas(model='', fullsetup=False, **kwargs):
                     (i.e. no grid and radmc3d master command file is written)
                     if True the spatial and wavelength grid as well as the input radiation field
                     and the radmc3d master command file will be (over)written. 
+
+        binary : If True input files will be written in binary format, if False input files are
+                written as formatted ascii text. 
 
     OPTIONS:
     --------
@@ -425,16 +431,16 @@ def problem_setup_gas(model='', fullsetup=False, **kwargs):
     #data.rhogas = mdl.get_density(grid=grid, ppar=ppar) * ppar['gasspec_abun']
     data.gasvel = mdl.get_velocity(grid=grid, ppar=ppar)
     # Write the gas density
-    data.write_gasdens(ispec=ppar['gasspec_name'])
+    data.write_gasdens(ispec=ppar['gasspec_name'], binary=binary)
     # Write the gas velocity
-    data.write_gasvel()
+    data.write_gasvel(binary=binary)
     # Write the gas temperature if specified 
     if ppar['write_gastemp']:
         if dir(mdl).__contains__('get_gastemp'):
             if callable(getattr(mdl, 'get_gastemp')):
                 data.gastemp = mdl.get_gastemp(grid=grid, ppar=ppar)
                 # Write the gas temperature
-                data.write_gastemp() 
+                data.write_gastemp(binary=binary) 
         else:
             print 'WARNING'
             print 'model_'+model+'.py does not contain a get_gastemp() function, therefore, '
@@ -449,7 +455,7 @@ def problem_setup_gas(model='', fullsetup=False, **kwargs):
             if callable(getattr(mdl, 'get_vturb')):
                 data.vturb = mdl.get_vturb(grid=grid, ppar=ppar)
                 # Write the turbulent velocity field
-                data.write_vturb() 
+                data.write_vturb(binary=binary) 
         except:
             print 'WARNING'
             print 'model_'+model+'.py does not contain a get_vturb() function, nor does problem_params.inp contain '
@@ -464,18 +470,18 @@ def problem_setup_gas(model='', fullsetup=False, **kwargs):
                 if callable(getattr(mdl, 'get_vturb')):
                     data.vturb = mdl.get_vturb(grid=grid, ppar=ppar)
                     # Write the turbulent velocity field
-                    data.write_vturb() 
+                    data.write_vturb(binary=binary) 
             else:
                 data.vturb = zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
                 data.vturb[:,:,:] = 0.
-                data.write_vturb()
+                data.write_vturb(binary=binary)
                 return
         else:
             # If ppar['gasspec_vturb'] is set to a positive value then it is assumed that
             # the turbulent velocity field is homogeneous and its value is ppar['gasspec_vturb']  
             data.vturb = zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
             data.vturb[:,:,:] = ppar['gasspec_vturb']
-            data.write_vturb()
+            data.write_vturb(binary=binary)
 
     # Write the lines.inp the main control file for the line RT
     write_lines_inp(ppar=ppar)
