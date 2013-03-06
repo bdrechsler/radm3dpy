@@ -111,7 +111,7 @@ def get_model_desc(model=''):
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problem_setup_dust(model='', binary=True, **kwargs):
+def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
     """
     Function to set up a dust model for RADMC3D 
     
@@ -202,9 +202,8 @@ def problem_setup_dust(model='', binary=True, **kwargs):
     stars.get_stellar_spectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
 
 # --------------------------------------------------------------------------------------------
-# Create the dust density distribution 
+# Try to get the specified model
 # --------------------------------------------------------------------------------------------
-
     try:
         mdl = __import__('model_'+model)
     except:
@@ -218,6 +217,9 @@ def problem_setup_dust(model='', binary=True, **kwargs):
             return
 
     data = radmc3dData(grid)
+# --------------------------------------------------------------------------------------------
+# Create the dust density distribution 
+# --------------------------------------------------------------------------------------------
     if dir(mdl).__contains__('get_dust_density'):
         if callable(getattr(mdl, 'get_dust_density')):
             data.rhodust = mdl.get_dust_density(grid=grid, ppar=ppar)
@@ -231,7 +233,24 @@ def problem_setup_dust(model='', binary=True, **kwargs):
         print 'model_'+model+'.py does not contain a get_dust_density() function, therefore, '
         print ' dust_density.inp cannot be written'
         return 
-    #data.rhodust = mdl.get_density(grid=grid, ppar=ppar) * ppar['dusttogas']
+# --------------------------------------------------------------------------------------------
+# Create the dust temperature distribution if the model has such function
+# --------------------------------------------------------------------------------------------
+    if write_dusttemp:
+        if dir(mdl).__contains__('get_dust_temperature'):
+            if callable(getattr(mdl, 'get_dust_temperature')):
+                data.dusttemp = mdl.get_dust_temperature(grid=grid, ppar=ppar)
+            else:
+                print 'WARNING'
+                print 'model_'+model+'.py does not contain a get_dust_temperature() function, therefore, '
+                print ' dust_temperature.dat cannot be written'
+                return 
+        else:
+            print 'WARNING'
+            print 'model_'+model+'.py does not contain a get_dust_temperature() function, therefore, '
+            print ' dust_temperature.dat cannot be written'
+            return 
+    #data.rhodust = mdl.get_temperature(grid=grid, ppar=ppar) * ppar['dusttogas']
 # --------------------------------------------------------------------------------------------
 # Now write out everything 
 # --------------------------------------------------------------------------------------------
@@ -244,6 +263,9 @@ def problem_setup_dust(model='', binary=True, **kwargs):
     stars.write_starsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
     #Dust density distribution
     data.write_dustdens(binary=binary)
+    #Dust temperature distribution
+    if write_dusttemp:
+        data.write_dusttemp(binary=binary)
     #radmc3d.inp
     write_radmc3d_inp(modpar=modpar)
 
@@ -259,7 +281,7 @@ def problem_setup_dust(model='', binary=True, **kwargs):
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problem_setup_gas(model='', fullsetup=False, binary=True, **kwargs):
+def problem_setup_gas(model='', fullsetup=False, binary=True,  **kwargs):
     """
     Function to set up a gas model for RADMC3D 
     
@@ -381,7 +403,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True, **kwargs):
     else:
         grid=read_grid()
 # --------------------------------------------------------------------------------------------
-# Create the gas density distribution 
+# Try to get the specified model
 # --------------------------------------------------------------------------------------------
     try:
         import os
@@ -399,6 +421,9 @@ def problem_setup_gas(model='', fullsetup=False, binary=True, **kwargs):
 
     # Create the data structure
     data = radmc3dData(grid)
+# --------------------------------------------------------------------------------------------
+# Create the gas density distribution 
+# --------------------------------------------------------------------------------------------
     # Calculate the gas density and velocity
     # NOTE: the density function in the model sub-modules should provide the gas volume density
     #       in g/cm^3 but RADMC3D needs the number density in 1/cm^3 so we should convert the
@@ -413,29 +438,46 @@ def problem_setup_gas(model='', fullsetup=False, binary=True, **kwargs):
         print 'model_'+model+'.py does not contain a get_gas_density() function, therefore, '
         print ' numberdens_***.inp cannot be written'
         return 
+        
+# --------------------------------------------------------------------------------------------
+# Create the molecular abundance
+# --------------------------------------------------------------------------------------------
+    #if ppar.has_key('gasspec_mol_abun'):
+        #data.rhogas = data.rhogas * ppar['gasspec_mol_abun']
+    #else:
+    if dir(mdl).__contains__('get_molecule_abundance'):
+        if callable(getattr(mdl, 'get_molecule_abundance')):
+            for imol in range(len(ppar['gasspec_mol_name'])):
+                data.gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_mol_name'][imol])
+                data.ndens_mol = data.rhogas * data.gasabun
+                # Write the gas density
+                data.write_gasdens(ispec=ppar['gasspec_mol_name'][imol], binary=binary)
+            
+            for icp in range(len(ppar['gasspec_colpart_name'])):
+                data.gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_colpart_name'][icp])
+                data.ndens_mol = data.rhogas * data.gasabun
+                # Write the gas density
+                data.write_gasdens(ispec=ppar['gasspec_colpart_name'][icp], binary=binary)
 
-    if ppar['gasspec_abun']:
-        data.rhogas = data.rhogas * ppar['gasspec_abun']
     else:
-        if dir(mdl).__contains__('get_gas_abundance'):
-            if callable(getattr(mdl, 'get_gas_abundance')):
-                data.gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar)
-        else:
-            print 'WARNING'
-            print 'model_'+model+'.py does not contain a get_gas_abundance() function, and no "gasspec_abun" '
-            print ' parameter is found in the problem_setup.inp file. numberdens_***.inp cannot be written'
-            return
+        print 'WARNING'
+        print 'model_'+model+'.py does not contain a get_gas_abundance() function, and no "gasspec_abun" '
+        print ' parameter is found in the problem_setup.inp file. numberdens_***.inp cannot be written'
+        return
 
-
-
-    #data.rhogas = mdl.get_density(grid=grid, ppar=ppar) * ppar['gasspec_abun']
+# --------------------------------------------------------------------------------------------
+# Get the gas velocity field
+# --------------------------------------------------------------------------------------------
+    
     data.gasvel = mdl.get_velocity(grid=grid, ppar=ppar)
-    # Write the gas density
-    data.write_gasdens(ispec=ppar['gasspec_name'], binary=binary)
+
     # Write the gas velocity
     data.write_gasvel(binary=binary)
+# --------------------------------------------------------------------------------------------
+# Get the kinetik gas temperature
+# --------------------------------------------------------------------------------------------
     # Write the gas temperature if specified 
-    if ppar['write_gastemp']:
+    if write_gastemp:
         if dir(mdl).__contains__('get_gastemp'):
             if callable(getattr(mdl, 'get_gastemp')):
                 data.gastemp = mdl.get_gastemp(grid=grid, ppar=ppar)
@@ -525,14 +567,42 @@ def write_lines_inp(ppar=None):
 
     """
 
+    # Do a consistency check
+    n1 = len(ppar['gasspec_mol_name'])
+    n2 = len(ppar['gasspec_mol_abun'])
+    n3 = len(ppar['gasspec_mol_dbase_type'])
+
+    if ((n1!=n2)|(n2!=n3)):
+        print ' ERROR '
+        print ' gasspec_mol_name, gasspec_mol_abun and gasspec_mol_dbase_type have different number of elements'
+        return 
+
+    if ppar.has_key('gasspec_colpart_name') & ppar.has_key('gasspec_colpart_abun'):
+        n4 = len(ppar['gasspec_colpart_name'])
+        n5 = len(ppar['gasspec_colpart_abun'])
+    else:
+        n4 = 0
+        n5 = 0
+
+    if (n4!=n5):
+        print ' ERROR '
+        print ' gasspec_colpart_name and gasspec_colpart_abun have different number of elements'
+        return 
+
+
     print 'Writing lines.inp'
     wfile = open('lines.inp', 'w')
     # File format
     wfile.write("%d\n"%(1))
     # Nr of gas species
-    wfile.write("%d\n"%(1))
+    wfile.write("%d\n"%n1)
     # Gas species name and database type
-    wfile.write("%s %s %d %d\n"%(ppar['gasspec_name'], ppar['gasspec_dbase_type'], 0, 0))
+    for imol in range(n1):
+        wfile.write("%s %s %d %d\n"%(ppar['gasspec_mol_name'][imol], ppar['gasspec_mol_dbase_type'][imol], 0, n4))
+
+    if n4>0:
+        for icp in range(n4):
+            wfile.write("%s\n"%ppar['gasspec_colpart_name'][icp])
     wfile.close()
 
 # --------------------------------------------------------------------------------------------------
