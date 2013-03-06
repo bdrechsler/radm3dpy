@@ -329,6 +329,7 @@ class radmc3dGrid():
                     self.ny = 1
                     self.nyi = 2
 
+
 #
 # Create the z-azis
 #
@@ -754,11 +755,8 @@ class radmc3dData():
         
         """
 
-        fname = fname+'_test'
         wfile = open(fname, 'w')
-
         if binary:
-
             if len(data.shape)==3:
                 hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
             elif len(data.shape)==4:
@@ -782,19 +780,21 @@ class radmc3dData():
             
             if len(data.shape)==3:
                 hdr = array([1, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+                hdr.tofile(wfile, sep=" ", format="%d\n")
+                # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
+                # array always in C-order while we need Fortran-order to be written
+                data = swapaxes(data,0,2)
+                data.tofile(wfile, sep=" ", format="%.9e\n")
+
+
             elif len(data.shape)==4:
                 hdr = array([1, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
-
-            hdr.tofile(wfile, sep=" ", format="%d\n")
-            # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
-            # array always in C-order while we need Fortran-order to be written
-            if len(data.shape)==4:
+                hdr.tofile(wfile, sep=" ", format="%d\n")
+                # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
+                # array always in C-order while we need Fortran-order to be written
                 data = swapaxes(data,0,3)
                 data = swapaxes(data,1,2)
                 data.tofile(wfile, sep=" ", format="%.9e\n")
-            elif len(data.shape)==3:
-                data = swapaxes(data,0,2)
-                data.tofile(wfile)
             else:
                 print 'ERROR'
                 print 'Unknown array shape  : '
@@ -1038,71 +1038,6 @@ class radmc3dData():
                 fname = 'dust_density.inp'
             
         self.rhodust = self._scalarfield_reader(fname=fname, binary=binary)
-
-
-            ## hdr[0] = format number
-            ## hdr[1] = data precision (4=single, 8=double)
-            ## hdr[2] = nr of cells
-            ## hdr[3] = nr of dust species
-            #hdr = fromfile(fname, count=4, dtype=int)
-            
-            #if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                #print 'ERROR'
-                #print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                #print self.grid.nx, self.grid.ny, self.grid.nz
-                #print hdr[2]
-                #return
-
-            #if hdr[1]==8:
-                #self.rhodust = fromfile(fname, count=-1, dtype=float64)
-            #elif hdr[1]==4:
-                #self.rhodust = fromfile(fname, count=-1, dtype=float)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown datatype in '+fname
-                #return
-
-            #self.rhodust = reshape(self.rhodust[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
-            ## We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
-            ## uses Fortran-order
-            #self.rhodust = swapaxes(self.rhodust,0,3)
-            #self.rhodust = swapaxes(self.rhodust,1,2)
-        #else:
-
-            #if fname=='':
-                #fname = 'dust_density.inp'
-            #rfile = -1
-            #try :
-                #rfile = open(fname, 'r')
-            #except:
-                #print 'Error!' 
-                #print 'dust_density.inp was not found!'
-                
-             
-            #if (rfile!=(-1)):
-                #dum = rfile.readline()
-                #dum = int(rfile.readline())
-                
-                #if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                    #print 'Error!'
-                    #print 'Number of grid points in amr_grid.inp is not equal to that in dust_density.inp'
-                #else:
-                    
-                    #self.ngs     = int(rfile.readline())
-                    #self.rhodust = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.ngs], dtype=float64)
-
-                    
-                    #for igs in range(self.ngs):
-                        #for k in range(self.grid.nz):
-                            #for j in range(self.grid.ny):
-                                #for i in range(self.grid.nx):
-                                    #self.rhodust[i,j,k,igs] = float(rfile.readline())
-                                    
-                        #print 'Reading dust component ', igs
-            #else:
-                #self.rhodust = -1
-
-            #rfile.close()
 # --------------------------------------------------------------------------------------------------
     def read_dusttemp(self, fname='', binary=True):
         """
@@ -1129,78 +1064,6 @@ class radmc3dData():
             
         self.dusttemp = self._scalarfield_reader(fname=fname, binary=binary)
 
-
-        #if (self.grid.nx==-1):
-            #self.grid.read_grid()
-
-        #if binary:
-            #if fname=='':
-                #fname ='dust_temperature.bdat'
-
-            ## hdr[0] = format number
-            ## hdr[1] = data precision (4=single, 8=double)
-            ## hdr[2] = nr of cells
-            ## hdr[3] = nr of dust species
-            #hdr = fromfile(fname, count=4, dtype=int)
-            
-            #if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                #print 'ERROR'
-                #print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                #print self.grid.nx, self.grid.ny, self.grid.nz
-                #print hdr[1]
-                #return
-
-            #if hdr[1]==8:
-                #self.dusttemp = fromfile(fname, count=-1, dtype=float64)
-            #elif hdr[1]==4:
-                #self.dusttemp = fromfile(fname, count=-1, dtype=float)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown datatype in '+fname
-                #return
-
-            #self.dusttemp = reshape(self.dusttemp[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
-            ## We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
-            ## uses Fortran-order
-            #self.dusttemp = swapaxes(self.dusttemp,0,3)
-            #self.dusttemp = swapaxes(self.dusttemp,1,2)
-
-        #else:
-            #if fname=='':
-                #fname = 'dust_temperature.dat'
-
-            #print 'Reading dust temperature'
-
-            #rfile = -1
-            #try :
-                #rfile = open(fname, 'r')            
-            #except:
-                #print 'Error!' 
-                #print fname+' was not found!'
-
-
-            #if (rfile!=(-1)):
-
-                #dum = rfile.readline()
-                #dum = int(rfile.readline())
-                
-                #if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                    #print 'Error!'
-                    #print 'Number of grid points in amr_grid.inp is not equal to that in dust_density.inp'
-                #else:
-
-                    #self.ngs      = int(rfile.readline())
-                    #self.dusttemp = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.ngs], dtype=float64)
-                
-                    #for igs in range(self.ngs):
-                        #for k in range(self.grid.nz):
-                            #for j in range(self.grid.ny):
-                                #for i in range(self.grid.nx):
-                                    #self.dusttemp[i,j,k,igs] = float(rfile.readline())
-            #else:
-                #self.dusttemp = -1                            
-
-            #rfile.close()
 # --------------------------------------------------------------------------------------------------
     def read_gasvel(self, fname='', binary=True):
         """
@@ -1311,81 +1174,6 @@ class radmc3dData():
             
         self.vturb = self._scalarfield_reader(fname=fname, binary=binary)
        
-        #if binary:
-            #if fname=='':
-                #fname = 'microturbulence.binp'
-        #if (self.grid.nx==-1):
-            #self.grid.read_grid()
-            
-            #if (self.grid.nx==-1):
-                #self.grid.read_grid()
-
-            #print 'Reading microturbulence'
-
-            #hdr[0] = format number
-            #hdr[1] = data precision (4=single, 8=double)
-            #hdr[2] = nr of cells
-            #hdr = fromfile(fname, count=3, dtype=int)
-            
-            #if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                #print 'ERROR'
-                #print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                #print self.grid.nx, self.grid.ny, self.grid.nz
-                #print hdr[1]
-                #return
-
-            #if hdr[1]==8:
-                #self.vturb = fromfile(fname, count=-1, dtype=float64)
-            #elif hdr[1]==4:
-                #self.vturb = fromfile(fname, count=-1, dtype=float)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown datatype in '+fname
-                #return
-
-            #self.vturb = reshape(self.vturb[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
-            #We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
-            #uses Fortran-order
-            #self.vturb = swapaxes(self.vturb,0,2)
-
-        #else:
-            #if fname=='':
-                #fname = 'microturbulence.inp'
-        
-            #if (self.grid.nx==-1):
-                #self.grid.read_grid()
-
-            #print 'Reading microturbulence'
-
-            #rfile = -1
-
-            #try :
-                #rfile = open(fname, 'r')
-            #except:
-                #print 'Error!' 
-                #print fname+' was not found!'
-                
-            #if (rfile!=(-1)):            
-                #dum = rfile.readline()
-                #dum = int(rfile.readline())
-                
-                #if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                    #print 'Error!'
-                    #print 'Number of grid points in amr_grid.inp is not equal to that in microturbulence.inp'
-                #else:
-                    
-                    #self.vturb = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
-                    
-                    #for k in range(self.grid.nz):
-                        #for j in range(self.grid.ny):
-                            #for i in range(self.grid.nx):
-                                #dum = rfile.readline().split()
-                                #self.vtrub[i,j,k] = float(dum)
-
-            #else:
-                #self.vtrub = -1                            
-
-            #rfile.close()
 # --------------------------------------------------------------------------------------------------
     def read_gasdens(self,ispec='',binary=True):
         """
@@ -1401,78 +1189,93 @@ class radmc3dData():
             binary - if set to True reads binary files
 
         """
+        
+        if (self.grid.nx==-1):
+            self.grid.read_grid()
+            
+        print 'Reading gas density (numberdens_'+ispec)
 
         if binary:
-            if (self.grid.nx==-1):
-                self.grid.read_grid()
-
-            print 'Reading gas density'
-
-
-            # hdr[0] = format number
-            # hdr[1] = data precision (4=single, 8=double)
-            # hdr[2] = nr of cells
-            hdr = fromfile(fname, count=3, dtype=int)
-            
-            if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                print 'ERROR'
-                print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                print self.grid.nx, self.grid.ny, self.grid.nz
-                print hdr[1]
-                return
-
-            if hdr[1]==8:
-                self.rhogas = fromfile(fname, count=-1, dtype=float64)
-            elif hdr[1]==4:
-                self.rhogas = fromfile(fname, count=-1, dtype=float)
-            else:
-                print 'ERROR'
-                print 'Unknown datatype in '+fname
-                return
-
-            self.rhogas = reshape(self.rhogas[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
-            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
-            # uses Fortran-order
-            self.rhogas = swapaxes(self.rhogas,0,2)
-
+            if fname=='':
+                fname = 'numberdens_'+ispec+'.binp'
         else:
-            if (self.grid.nx==-1):
-                self.grid.read_grid()
+            if fname=='':
+                fname = 'numberdens_'+ispec+'.inp'
+            
+        self.ndens_mol = self._scalarfield_reader(fname=fname, binary=binary)
+       
+
+        #if binary:
+            #if (self.grid.nx==-1):
+                #self.grid.read_grid()
+
+            #print 'Reading gas density'
 
 
-            print 'Reading gas density'
+            ## hdr[0] = format number
+            ## hdr[1] = data precision (4=single, 8=double)
+            ## hdr[2] = nr of cells
+            #hdr = fromfile(fname, count=3, dtype=int)
+            
+            #if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                #print 'ERROR'
+                #print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                #print self.grid.nx, self.grid.ny, self.grid.nz
+                #print hdr[1]
+                #return
 
-            rfile = -1
-            try :
-                rfile = open('numberdens_'+ispec+'.inp', 'r')
-            except:
-                print 'Error!' 
-                print 'numberdens_'+ispec+'.inp was not found!'
-                return
+            #if hdr[1]==8:
+                #self.rhogas = fromfile(fname, count=-1, dtype=float64)
+            #elif hdr[1]==4:
+                #self.rhogas = fromfile(fname, count=-1, dtype=float)
+            #else:
+                #print 'ERROR'
+                #print 'Unknown datatype in '+fname
+                #return
 
-            if (rfile!=(-1)):
+            #self.rhogas = reshape(self.rhogas[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
+            ## We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
+            ## uses Fortran-order
+            #self.rhogas = swapaxes(self.rhogas,0,2)
 
-                dum = rfile.readline()
-                dum = int(rfile.readline())
+        #else:
+            #if (self.grid.nx==-1):
+                #self.grid.read_grid()
+
+
+            #print 'Reading gas density'
+
+            #rfile = -1
+            #try :
+                #rfile = open('numberdens_'+ispec+'.inp', 'r')
+            #except:
+                #print 'Error!' 
+                #print 'numberdens_'+ispec+'.inp was not found!'
+                #return
+
+            #if (rfile!=(-1)):
+
+                #dum = rfile.readline()
+                #dum = int(rfile.readline())
                 
-                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                    print 'Error!'
-                    print 'Number of grid points in amr_grid.inp is not equal to that in numberdens_'+ispec+'.inp'
-                    print self.grid.nx * self.grid.ny * self.grid.nz, dum
-                    print self.grid.nx, self.grid.ny, self.grid.nz
-                else:
+                #if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    #print 'Error!'
+                    #print 'Number of grid points in amr_grid.inp is not equal to that in numberdens_'+ispec+'.inp'
+                    #print self.grid.nx * self.grid.ny * self.grid.nz, dum
+                    #print self.grid.nx, self.grid.ny, self.grid.nz
+                #else:
                     
-                    self.rhogas = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
+                    #self.rhogas = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
                     
-                    for k in range(self.grid.nz):
-                        for j in range(self.grid.ny):
-                            for i in range(self.grid.nx):
-                                self.rhogas[i,j,k] = float(rfile.readline())
+                    #for k in range(self.grid.nz):
+                        #for j in range(self.grid.ny):
+                            #for i in range(self.grid.nx):
+                                #self.rhogas[i,j,k] = float(rfile.readline())
 
-            else:
-                self.rhogas = -1                            
+            #else:
+                #self.rhogas = -1                            
 
-            rfile.close()
+            #rfile.close()
 # --------------------------------------------------------------------------------------------------
 
     def read_gastemp(self, fname='', binary=True):
@@ -1499,80 +1302,6 @@ class radmc3dData():
             
         self.gastemp = self._scalarfield_reader(fname=fname, binary=binary)
 
-
-        #if binary:
-            #if fname=='':
-                #fname = 'gas_temperature.binp'
-
-            #if (self.grid.nx==-1):
-                #self.grid.read_grid()
-
-            #rfile = -1
-            #try :
-                #rfile = open(fname, 'r')
-            #except:
-                #print 'Error!' 
-                #print fname+' was not found!'
-                #return
-
-            ## hdr[0] = format number
-            ## hdr[1] = data precision (4=single, 8=double)
-            ## hdr[2] = nr of cells
-            #hdr = fromfile(fname, count=3, dtype=int)
-            
-            #if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                #print 'ERROR'
-                #print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                #print self.grid.nx, self.grid.ny, self.grid.nz
-                #print hdr[1]
-                #return
-
-            #if hdr[1]==8:
-                #self.gastemp = fromfile(fname, count=-1, dtype=float64)
-            #elif hdr[1]==4:
-                #self.gastemp = fromfile(fname, count=-1, dtype=float)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown datatype in '+fname
-                #return
-
-            #self.gastemp = reshape(self.gastemp[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
-            ## We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
-            ## uses Fortran-order
-            #self.gastemp = swapaxes(self.gastemp,0,2)
-        #else:
-            #if fname=='':
-                #fname = 'gas_temperature.inp'
-
-            #if (self.grid.nx==-1):
-                #self.grid.read_grid()
-
-            #rfile = -1
-            #try :
-                #rfile = open(fname, 'r')
-            #except:
-                #print 'Error!' 
-                #print fname+' was not found!'
-
-            #if (rfile!=(-1)):
-                #dum = rfile.readline()
-                #dim = rfile.readline()
-
-                #if (dim!=self.grid.nx*self.grid.ny*self.grid.nz):
-                    #print 'ERROR'
-                    #print 'Number of grid points in amr_grid.inp is not equal to that in gas_temperature.inp'
-                    #print self.grid.nx * self.grid.ny * self.grid.nz, dim
-                    #print self.grid.nx, self.grid.ny, self.grid.nz
-                    #rfile.close()
-                    #return 0
-                #else:
-                    #self.gastemp = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
-                    #for iz in range(self.grid.nz):
-                        #for iy in range(self.grid.ny):
-                            #for ix in range(self.grid.nx):
-                                #self.gastemp[ix,iy,iz] = float(rfile.readline())
-            
-            #rfile.close()
 # --------------------------------------------------------------------------------------------------
     def write_dustdens(self, fname='', binary=True):
         """
@@ -1590,65 +1319,10 @@ class radmc3dData():
                 fname = 'dust_density.inp'
 
         print 'Writing '+fname
+
         self._scalarfield_writer(data=self.rhodust, fname=fname, binary=binary)
 
 
-
-        #if binary:
-            #if fname=='':
-                #fname = 'dust_density.binp'
-            
-            #wfile = open(fname, 'w')
-            #hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
-            #hdr.tofile(wfile)
-            ## Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
-            ## array always in C-order while we need Fortran-order to be written
-            #if len(self.rhodust.shape)==4:
-                #self.rhodust = swapaxes(self.rhodust,0,3)
-                #self.rhodust = swapaxes(self.rhodust,1,2)
-                #self.rhodust.tofile(wfile)
-                #self.rhodust = swapaxes(self.rhodust,0,3)
-                #self.rhodust = swapaxes(self.rhodust,1,2)
-            #elif len(self.rhodust.shape)==3:
-                #self.rhodust = swapaxes(self.rhodust,0,2)
-                #self.rhodust.tofile(wfile)
-                #self.rhodust = swapaxes(self.rhodust,0,2)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown array shape for rhodust : '
-                #print self.rhodust.shape
-                #return
-
-
-        #else: 
-            #if fname=='':
-                #fname = 'dust_density.inp'
-
-            #wfile = open(fname, 'w')
-
-            #wfile.write('%d\n'%1)
-            #wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
-            #if len(self.rhodust.shape)>3:
-                #wfile.write('%d\n'%self.rhodust.shape[3])
-                #Ngs = self.rhodust.shape[3]
-                #for igs in range(Ngs):
-                    #for iz in range(self.rhodust.shape[2]):
-                        #for iy in range(self.rhodust.shape[1]):
-                            #dum = array(self.rhodust[:,iy,iz,igs])
-                            #dum.tofile(wfile, sep=" ", format='%.9e\n')
-                #print 'Writing dust component : ', igs
-                
-            #else:
-                #wfile.write('%d\n'%1)
-                #Ngs = 1
-                #for iz in range(self.rhodust.shape[2]):
-                    #for iy in range(self.rhodust.shape[1]):
-                        #dum = array(self.rhodust[:,iy,iz])
-                        #dum.tofile(wfile, sep=" ", format='%.9e\n')
-
-                    
-            #wfile.close()
-        #print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
     def write_dusttemp(self, fname='', binary=True):
         """
@@ -1667,64 +1341,8 @@ class radmc3dData():
         print 'Writing '+fname
         self._scalarfield_writer(data=self.dusttemp, fname=fname, binary=binary)
     
-
-        #if binary:
-            #if fname=='':
-                #fname = 'dust_temperature.bdat'
-            
-            #wfile = open(fname, 'w')
-            #hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
-            #hdr.tofile(wfile)
-            ## Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
-            ## array always in C-order while we need Fortran-order to be written
-            #if len(self.dusttemp.shape)==4:
-                #self.dusttemp = swapaxes(self.dusttemp,0,3)
-                #self.dusttemp = swapaxes(self.dusttemp,1,2)
-                #self.dusttemp.tofile(wfile)
-                #self.dusttemp = swapaxes(self.dusttemp,0,3)
-                #self.dusttemp = swapaxes(self.dusttemp,1,2)
-            #elif len(self.dusttemp.shape)==3:
-                #self.dusttemp = swapaxes(self.dusttemp,0,2)
-                #self.dusttemp.tofile(wfile)
-                #self.dusttemp = swapaxes(self.dusttemp,0,2)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown array shape for dusttemp : '
-                #print self.dusttemp.shape
-                #return
-
-
-        #else: 
-            #if fname=='':
-                #fname = 'dust_temperature.dat'
-
-            #wfile = open(fname, 'w')
-
-            #wfile.write('%d\n'%1)
-            #wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
-            #if len(self.dusttemp.shape)>3:
-                #wfile.write('%d\n'%self.dusttemp.shape[3])
-                #Ngs = self.dusttemp.shape[3]
-                #for igs in range(Ngs):
-                    #for iz in range(self.dusttemp.shape[2]):
-                        #for iy in range(self.dusttemp.shape[1]):
-                            #dum = array(self.dusttemp[:,iy,iz,igs])
-                            #dum.tofile(wfile, sep=" ", format='%.9e\n')
-                #print 'Writing dust component : ', igs
-                
-            #else:
-                #wfile.write('%d\n'%1)
-                #Ngs = 1
-                #for iz in range(self.dusttemp.shape[2]):
-                    #for iy in range(self.dusttemp.shape[1]):
-                        #dum = array(self.dusttemp[:,iy,iz])
-                        #dum.tofile(wfile, sep=" ", format='%.9e\n')
-
-                    
-            #wfile.close()
-        #print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
-    def write_gasdens(self, ispec='',binary=True):
+    def write_gasdens(self, fname='', ispec='',binary=True):
         """
         Function to write the gas density
 
@@ -1748,46 +1366,7 @@ class radmc3dData():
             print 'Writing '+fname
             self._scalarfield_writer(data=self.ndens_mol, fname=fname, binary=binary)
         
-        
-        #if ispec=='':
-            #print 'ERROR'
-            #print 'ispec keyword was not specified. This keyword is required to generate the '
-            #print "output file name 'numberdens_ispec.dat'" 
-            #return -1
-        #else:
-            #if binary:
-                #fname = 'numberdens_'+ispec+'.binp'
-            #else:
-                #fname = 'numberdens_'+ispec+'.inp'
-
-        #if binary:
-
-            #wfile = open(fname, 'w')
-            #hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
-            #hdr.tofile(wfile)
-            ## Now we need to change the axis orders since the Ndarray.tofile function writes the 
-            ## array always in C-order while we need Fortran-order to be written
-            #self.rhogas = swapaxes(self.rhogas,0,2)
-            #self.rhogas.tofile(wfile)
-
-            ## Switch back to the original axis order
-            #self.rhogas = swapaxes(self.rhogas,0,2)
-            #wfile.close()
-
-        #else:
-            #wfile = open(fname, 'w')
-            
-            #wfile.write('%d\n'%1)
-            #wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
-
-            #for iz in range(self.grid.nz):
-                #for iy in range(self.grid.ny):
-                    #dum = array(self.rhogas[:,iy,iz]) 
-                    #dum.tofile(wfile, sep=" ", format='%.9e\n')
-                    
-            #wfile.close()
-        #print 'Writing '+fname
-
+       
 # --------------------------------------------------------------------------------------------------
     def write_gastemp(self, fname='', binary=True):
         """
@@ -1807,39 +1386,6 @@ class radmc3dData():
         print 'Writing '+fname
         self._scalarfield_writer(data=self.gastemp, fname=fname, binary=binary)
    
-        #if binary:
-            #if fname=='':
-                #fname = 'gas_temperature.binp'
-
-            #wfile = open(fname, 'w')
-            #hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
-            #hdr.tofile(wfile)
-            ## Now we need to change the axis orders since the Ndarray.tofile function writes the 
-            ## array always in C-order while we need Fortran-order to be written
-            #self.gastemp = swapaxes(self.gastemp,0,2)
-            #self.gastemp.tofile(wfile)
-
-            ## Switch back to the original axis order
-            #self.gastemp = swapaxes(self.gastemp,0,2)
-            #wfile.close()
-
-
-        #else:
-            #if fname=='':
-                #fname = 'gas_temperature.inp'
-
-            #wfile = open(fname, 'w')
-            
-            #wfile.write('%d\n'%1)
-            #wfile.write('%d\n'%(grid.nx*grid.ny*grid.nz))
-
-            #for iz in range(grid.nz):
-                #for iy in range(grid.ny):
-                    #dum = np.array(gastemp[:,iy,iz])
-                    #dum.tofile(wfile, sep=" ", format='%.9e\n')
-                    
-            #wfile.close()
-        #print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
     def write_gasvel(self, fname='', binary=True):
         """
@@ -1902,39 +1448,6 @@ class radmc3dData():
         print 'Writing '+fname
         self._scalarfield_writer(data=self.vturb, fname=fname, binary=binary)
 
-        #if binary:
-            #if fname=='':
-                #fname = 'microturbulence.binp'
-            
-            #wfile = open(fname, 'w')
-            #hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
-            #hdr.tofile(wfile)
-            ## Now we need to change the axis orders since the Ndarray.tofile function writes the 
-            ## array always in C-order while we need Fortran-order to be written
-            #self.vturb = swapaxes(self.vturb,0,2)
-            #self.vturb.tofile(wfile)
-
-            ## Switch back to the original axis order
-            #self.vturb = swapaxes(self.vturb,0,2)
-            #wfile.close()
-
-
-        #else:
-            #if fname=='':
-                #fname = 'microturbulence.inp'
-
-            #wfile = open(fname, 'w')
-            
-            #wfile.write('%d\n'%1)
-            #wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
-
-            #for iz in range(self.grid.nz):
-                #for iy in range(self.grid.ny):
-                    #for ix in range(self.grid.nx):
-                        #wfile.write("%9e\n"%(self.vturb[ix,iy,iz]))
-                    
-            #wfile.close()
-        #print 'Writing '+fname
 
 # --------------------------------------------------------------------------------------------------
     def write_vtk(self, vtk_fname='', ddens=False, dtemp=False, idust=[0], \
