@@ -171,8 +171,12 @@ class radmc3dImage():
 
         # Create the data to be written
         data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
-        for inu in range(self.nfreq):
-            data[0,inu,:,:] = self.image[:,:] * conv
+        if self.nfreq==1:
+            data[0,0,:,:] = self.image[:,:] * conv
+
+        else:
+            for inu in range(self.nfreq):
+                data[0,inu,:,:] = self.image[:,:,inu] * conv
 
         hdu     = pf.PrimaryHDU(data)
         hdulist = pf.HDUList([hdu])
@@ -226,61 +230,6 @@ class radmc3dImage():
                 print 'No image has been written'
         else:
             hdu.writeto(fname)
-# --------------------------------------------------------------------------------------------------
-    #def writefits(self, fname='', dpc=1.):
-        #"""
-        #Function to write out a RADMC3D image data in fits format  
-  
-        #INPUT:
-        #------
-         #fname   : file name of the radmc3d output image (if omitted 'image.fits' is used)
- 
-        #"""
-## --------------------------------------------------------------------------------------------------
-        #if fname=='':
-            #fname = 'image.fits'
-        #pc = 3.0857200e+18
-
-        ## Conversion from erg/s/cm/cm/ster to Jy/pixel
-        #conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
-       
-        #hdu     = pf.PrimaryHDU(self.image*conv)
-        #hdulist = pf.HDUList([hdu])
-        
-        #hdulist[0].header.update('CRPIX1', '%f'%((self.nx+1.)/2.), ' ')
-        #hdulist[0].header.update('CDELT1', '%f'%(self.sizepix_x/1.496e13/dpc), '')
-        #hdulist[0].header.update('CRVAL1', '%f'%(self.sizepix_x/1.496e13/dpc*0.5), '')
-        #hdulist[0].header.update('CUNIT1', '  ARCSEC', '')
-       
-        #hdulist[0].header.update('CRPIX2', '%f'%((self.ny+1.)/2.), '')
-        #hdulist[0].header.update('CDELT2', '%f'%(self.sizepix_y/1.496e13/dpc), '')
-        #hdulist[0].header.update('CRVAL2', '%f'%(self.sizepix_y/1.496e13/dpc*0.5), '')
-        #hdulist[0].header.update('CUNIT2', '  ARCSEC', '')
-      
-        #if self.nwav==1:
-            #hdulist[0].header.update('CRPIX3', '%f'%1, '')
-            #hdulist[0].header.update('CDELT3', '%f'%0, '')
-            #hdulist[0].header.update('CRVAL3', '%f'%self.wav, '')
-            #hdulist[0].header.update('CUNIT3', '  MICRON', '')
-        #else:
-            #hdulist[0].header.update('CRPIX3', '%f'%1, '')
-            #hdulist[0].header.update('CDELT3', '%f'%(self.wav[1]-self.wav[0]), '')
-            #hdulist[0].header.update('CRVAL3', '%f'%self.wav[0], '')
-            #hdulist[0].header.update('CUNIT3', '  MICRON', '')
-        
-        #hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
-        #hdulist[0].header.update('BTYPE', 'INTENSITY', '')
-
-        #if os.path.exists(fname):
-            #print fname+' already exists'
-            #dum = raw_input('Do you want to overwrite it (yes/no)?')
-            #if (dum.strip()[0]=='y')|(dum.strip()[0]=='Y'):
-                #os.remove(fname)
-                #hdu.writeto(fname)
-            #else:
-                #print 'No image has been written'
-        #else:
-            #hdu.writeto(fname)
 # --------------------------------------------------------------------------------------------------
     def plot_momentmap(self, moment=0, nu0=0, wav0=0, zmapnorm=False, dpc=1., au=False, arcsec=False, cmap=None, vclip=None):
         """
@@ -852,10 +801,9 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     if (image.nfreq>1):
         if (ifreq==None):
             ifreq = 0
-        data = squeeze(dum_image.image[:,:,ifreq])
-        data = rot90(rot90(data))
+        data = squeeze(dum_image.image[::-1,:,ifreq])
     else:
-        data = rot90(rot90(dum_image.image))
+        data = dum_image.image[::-1,:] 
 
     norm  = data.max()
     if (bunit==None):
@@ -949,7 +897,7 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     implot = imshow(data, extent=ext, cmap=cmap, interpolation=interpolation)
     xlabel(xlab)
     ylabel(ylab)
-    title(r'$\lambda$='+str(image.wav)+r'$\mu$m')
+    title(r'$\lambda$='+str(image.wav[ifreq])+r'$\mu$m')
     cbar = colorbar(implot)
     cbar.set_label(cb_label)
     show()

@@ -457,7 +457,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
     # Calculate the gas density and velocity
     # NOTE: the density function in the model sub-modules should provide the gas volume density
     #       in g/cm^3 but RADMC3D needs the number density in 1/cm^3 so we should convert the
-    #       output of the get_density() function to number density using ppar['gasspec_abun']
+    #       output of the get_density() function to number density using ppar['gasspec_mol_abun']
     #       which is the abundance of the gas species with respect to hydrogen divided by the
     #       mean molecular weight
     if dir(mdl).__contains__('get_gas_density'):
@@ -483,16 +483,17 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
 
                 # Write the gas density
                 data.write_gasdens(ispec=ppar['gasspec_mol_name'][imol], binary=binary)
-            
-            for icp in range(len(ppar['gasspec_colpart_name'])):
-                gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_colpart_name'][icp])
-                data.ndens_mol = data.rhogas * gasabun
-                # Write the gas density
-                data.write_gasdens(ispec=ppar['gasspec_colpart_name'][icp], binary=binary)
+           
+            if abs(ppar['lines_mode'])>2:
+                for icp in range(len(ppar['gasspec_colpart_name'])):
+                    gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_colpart_name'][icp])
+                    data.ndens_mol = data.rhogas * gasabun
+                    # Write the gas density
+                    data.write_gasdens(ispec=ppar['gasspec_colpart_name'][icp], binary=binary)
 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a get_gas_abundance() function, and no "gasspec_abun" '
+        print 'model_'+model+'.py does not contain a get_gas_abundance() function, and no "gasspec_mol_abun" '
         print ' parameter is found in the problem_setup.inp file. numberdens_***.inp cannot be written'
         return
 
@@ -538,7 +539,6 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
         data.vturb = zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
         data.vturb[:,:,:] = 0.
         data.write_vturb(binary=binary)
-        return
 # --------------------------------------------------------------------------------------------
 # Write the line RT control file
 # --------------------------------------------------------------------------------------------
@@ -610,16 +610,28 @@ def write_lines_inp(ppar=None):
     print 'Writing lines.inp'
     wfile = open('lines.inp', 'w')
     # File format
-    wfile.write("%d\n"%(2))
+    wfile.write("%d\n"%ppar['lines_mode'])
     # Nr of gas species
     wfile.write("%d\n"%n1)
     # Gas species name and database type
-    for imol in range(n1):
-        wfile.write("%s %s %d %d %d\n"%(ppar['gasspec_mol_name'][imol], ppar['gasspec_mol_dbase_type'][imol], 0, 0, n4))
 
-    if n4>0:
-        for icp in range(n4):
-            wfile.write("%s\n"%ppar['gasspec_colpart_name'][icp])
+    if abs(ppar['lines_mode'])<=2:
+        for imol in range(n1):
+            wfile.write("%s %s %d %d %d\n"%(ppar['gasspec_mol_name'][imol], ppar['gasspec_mol_dbase_type'][imol], 0, 0, 0))
+    else:
+        for imol in range(n1):
+            wfile.write("%s %s %d %d %d\n"%(ppar['gasspec_mol_name'][imol], ppar['gasspec_mol_dbase_type'][imol], 0, 0, n4))
+
+        if n4>0:
+            for icp in range(n4):
+                wfile.write("%s\n"%ppar['gasspec_colpart_name'][icp])
+        else:
+            print ' ERROR'
+            print ' An NLTE line excitation method is selected (lines_mode='+("%d"%ppar["lines_mode"])+'), but no collisional'
+            print ' partner is given in the parameter file. '
+            wfile.close()
+            return
+
     wfile.close()
 
 # --------------------------------------------------------------------------------------------------

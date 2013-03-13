@@ -3079,7 +3079,7 @@ class radmc3dPar():
         self.add_par(['ngs', '3', ' Number of grain sizes', 'Dust opacity'])
         self.add_par(['gsdist_powex', '-3.5', ' Grain size distribution power exponent', 'Dust opacity'])
         self.add_par(['mixabun',       '[0.75, 0.25]', ' Mass fractions of the dust componetns to be mixed', 'Dust opacity'])
-        self.add_par(['dustkappa_ext',"['silicate2']", ' ', 'Dust opacity'])
+        self.add_par(['dustkappa_ext',"['silicate']", ' ', 'Dust opacity'])
         
         #
         # Gas line RT 

@@ -88,6 +88,9 @@ def get_default_params():
     ['ybound', '[0., pi/3., pi/2., 2.*pi/3., pi]', 'Number of radial grid points'],
     ['nz', '30', 'Number of grid points in the first dimension'],
     ['zbound', '[0., 2.0*pi]', 'Number of radial grid points'],
+    ['gasspec_mol_name', "['co']", ''],
+    ['gasspec_mol_abun', '[1e-4]', ''],
+    ['gasspec_mol_dbase_type', "['leiden']", ''],
     ['rin', '1.0*au', ' Inner radius of the disk'],
     ['rdisk', '200.0*au', ' Outer radius of the disk'],
     ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
@@ -264,6 +267,28 @@ def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, g
                 if (grid.x[ix]>=ppar['gap_rin'][igap])&(grid.x[ix]<=ppar['gap_rout'][igap]):
                     rho[ix,:,:] = rho[ix,:,:] * ppar['gap_drfact'][igap]
     return rho
+# ============================================================================================================================
+#
+# ============================================================================================================================
+def get_gas_abundance(grid=None, ppar=None, ispec=''):
+    """
+    Function to create the conversion factor from volume density to number density of molecule ispec.
+    The number density of a molecule is rhogas * abun 
+   
+    INPUT:
+    ------
+        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
+        ppar - Dictionary containing all parameters of the model 
+        ispec - The name of the gas species whose abundance should be calculated
+
+    OUTPUT:
+    -------
+        returns the abundance as a Numpy array
+    """
+
+    gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
+    gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
+    return gasabun
 # ============================================================================================================================
 #
 # ============================================================================================================================
