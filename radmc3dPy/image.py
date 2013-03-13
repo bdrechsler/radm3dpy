@@ -82,6 +82,22 @@ class radmc3dVisibility():
 class radmc3dImage():
     """
     RADMC3D image class
+
+    ATTRIBUTES:
+    -----------
+        image       - The image as calculated by radmc3d (the values are intensities in erg/s/cm^2/Hz/ster)
+        imageJyppix - The image with pixel units of Jy/pixel
+        x           - x coordinate of the image [cm]
+        y           - y coordinate of the image [cm]
+        nx          - Number of pixels in the horizontal direction
+        ny          - Number of pixels in the vertical direction
+        sizepix_x   - Pixel size in the horizontal direction [cm]
+        sizepix_y   - Pixel size in the vertical direction [cm]
+        nfreq       - Number of frequencies in the image cube
+        freq        - Frequency grid in the image cube
+        nwav        - Number of wavelengths in the image cube (same as nfreq)
+        wav         - Wavelength grid in the image cube
+
     """
     def __init__(self):
         self.image = 0
@@ -99,9 +115,9 @@ class radmc3dImage():
 
 
 # --------------------------------------------------------------------------------------------------
-    def write_casafits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0):
+    def writefits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0):
         """
-        Function to write out a RADMC3D image data in fits format that is compatible with CASA
+        Function to write out a RADMC3D image data in fits format (CASA compatible)
   
         INPUT:
         ------
@@ -211,60 +227,60 @@ class radmc3dImage():
         else:
             hdu.writeto(fname)
 # --------------------------------------------------------------------------------------------------
-    def writefits(self, fname='', dpc=1.):
-        """
-        Function to write out a RADMC3D image data in fits format  
+    #def writefits(self, fname='', dpc=1.):
+        #"""
+        #Function to write out a RADMC3D image data in fits format  
   
-        INPUT:
-        ------
-         fname   : file name of the radmc3d output image (if omitted 'image.fits' is used)
+        #INPUT:
+        #------
+         #fname   : file name of the radmc3d output image (if omitted 'image.fits' is used)
  
-        """
-# --------------------------------------------------------------------------------------------------
-        if fname=='':
-            fname = 'image.fits'
-        pc = 3.0857200e+18
+        #"""
+## --------------------------------------------------------------------------------------------------
+        #if fname=='':
+            #fname = 'image.fits'
+        #pc = 3.0857200e+18
 
-        # Conversion from erg/s/cm/cm/ster to Jy/pixel
-        conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
+        ## Conversion from erg/s/cm/cm/ster to Jy/pixel
+        #conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
        
-        hdu     = pf.PrimaryHDU(self.image*conv)
-        hdulist = pf.HDUList([hdu])
+        #hdu     = pf.PrimaryHDU(self.image*conv)
+        #hdulist = pf.HDUList([hdu])
         
-        hdulist[0].header.update('CRPIX1', '%f'%((self.nx+1.)/2.), ' ')
-        hdulist[0].header.update('CDELT1', '%f'%(self.sizepix_x/1.496e13/dpc), '')
-        hdulist[0].header.update('CRVAL1', '%f'%(self.sizepix_x/1.496e13/dpc*0.5), '')
-        hdulist[0].header.update('CUNIT1', '  ARCSEC', '')
+        #hdulist[0].header.update('CRPIX1', '%f'%((self.nx+1.)/2.), ' ')
+        #hdulist[0].header.update('CDELT1', '%f'%(self.sizepix_x/1.496e13/dpc), '')
+        #hdulist[0].header.update('CRVAL1', '%f'%(self.sizepix_x/1.496e13/dpc*0.5), '')
+        #hdulist[0].header.update('CUNIT1', '  ARCSEC', '')
        
-        hdulist[0].header.update('CRPIX2', '%f'%((self.ny+1.)/2.), '')
-        hdulist[0].header.update('CDELT2', '%f'%(self.sizepix_y/1.496e13/dpc), '')
-        hdulist[0].header.update('CRVAL2', '%f'%(self.sizepix_y/1.496e13/dpc*0.5), '')
-        hdulist[0].header.update('CUNIT2', '  ARCSEC', '')
+        #hdulist[0].header.update('CRPIX2', '%f'%((self.ny+1.)/2.), '')
+        #hdulist[0].header.update('CDELT2', '%f'%(self.sizepix_y/1.496e13/dpc), '')
+        #hdulist[0].header.update('CRVAL2', '%f'%(self.sizepix_y/1.496e13/dpc*0.5), '')
+        #hdulist[0].header.update('CUNIT2', '  ARCSEC', '')
       
-        if self.nwav==1:
-            hdulist[0].header.update('CRPIX3', '%f'%1, '')
-            hdulist[0].header.update('CDELT3', '%f'%0, '')
-            hdulist[0].header.update('CRVAL3', '%f'%self.wav, '')
-            hdulist[0].header.update('CUNIT3', '  MICRON', '')
-        else:
-            hdulist[0].header.update('CRPIX3', '%f'%1, '')
-            hdulist[0].header.update('CDELT3', '%f'%(self.wav[1]-self.wav[0]), '')
-            hdulist[0].header.update('CRVAL3', '%f'%self.wav[0], '')
-            hdulist[0].header.update('CUNIT3', '  MICRON', '')
+        #if self.nwav==1:
+            #hdulist[0].header.update('CRPIX3', '%f'%1, '')
+            #hdulist[0].header.update('CDELT3', '%f'%0, '')
+            #hdulist[0].header.update('CRVAL3', '%f'%self.wav, '')
+            #hdulist[0].header.update('CUNIT3', '  MICRON', '')
+        #else:
+            #hdulist[0].header.update('CRPIX3', '%f'%1, '')
+            #hdulist[0].header.update('CDELT3', '%f'%(self.wav[1]-self.wav[0]), '')
+            #hdulist[0].header.update('CRVAL3', '%f'%self.wav[0], '')
+            #hdulist[0].header.update('CUNIT3', '  MICRON', '')
         
-        hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
-        hdulist[0].header.update('BTYPE', 'INTENSITY', '')
+        #hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
+        #hdulist[0].header.update('BTYPE', 'INTENSITY', '')
 
-        if os.path.exists(fname):
-            print fname+' already exists'
-            dum = raw_input('Do you want to overwrite it (yes/no)?')
-            if (dum.strip()[0]=='y')|(dum.strip()[0]=='Y'):
-                os.remove(fname)
-                hdu.writeto(fname)
-            else:
-                print 'No image has been written'
-        else:
-            hdu.writeto(fname)
+        #if os.path.exists(fname):
+            #print fname+' already exists'
+            #dum = raw_input('Do you want to overwrite it (yes/no)?')
+            #if (dum.strip()[0]=='y')|(dum.strip()[0]=='Y'):
+                #os.remove(fname)
+                #hdu.writeto(fname)
+            #else:
+                #print 'No image has been written'
+        #else:
+            #hdu.writeto(fname)
 # --------------------------------------------------------------------------------------------------
     def plot_momentmap(self, moment=0, nu0=0, wav0=0, zmapnorm=False, dpc=1., au=False, arcsec=False, cmap=None, vclip=None):
         """
@@ -796,7 +812,7 @@ def readimage(fname=None):
 
 # ***************************************************************************************************************
 def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=None, saturate=None, bunit=None, \
-                  ifreq=None, cmap=None, cmask_rad=None, interpolation='none'):
+                  ifreq=None, cmap=None, cmask_rad=None, interpolation='nearest'):
     """
     Function to plot a radmc3d image
     
@@ -930,7 +946,7 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     if (cmap==None): 
         cmap = cm.gist_gray
 #    implot = imshow(data, extent=ext, cmap=cm.gist_gray)
-    implot = imshow(data, extent=ext, cmap=cmap)
+    implot = imshow(data, extent=ext, cmap=cmap, interpolation=interpolation)
     xlabel(xlab)
     ylabel(ylab)
     title(r'$\lambda$='+str(image.wav)+r'$\mu$m')

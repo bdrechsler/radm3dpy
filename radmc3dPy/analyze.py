@@ -1193,7 +1193,7 @@ class radmc3dData():
         if (self.grid.nx==-1):
             self.grid.read_grid()
             
-        print 'Reading gas density (numberdens_'+ispec)
+        print 'Reading gas density (numberdens_'+ispec
 
         if binary:
             if fname=='':

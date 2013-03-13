@@ -7,8 +7,7 @@ import setup
 import image
 import crd_trans
 import natconst
-import model_ppdisk
 
 __version__ = "0.22"
 
-__all__ = ["analyze", "setup", "image", "crd_trans", "natconst", "model_ppdisk"]
+__all__ = ["analyze", "setup", "image", "crd_trans", "natconst"]
