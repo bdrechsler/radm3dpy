@@ -170,13 +170,13 @@ class radmc3dImage():
         conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
 
         # Create the data to be written
-        data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
+        data = zeros([self.nfreq, 1, self.ny, self.nx], dtype=float)
         if self.nfreq==1:
             data[0,0,:,:] = self.image[:,:] * conv
 
         else:
             for inu in range(self.nfreq):
-                data[0,inu,:,:] = self.image[:,:,inu] * conv
+                data[inu,0,:,:] = self.image[:,:,inu] * conv
 
         hdu     = pf.PrimaryHDU(data)
         hdulist = pf.HDUList([hdu])

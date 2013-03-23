@@ -839,12 +839,15 @@ class radmc3dData():
                 print 'ERROR'
                 print 'Unknown datatype in '+fname
                 return
-                
-            if data.shape[0]==hdr[1]+2:
-                data = reshape(data[2:], [1, self.grid.nz,self.grid.ny,self.grid.nx])
-            elif data.shape[0]==hdr[1]+3:
-                data = reshape(data[3:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
-            data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+            
+
+            if data.shape[0]==hdr[2]+3:
+                data = reshape(data[3:], [1, self.grid.nz,self.grid.ny,self.grid.nx])
+            elif data.shape[0]==hdr[2]+4:
+                data = reshape(data[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+
+            
+            #data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
             # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
             # uses Fortran-order
             data = swapaxes(data,0,3)
@@ -1163,7 +1166,7 @@ class radmc3dData():
         if (self.grid.nx==-1):
             self.grid.read_grid()
             
-        print 'Reading dust density'
+        print 'Reading microturbulence'
 
         if binary:
             if fname=='':
@@ -3232,7 +3235,7 @@ def readopac(ext=[''], idust=None, used=False):
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, binary=True):
+def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=True, binary=True):
     """
     Function to read the model data (e.g. density, velocity, temperature)
 
@@ -3266,6 +3269,7 @@ def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, is
     if dtemp: res.read_dusttemp(binary=binary)
     if gvel: res.read_gasvel(binary=binary)
     if gtemp: res.read_gastemp(binary=binary)
+    if vturb: res.read_vturb(binary=binary)
     if gdens:
         if not ispec:
             print 'ERROR'

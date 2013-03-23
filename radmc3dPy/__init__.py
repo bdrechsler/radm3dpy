@@ -8,6 +8,6 @@ import image
 import crd_trans
 import natconst
 
-__version__ = "0.22"
+__version__ = "0.23"
 
 __all__ = ["analyze", "setup", "image", "crd_trans", "natconst"]
