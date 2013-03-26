@@ -196,8 +196,36 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
 #   to the dictionary
 # --------------------------------------------------------------------------------------------
     if kwargs:
-        for keys in kwargs.keys():
-            ppar[keys] = kwargs[keys]
+        for ikey in kwargs.keys():
+            modpar.ppar[ikey] = kwargs[ikey]
+            
+            if type(kwargs[ikey]) is float:
+                modpar.add_par([ikey, ("%.7e"%kwargs[ikey]), '', ''])
+            elif type(kwargs[ikey]) is int:
+                modpar.add_par([ikey, ("%d"%kwargs[ikey]), '', ''])
+            elif type(kwargs[ikey]) is str:
+                modpar.add_par([ikey, kwargs[ikey], '', ''])
+            elif type(kwargs[ikey]) is list:
+                dum = '['
+                for i in range(len(kwargs[ikey])):
+                    if type(kwargs[ikey][i]) is float:
+                        dum = dum + ("%.7e"%kwargs[ikey][i])
+                    elif type(kwargs[ikey][i]) is int:
+                        dum = dum + ("%d"%kwargs[ikey][i])
+                    elif type(kwargs[ikey][i]) is str:
+                        dum = dum + (kwargs[ikey][i])
+                    else:
+                        print ' ERROR '
+                        print ' Unknown data type in '+ikey
+                        print kwargs[ikey][i]
+
+                    if i<len(kwargs[ikey])-1:
+                        dum = dum + ', '
+                dum = dum + (']') 
+                modpar.add_par([ikey, dum, '', ''])
+
+        modpar.write_parfile()
+        ppar = modpar.ppar
 
 # --------------------------------------------------------------------------------------------
 # Create the grid
@@ -387,7 +415,37 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
 # --------------------------------------------------------------------------------------------
     if kwargs:
         for keys in kwargs.keys():
-            ppar[keys] = kwargs[keys]
+            modpar.ppar[keys] = kwargs[keys]
+            
+            if type(kwargs[ikey]) is float:
+                modpar.add_par([ikey, ("%.7e"%kwargs[ikey]), '', ''])
+            elif type(kwargs[ikey]) is int:
+                modpar.add_par([ikey, ("%d"%kwargs[ikey]), '', ''])
+            elif type(kwargs[ikey]) is str:
+                modpar.add_par([ikey, kwargs[ikey], '', ''])
+            elif type(kwargs[ikey]) is list:
+                dum = '['
+                for i in range(len(kwargs[ikey])):
+                    if type(kwargs[ikey][i]) is float:
+                        dum = dum + ("%.7e"%kwargs[ikey][i])
+                    elif type(kwargs[ikey][i]) is int:
+                        dum = dum + ("%d"%kwargs[ikey][i])
+                    elif type(kwargs[ikey][i]) is str:
+                        dum = dum + (kwargs[ikey][i])
+                    else:
+                        print ' ERROR '
+                        print ' Unknown data type in '+ikey
+                        print kwargs[ikey][i]
+
+                    if i<len(kwargs[ikey])-1:
+                        dum = dum + ', '
+                dum = dum + (']') 
+                modpar.add_par([ikey, dum, '', ''])
+
+        modpar.write_parfile()
+        ppar = modpar.ppar
+            
+            
 
 # --------------------------------------------------------------------------------------------
 # If the current working directory is empty (i.e. no dust setup is present) then

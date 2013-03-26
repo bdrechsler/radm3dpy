@@ -841,9 +841,9 @@ class radmc3dData():
                 return
             
 
-            if data.shape[0]==hdr[2]+3:
+            if data.shape[0]==(hdr[2]+3):
                 data = reshape(data[3:], [1, self.grid.nz,self.grid.ny,self.grid.nx])
-            elif data.shape[0]==hdr[2]+4:
+            elif data.shape[0]==(hdr[2]*hdr[3]+4):
                 data = reshape(data[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
 
             
@@ -874,7 +874,7 @@ class radmc3dData():
                     data = fromfile(fname, count=-1, sep="\n", dtype=float64)
                     if data.shape[0]==hdr[1]+2:
                         data = reshape(data[2:], [1, self.grid.nz,self.grid.ny,self.grid.nx])
-                    elif data.shape[0]==hdr[1]+3:
+                    elif data.shape[0]==hdr[1]*hdr[2]+3:
                         data = reshape(data[3:], [hdr[2],self.grid.nz,self.grid.ny,self.grid.nx])
                     # We need to change the axis orders as Numpy always reads  in C-order while RADMC3D
                     # uses Fortran-order
@@ -3105,6 +3105,7 @@ class radmc3dPar():
         self.add_par(['istar_sphere', '0', '  1 - take into account the finite size of the star, 0 - take the star to be point-like', 'Code parameters'])
         self.add_par(['itempdecoup', '1', '  Enable for different dust components to have different temperatures', 'Code parameters'])
         self.add_par(['tgas_eq_tdust', '1', '  Take the dust temperature to identical to the gas temperature', 'Code parameters'])
+        self.add_par(['rto_style', '3', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary', 'Code parameters'])
         #
         # Model parameters
         #
@@ -3144,6 +3145,7 @@ class radmc3dPar():
         if fname=='':
             fname = 'problem_params.inp'
 
+        print 'Writing '+fname
     
         #
         # First get the uniq block names 
@@ -3235,7 +3237,7 @@ def readopac(ext=[''], idust=None, used=False):
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=True, binary=True):
+def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True):
     """
     Function to read the model data (e.g. density, velocity, temperature)
 
