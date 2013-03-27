@@ -1,0 +1,33 @@
+
+RADMC-3D Python module v0.24
+
+Attila Juhasz 
+Leiden Observatory
+juhasz@strw.leidenuniv.nl
+
+
+INSTALLATION
+-------------
+
+The only thing one needs to install the radmc3dPy package is to add the path to the radmc3dPy directory
+to the PYTHONPATH environment variable. One way of doing that is to run the configuration script with
+the command
+
+python configure.py
+
+This will create two files sourceme.sh and sourceme.csh, which should be sourced, i.e. under bash
+issue the command
+
+source sourceme.sh
+
+while under cshell
+
+source sourceme.csh. This sets the PYTHONPATH variable, but only for the current shell. This means that
+if the terminal is closed and a new is opened one needs to re-issue the source sourceme.sh/.csh commands. 
+A way of setting the PYTHONPATH variable for every shell at startup is to add the following line to the
+.bashrc or .cshrc file, depending on the shell type, in the home directory:
+
+source path_to_the_sourceme.sh_file/sourceme.sh
+
+
+
