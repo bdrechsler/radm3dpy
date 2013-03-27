@@ -64,12 +64,14 @@
 \item[]{\bf readimage()} - Reads the image
 \item[]{\bf radmc3dImage.imconv()} - Convolve the image with a Gaussian beam 
 \item[]{\bf radmc3dImage.plot\_momentmap()} - Plots moment map for a 3d image cube
-\item[]{\bf radmc3dImage.write\_casafits()} - Writes the image to a FITS file which is compatible with CASA
+\item[]{\bf radmc3dImage.writefits()} - Writes the image to a FITS file with CASA compatible header
 \end{itemize}
 
 \newpage
 \section*{Dust continuum model} 
 
+\begin{figure}[!hp]
+\begin{center}
 \begin{tikzpicture}
 
 % Input nodes
@@ -97,10 +99,15 @@
 \path [line] (thermalmc) -- (contimag);
 
 \end{tikzpicture}
+\end{center}
+\caption{Structure of a dust continuum model. Inputs are marked with blue, intermediate calculation, data products are
+in red while green marks the output of the simulation.}
+\end{figure}
 
 \subsection*{radmc3dPy commands}
-\begin{itemize}
+First let us create a directory for our model. Then go to this directory and start python. 
 
+\begin{itemize}
 \item[1] Import \pymod.
 
 {\tt >>> import radmc3dPy}\\
@@ -111,45 +118,32 @@
 \item[3] Create a parameter file with the default values
 
 {\tt >>> radmc3dPy.analyze.write\_default\_parfile('ppdisk')}\\
-\item[4] Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
-Create all necessary imput files.
+
+Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
+\item[4] Set up the model and create all necessary input files.
 
 {\tt>>>radmc3dPy.setup.problem\_setup\_dust('ppdisk')}\\
 \item[5] Then run RADMC-3D from the shell with the Monte-Carlo simulation to calculate the dust temperature.
 
 {\tt \$>radmc3d mctherm}\\
-\item[6] After the thermal Monte-Carlo run has finished we can make an image. 
 
-{\tt \$>radmc3d image npix 400 sizeau 200 lambda 880.0 incl 45. phi 0. posang 43.}\\
-\item[7] After RADMC-3D finished we can go back to python and read the image and plot it. 
+Alternatively we can also make a system call from within Python, e.g.:
+
+{\tt>>>os.system('radmc3d mctherm')}
+\item[6] After the thermal Monte-Carlo run has finished we can make an image from within pyton. 
+
+{\tt \$>radmc3dPy.image.makeimage(npix=400, sizeau=200, wav=880., incl=45, posang=43.)}\\
+\item[7] After RADMC-3D finished we can read the image and plot it. 
 
 {\tt>>>imag=radmc3dPy.image.readimage()}\\
-{\tt>>>radmc3dPy.image.plotimage()}
-\item[8] Now we can also calculate the SED. For that we can  either use the wavelength grid we used of the thermal
-Monte-Carlo simulation, but we can also specify our own wavelength grid. For this latter we need to create a file
-called {\tt camera\_wavelength\_micron.inp}. The file should be a simple formatted ascii text file. The first line should
-contain the number of wavelengths in the file, while the the following lines should contain the number of wavelengths
-in a single column format. E.g.:
-\begin{verbatim}
-5
-0.5
-3.6
-9.7
-70.
-1300.
-\end{verbatim} 
+{\tt>>>radmc3dPy.image.plotimage(imag)}
 
-SEDs can be calculated with the following command
+\item[8] We can also convolve the image with an arbitrary elliptical gaussian Gaussian beam
 
-{\tt\$>radmc3d sed incl 45.0 phi 0.0 loadlambda}\\
-In this way only the dust is taken into account the gas is neglected. If we wish to include gas emission/absorption
-we should use the 'spectrum' option instead of 'sed'. The loadlambda keyword at the end of the command tells
-RADMC-3D that it should calculate the SED for the wavelength in the camera\_wavelength\_micron.inp file. 
+{\tt>>>conv\_imag = imag.imconv(fwhm=[0.05, 0.1], pa=40., dpc=140.)}
 
-{\tt\$>radmc3d spectrum incl 45.0 phi 0.0 loadlambda}\\
-The result is a file called {\tt spectrum.out} that contains the wavelength and flux in a two column ascii format. 
-
-
+The fwhm of the Gaussian beam should be in arcsec,  the positing angle of the major axis of the beam ellipse
+should be in degrees, and the distance to the source in pc (dpc keyword) should be given. 
 
 
 \end{itemize}
@@ -179,7 +173,7 @@ The result is a file called {\tt spectrum.out} that contains the wavelength and 
 % MC calculation
 \node [calc, right of=dustopac, xshift=13.em] (thermalmc) {{\bf Themal Monte-Carlo ($\rightarrow$ T$_{\rm dust}$)} \\ dust\_temperature.dat};
 % Excitation calculation
-\node [calc, right of=thermalmc, xshift=-2.em, yshift=-28.em] (excitation) {{\bf Excitation \\ ($\rightarrow$ Level pop.)} \\ };
+\node [calc, right of=thermalmc, xshift=-2.4em, yshift=-28.em] (excitation) {{\bf Excitation \\ ($\rightarrow$ Level pop.)} \\ };
 
 % Observables
 \node [output, right of=thermalmc, xshift=13.em, yshift=5em] (contsed) {{\bf Raytracing \\ SED} \\ spectrum.out};
@@ -242,29 +236,7 @@ and spectra.
 
 {\tt>>>imag=radmc3dPy.image.readimage()}\\
 {\tt>>>radmc3dPy.image.plotimage()}
-\item[7] Now we can also calculate the SED. For that we can  either use the wavelength grid we used of the thermal
-Monte-Carlo simulation, but we can also specify our own wavelength grid. For this latter we need to create a file
-called {\tt camera\_wavelength\_micron.inp}. The file should be a simple formatted ascii text file. The first line should
-contain the number of wavelengths in the file, while the the following lines should contain the number of wavelengths
-in a single column format. E.g.:
-\begin{verbatim}
-5
-0.5
-3.6
-9.7
-70.
-1300.
-\end{verbatim} 
 
-SEDs can be calculated with the following command
-
-{\tt\$>radmc3d sed incl 45.0 phi 0.0 loadlambda}\\
-In this way only the dust is taken into account the gas is neglected. If we wish to include gas emission/absorption
-we should use the 'spectrum' option instead of 'sed'. The loadlambda keyword at the end of the command tells
-RADMC-3D that it should calculate the SED for the wavelength in the camera\_wavelength\_micron.inp file. 
-
-{\tt\$>radmc3d spectrum incl 45.0 phi 0.0 loadlambda}\\
-The result is a file called {\tt spectrum.out} that contains the wavelength and flux in a two column ascii format. 
 \end{itemize}
 
 
