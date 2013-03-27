@@ -7,8 +7,9 @@ For help on the syntax or functionality of each function see the help of the ind
 
 FUNCTIONS:
 ----------
-    get_model_names()    - Returns the list of available models 
     get_model_desc()     - Returns the brief description of a model (if the model file contains a get_desc() function)
+    get_model_names()    - Returns the list of available models 
+    get_template_model() - Copy the template model file from the library directory (radmc3dPy) to the current working directory
     problem_setup_dust() - Function to set up a dust model
     problem_setup_gas()  - Function to set up a line simulation
     write_lines_inp()    - Writes the lines.inp master command file for line simulations
@@ -161,16 +162,28 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
         if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary 
         is searched for this key. If found the value belonging to that key in the ppar dictionary 
         is changed to the value of the keyword argument. If no such key is found then the dictionary 
-        is simply extended by the keyword argument. 
+        is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+        with the new parameter values.
+ 
        
     FILES WRITTEN DURING THE SETUP:
     -------------------------------
-        amr_grid.inp - spatial grid
+        dustopac.inp          - dust opacity master file
         wavelength_micron.inp - wavelength grid
-        dust_density.inp - dust density distribution
-        dustopac.inp - dust opacity master file
-        stars.inp - input radiation field 
-        radmc3d.inp - parameters for RADMC3D (e.g. Nr of photons to be used, scattering type, etc)
+        amr_grid.inp          - spatial grid
+        stars.inp             - input radiation field
+        dust_density.inp      - dust density distribution
+        radmc3d.inp           - parameters for RADMC3D (e.g. Nr of photons to be used, scattering type, etc)
+
+    STEPS OF THE SETUP:
+    -------------------
+        1) Create the spatial and frequency grid
+        2) Create the master opacity file and calculate opacities with the Mie-code if necessary
+        3) Set up the input radiation field (generate stars.inp)
+        4) Calculate the dust density
+        5) If specified;  calculatest the dust temperature (e.g. for gas simulations, or if it is taken from an
+            external input (e.g. from another model))
+        6) Write all output files
     """
   
     # Read the parameters from the problem_params.inp file 
@@ -350,7 +363,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
                 that should be specified in this variable
     
         fullsetup : if False only the files related to the gas simulation is written out
-                    (i.e. no grid and radmc3d master command file is written)
+                    (i.e. no grid, stellar parameter file and radmc3d master command file is written)
                     if True the spatial and wavelength grid as well as the input radiation field
                     and the radmc3d master command file will be (over)written. 
 
@@ -364,38 +377,39 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
     --------
         Any varible name in problem_params.inp can be used as a keyword argument.
         At first all variables are read from problem_params.in to a dictionary called ppar. Then 
-        if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary 
+        if there is any keyword argument set in the call of problem_setup_gas the ppar dictionary 
         is searched for such key. If found the value belonging to that key in the ppar dictionary 
         is changed to the value of the keyword argument. If no such key is found then the dictionary 
-        is simply extended by the keyword argument. 
+        is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+        with the new parameter values.
 
        
     FILES WRITTEN DURING THE SETUP:
     -------------------------------
         fullsetup = True
-            amr_grid.inp - spatial grid
+            amr_grid.inp          - spatial grid
             wavelength_micron.inp - wavelength grid
-            stars.inp - input radiation field 
-            radmc3d.inp - parameters for RADMC3D (e.g. Nr of photons to be used, scattering type, etc)
-            lines.inp -  line mode master command file
-            numberdens_xxx.inp - number density of molecule/atomic species 'xxx'
-            gas_velocity.inp - Gas velocity
-            microturbulence.inp - The standard deviation of the Gaussian line profile caused by turbulent 
-                                  broadening (doublecheck if it is really the standard deviation or a factor
-                                  of sqrt(2) less than that!)
-            gas_temperature.inp - Gas temperature (which may be different from the dust temperature). If
-                                  tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
-                                  file will be used instead of the dust temperature. 
+            stars.inp             - input radiation field 
+            radmc3d.inp           - parameters for RADMC3D (e.g. Nr of photons to be used, scattering type, etc)
+            lines.inp             -  line mode master command file
+            numberdens_xxx.inp    - number density of molecule/atomic species 'xxx'
+            gas_velocity.inp      - Gas velocity
+            microturbulence.inp   - The standard deviation of the Gaussian line profile caused by turbulent 
+                                    broadening (doublecheck if it is really the standard deviation or a factor
+                                    of sqrt(2) less than that!)
+            gas_temperature.inp   - Gas temperature (which may be different from the dust temperature). If
+                                    tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
+                                    file will be used instead of the dust temperature. 
         fullsetup = False
-            lines.inp -  line mode master command file
-            numberdens_xxx.inp - number density of molecule/atomic species 'xxx'
-            gas_velocity.inp - Gas velocity
-            microturbulence.inp - The standard deviation of the Gaussian line profile caused by turbulent 
-                                  broadening (doublecheck if it is really the standard deviation or a factor
-                                  of sqrt(2) less than that!)
-            gas_temperature.inp - Gas temperature (which may be different from the dust temperature). If
-                                  tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
-                                  file will be used instead of the dust temperature. 
+            lines.inp             -  line mode master command file
+            numberdens_xxx.inp    - number density of molecule/atomic species 'xxx'
+            gas_velocity.inp      - Gas velocity
+            microturbulence.inp   - The standard deviation of the Gaussian line profile caused by turbulent 
+                                    broadening (doublecheck if it is really the standard deviation or a factor
+                                    of sqrt(2) less than that!)
+            gas_temperature.inp   - Gas temperature (which may be different from the dust temperature). If
+                                    tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
+                                    file will be used instead of the dust temperature. 
 
     """
     

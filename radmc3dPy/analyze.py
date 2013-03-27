@@ -456,7 +456,6 @@ class radmc3dGrid():
 # Create the y axis
 #
             if (len(nyi)>1):
-                print nyi
                 self.nyi = sum(nyi)+1
                 self.ny  = self.nyi-1
                 self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))                
@@ -703,8 +702,8 @@ class radmc3dGrid():
 class radmc3dData():
     """
     RADMC3D data class
-        contains functions to read and write dust density/temperature, gas density/temperature/velocity,
-        generate a legacy vtk file for visualization
+        reading and writing dust density/temperature, gas density/temperature/velocity,
+        generating a legacy vtk file for visualization
 
     ATTRIBUTES:
     -----------
@@ -729,6 +728,7 @@ class radmc3dData():
             self.grid = copy.deepcopy(grid)
         else:
             self.grid = radmc3dGrid()
+
         self.rhodust   = -1
         self.dusttemp  = -1
         self.rhogas    = -1
@@ -1026,6 +1026,7 @@ class radmc3dData():
         --------
             fname - Name of the file that contains the dust density. If omitted 'dust_density.inp' is used
                     (or if binary=True the 'dust_density.binp' is used).
+            binary - If true the data will be read in binary format, otherwise the file format is ascii
         """
     
         if (self.grid.nx==-1):
@@ -1049,7 +1050,8 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file that contains the dust temperature. 
-            If omitted 'dust_temperature.dat' (if binary=True 'dust_temperature.bdat')is used.
+                    If omitted 'dust_temperature.dat' (if binary=True 'dust_temperature.bdat')is used.
+            binary - If true the data will be read in binary format, otherwise the file format is ascii
         """
        
 
@@ -1075,7 +1077,8 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file that contains the gas velocity
-            If omitted 'gas_velocity.inp' (if binary=True 'gas_velocity.binp')is used.
+                    If omitted 'gas_velocity.inp' (if binary=True 'gas_velocity.binp')is used.
+            binary - If true the data will be read in binary format, otherwise the file format is ascii
 
         """
 
@@ -1160,7 +1163,8 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file that contains the turbulent velocity field
-            If omitted 'microturbulence.inp' (if binary=True 'microturbulence.binp') is used.
+                    If omitted 'microturbulence.inp' (if binary=True 'microturbulence.binp') is used.
+            binary - If true the data will be read in binary format, otherwise the file format is ascii
         """
         
         if (self.grid.nx==-1):
@@ -1189,7 +1193,7 @@ class radmc3dData():
 
         OPTIONS:
         --------
-            binary - if set to True reads binary files
+            binary - If true the data will be read in binary format, otherwise the file format is ascii
 
         """
         
@@ -1207,78 +1211,6 @@ class radmc3dData():
             
         self.ndens_mol = self._scalarfield_reader(fname=fname, binary=binary)
        
-
-        #if binary:
-            #if (self.grid.nx==-1):
-                #self.grid.read_grid()
-
-            #print 'Reading gas density'
-
-
-            ## hdr[0] = format number
-            ## hdr[1] = data precision (4=single, 8=double)
-            ## hdr[2] = nr of cells
-            #hdr = fromfile(fname, count=3, dtype=int)
-            
-            #if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                #print 'ERROR'
-                #print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                #print self.grid.nx, self.grid.ny, self.grid.nz
-                #print hdr[1]
-                #return
-
-            #if hdr[1]==8:
-                #self.rhogas = fromfile(fname, count=-1, dtype=float64)
-            #elif hdr[1]==4:
-                #self.rhogas = fromfile(fname, count=-1, dtype=float)
-            #else:
-                #print 'ERROR'
-                #print 'Unknown datatype in '+fname
-                #return
-
-            #self.rhogas = reshape(self.rhogas[3:], [self.grid.nz,self.grid.ny,self.grid.nx])
-            ## We need to change the axis orders as Numpy always writes binaries in C-order while RADMC3D
-            ## uses Fortran-order
-            #self.rhogas = swapaxes(self.rhogas,0,2)
-
-        #else:
-            #if (self.grid.nx==-1):
-                #self.grid.read_grid()
-
-
-            #print 'Reading gas density'
-
-            #rfile = -1
-            #try :
-                #rfile = open('numberdens_'+ispec+'.inp', 'r')
-            #except:
-                #print 'Error!' 
-                #print 'numberdens_'+ispec+'.inp was not found!'
-                #return
-
-            #if (rfile!=(-1)):
-
-                #dum = rfile.readline()
-                #dum = int(rfile.readline())
-                
-                #if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                    #print 'Error!'
-                    #print 'Number of grid points in amr_grid.inp is not equal to that in numberdens_'+ispec+'.inp'
-                    #print self.grid.nx * self.grid.ny * self.grid.nz, dum
-                    #print self.grid.nx, self.grid.ny, self.grid.nz
-                #else:
-                    
-                    #self.rhogas = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64)
-                    
-                    #for k in range(self.grid.nz):
-                        #for j in range(self.grid.ny):
-                            #for i in range(self.grid.nx):
-                                #self.rhogas[i,j,k] = float(rfile.readline())
-
-            #else:
-                #self.rhogas = -1                            
-
-            #rfile.close()
 # --------------------------------------------------------------------------------------------------
 
     def read_gastemp(self, fname='', binary=True):
@@ -1288,7 +1220,8 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file that contains the gas temperature. If omitted 'gas_temperature.inp' 
-            (or if binary=True 'gas_tempearture.binp') is used.
+                    (or if binary=True 'gas_tempearture.binp') is used.
+            binary - If true the data will be read in binary format, otherwise the file format is ascii
         """
       
         if (self.grid.nx==-1):
@@ -1313,6 +1246,7 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file into which the dust density should be written. If omitted 'dust_density.inp' is used.
+            binary - If true the data will be written in binary format, otherwise the file format is ascii
         """
         
         if fname=='':
@@ -1334,6 +1268,7 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file into which the dust density should be written. If omitted 'dust_density.inp' is used.
+            binary - If true the data will be written in binary format, otherwise the file format is ascii
         """
         if fname=='':
             if binary:
@@ -1351,8 +1286,11 @@ class radmc3dData():
 
         INPUT:
         ------
-        ispec - File name extension of the 'numberdens_ispec.inp' (if binary=True 'numberdens_ispec.binp') 
-                file into which the gas density should be written
+        fname  - Name of the file into which the data will be written. If omitted "numberdens_xxx.inp" and
+                 "numberdens_xxx.binp" will be used for ascii and binary format, respectively (xxx is the name of the molecule).
+        ispec  - File name extension of the 'numberdens_ispec.inp' (if binary=True 'numberdens_ispec.binp') 
+                 file into which the gas density should be written
+        binary - If true the data will be written in binary format, otherwise the file format is ascii
         """
         if ispec=='':
             print 'ERROR'
@@ -1379,6 +1317,7 @@ class radmc3dData():
         --------
             fname - Name of the file into which the gas temperature should be written. If omitted 
                     'gas_temperature.inp' (if binary=True 'gas_tempearture.binp') is used.
+            binary - If true the data will be written in binary format, otherwise the file format is ascii
         """
         if fname=='':
             if binary:
@@ -1396,8 +1335,9 @@ class radmc3dData():
 
         OPTIONS:
         --------
-            fname - Name of the file into which the gas temperature should be written. 
-            If omitted 'gas_velocity.inp' (if binary=True 'gas_velocity.binp') is used.
+            fname  - Name of the file into which the gas temperature should be written. 
+                    If omitted 'gas_velocity.inp' (if binary=True 'gas_velocity.binp') is used.
+            binary - If true the data will be written in binary format, otherwise the file format is ascii
         """
    
         if binary:
@@ -1439,7 +1379,8 @@ class radmc3dData():
         OPTIONS:
         --------
             fname - Name of the file into which the turubulent velocity field should be written. 
-            If omitted 'microturbulence.inp' (if binary=True 'microturbuulence.binp') is used.
+                    If omitted 'microturbulence.inp' (if binary=True 'microturbuulence.binp') is used.
+            binary - If true the data will be written in binary format, otherwise the file format is ascii
         """
    
         if fname=='':
@@ -1759,42 +1700,34 @@ class radmc3dStars():
 
 # --------------------------------------------------------------------------------------------------
 
-    def find_peak_starspec(self, tstar=None, rstar=None, lstar=None, nu=None, wav=None):
+    def find_peak_starspec(self):
 
         """
         Function to  calculate the peak wavelength of the stellar spectrum
-        
-        OPTIONS:
-        --------
-            tstar  : Effective temperature of the star(s)
-            rstar  : Radius of the star(s)
-            lstar  : Luminosity of the star(s) (either lstar or rstar should be specified)
-            nu     : Frequency grid on which the stellar spectrum should be calculated 
-            wav    : Wavelength grid on which the stellar spectrum should be calculated 
-
-            NOTE: Those options that are not specified in the calling will be used from
-                the base class attributes, or if not specified, read either 
-                from the parameterfile (tstar, rstar, lstar) or from the wavelength_micron.inp
-                (wav, nu)
+       
         OUTPUT:
         -------
-            Returns a single value, the peak wavelength of the stellar radiation field
+            Returns the peak wavelength of the stellar spectrum in nu*Fnu for all 
+                stars as a list
         """
    
         pwav = []
-    
+   
         for istar in range(self.nstar):
-            nufnu = self.fnu[:,istar] * self.freq
-            dpwav  = 0.0
-            dflux = 0.0
+            ii = (self.fnu[:,istar]*self.freq).argmax()
+            pwav.append(self.wav[ii])
 
-            for iw in range(self.nwav):
-                if nufnu[iw]>dflux:
-                    dflux = nufnu[iw]
-                    dpwav  = self.wav[iw]
+            #nufnu = self.fnu[:,istar] * self.freq
+            #dpwav  = 0.0
+            #dflux = 0.0
+
+            #for iw in range(self.nwav):
+                #if nufnu[iw]>dflux:
+                    #dflux = nufnu[iw]
+                    #dpwav  = self.wav[iw]
 
 
-            pwav.append(dpwav)
+            #pwav.append(dpwav)
 
         return pwav
 
@@ -1994,6 +1927,9 @@ class radmc3dDustOpac():
         therm   - if False the dust grains are quantum-heated (default: True)
         idust   - index of the dust species in the dust density distribution array
 
+        NOTE: Each attribute is a list with each element containing the corresponding data for
+              a given dust species
+
     METHODS:
     --------
         readopac()          - Read the dust opacity files
@@ -2018,16 +1954,14 @@ class radmc3dDustOpac():
         self.therm   = []
          
 # --------------------------------------------------------------------------------------------------
-    def  readopac(self, ext=[''], idust=None, used=False):
+    def  readopac(self, ext=[''], idust=None):
         """
         Function to read the dust opacity files
 
         INPUT:
         ------
             ext  : file name extension (file names should look like 'dustkappa_ext.inp')
-            idust: index of the dust species in the master opacity file (dustopac.inp')
-            used : if set to True the used dust opacity file ('dustkappa_ext.inp.used') file is read, 
-                    which is interpolated to the frequency grid of the RADMC3D run
+            idust: index of the dust species in the master opacity file (dustopac.inp') - starts at 0 
         """
         
         if (type(ext).__name__=='str'):  ext = [ext]
@@ -2049,7 +1983,7 @@ class radmc3dDustOpac():
         if idust:
             ext = []
             for ispec in idust:
-                if ispec>len(mopac['ext']):    
+                if (ispec+1)>len(mopac['ext']):    
                     print 'ERROR'
                     print 'No dust species found at index ', ispec
                     return [-1]
@@ -2069,27 +2003,14 @@ class radmc3dDustOpac():
         
         # Now read all dust opacities
         for i in range(len(ext)):
-            if not used:
-                try:
-                    rfile = open('dustkappa_'+ext[i]+'.inp', 'r')
-                except:
-                    print 'ERROR'
-                    print ' No dustkappa_'+ext[i]+'.inp file was found'
-                    return -1
-            else:
-                try:
-                    rfile = open('dustkappa_'+ext[i]+'.inp.used', 'r')
-                except:
-                    print 'ERROR'
-                    print ' No kappa_'+ext[i]+'.inp.used file was found'
-                    return -1
-
+            try:
+                rfile = open('dustkappa_'+ext[i]+'.inp', 'r')
+            except:
+                print 'ERROR'
+                print ' No dustkappa_'+ext[i]+'.inp file was found'
+                return -1
 
             self.ext.append(ext[i])
-            # Read two comment lines if the .used files are to be read
-            if used:
-                dum = rfile.readline()
-                dum = rfile.readline()
 
             # Read the file format
             iformat = int(rfile.readline())
@@ -2631,66 +2552,6 @@ class radmc3dDustOpac():
             wfile.write('%s\n'%'----------------------------------------------------------------------------')
             
         wfile.close()
-# --------------------------------------------------------------------------------------------------
-#    def  readopac(ext=[''], idust=None, used=False):
-#        """
-#        Function to read the dust opacity files
-#
-#        INPUT:
-#        ------
-#            ext  : file name extension (file names should look like 'dustkappa_ext.inp')
-#            used : if set to True the used dust opacity file ('dustkappa_ext.inp.used') file is read, 
-#                    which is interpolated to the frequency grid of the RADMC3D run
-#        """
-#        if (type(ext).__name__=='str'):  ext = [ext]
-#        if idust!=None:
-#            if (type(idust).__name__=='int'):  idust = [idust]
-#
-#        if (len(ext)==1)&(ext[0]==''):
-#            if idust!=None:
-#                print 'ERROR'
-#                print 'Either idust or ext should be specified, but not both'
-#                return [-1]
-#        
-#        # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
-#        mopac= read_masteropac()
-#
-#        if idust:
-#            ext = []
-#            for ispec in idust:
-#                if ispec>len(mopac['ext']):    
-#                    print 'ERROR'
-#                    print 'No dust species found at index ', ispec
-#                    return [-1]
-#                else:
-#                    ext.append(mopac['ext'][ispec])
-#
-#        else:
-#            idust = []
-#            for iext in ext:
-#                try:
-#                    dum2 = mopac['ext'].index(iext)
-#                except:
-#                    print 'ERROR'
-#                    print 'No dust species found with file name dustkappa_'+iext+'.inp'
-#
-#                idust.append(dum2)
-#
-#        
-#        # If ext is specified and no idust is set
-#        res = []
-#        for ispec in idust:
-#            opac = radmc3dDustOpac()
-#            dum = opac.readopac(ext=ext[ispec], used=used)
-#            if dum==-1.:
-#                return [-1]
-#            else:
-#                opac.ext = ext[ispec]
-#                opac.therm = mopac['therm'][ispec]
-#                opac.idust = ispec
-#                res.append(opac)
-#        
-#        return res
 #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # --------------------------------------------------------------------------------------------------
@@ -2758,15 +2619,13 @@ class radmc3dPar():
     """
     Class for parameters in a RADMC-3D model
 
-
     ATTRIBUTES:
     -----------
         ppar   : Dictionary containing parameter values with parameter names as keys 
         pdesc  : Disctionary containing parameter description (comments in the parameter file) with parameter names as keys
         pblock : Dictionary containing the block names in the parameter file and parameter names as values 
         pvalstr: Dictionary containing parameter values as strings with parameter names as keys
-
-
+    
     """
 
     def __init__(self):
@@ -2829,8 +2688,8 @@ class radmc3dPar():
         rfile.close()
 
     # ------------------------------------------------------------------------------------------------------------------------
-    # After now every line in the file was read try to decode the lines to 
-    #  Variable name = value # comment 
+    # After every line in the file was read try to decode the lines to 
+    #  [variable name] = [variable value] # [comment]
     # also try to catch if an expression has been broken into multiple lines
     # ------------------------------------------------------------------------------------------------------------------------
 
@@ -3027,7 +2886,7 @@ class radmc3dPar():
 
 
 # --------------------------------------------------------------------------------------------------
-    def load_defaults(self, fname='', model='', ppar={}, reset=True):
+    def load_defaults(self, model='', ppar={}, reset=True):
         """
         Function to fill up the classs attributes with default values
 
@@ -3138,7 +2997,6 @@ class radmc3dPar():
         INPUT:
         ------
             fname  : File name to be read (if omitted problem_params.inp is used)
-            model  : Model name whose parameter should be written in the parameter file
 
         """
         

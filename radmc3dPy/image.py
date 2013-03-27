@@ -41,7 +41,7 @@ try:
     from scipy.interpolate import BivariateSpline as bvspline
 except:
     print 'WARNING'
-    print ' Scipy.interpolate.BivariateSpline or Scipy.interpolate.RectBivariateSpline cannot be imported '
+    print ' Scipy.interpolate.BivariateSpline or Scipy.interpolate.RectBivariateSpline cannot be imported'
 
 try:
     import pyfits as pf
@@ -55,28 +55,6 @@ from copy import deepcopy
 import subprocess as sp
 import sys, os
 
-
-# **************************************************************************************************
-class radmc3dVisibility():
-    """
-    Visiblity class to be returned by the get_vis function 
-    """
-    def __init__(self):
-        self.fftImage = 0
-        self.vis = 0
-        self.amp = 0
-        self.phase = 0
-        self.u = 0
-        self.v = 0
-        self.bl = 0
-        self.pa = 0
-        self.blu = 0
-        self.blv = 0 
-        self.mu = 0
-        self.mu_err = 0
-        self.mv = 0 
-        self.mv_err = 0 
-        self.wav = 0
 
 # **************************************************************************************************
 class radmc3dImage():
@@ -113,17 +91,168 @@ class radmc3dImage():
         self.nwav = 0 
         self.wav = 0
 
+# --------------------------------------------------------------------------------------------------
+    def get_closure_phase(self, bl=None, pa=None, dpc=None):
+        """
+        Function to calculate clusure phases for a given model image for any arbitrary baseline triplet
+
+        INPUT:
+        ------
+            bl       - a list or Numpy array containing the length of projected baselines in meter(!)
+            pa       - a list or Numpy array containing the position angles of projected baselines in degree(!)
+            dpc      - distance of the source in parsec
+
+            NOTE, bl and pa should either be an array with dimension [N,3] or if they are lists each element of
+                the list should be a list of length 3, since closure phases are calculated only for closed triangles
+
+        OUTPUT:
+        -------
+            returns a dictionary with the following keys:
+                
+                bl     - projected baseline in meter
+                pa     - position angle of the projected baseline in degree
+                nbl    - number of baselines
+                u      - spatial frequency along the x axis of the image
+                v      - spatial frequency along the v axis of the image
+                vis    - complex visibility at points (u,v)
+                amp    - correlation amplitude 
+                phase  - Fourier phase
+                cp     - closure phase
+                wav    - wavelength 
+                nwav   - number of wavelengths
+
+        """
+
+        res = {}
+        res['bl']    = array(bl, dtype=float)
+        res['pa']    = array(pa, dtype=float)
+        res['ntri']  = res['bl'].shape[0]
+        res['nbl']   = 3
+        res['nwav']  = self.nwav
+        res['wav']   = self.wav
+
+        res['ntri']  = res['bl'].shape[0]
+        res['u']     = zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['v']     = zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['vis']   = zeros([res['ntri'], 3, res['nwav']], dtype=complex64)
+        res['amp']   = zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['phase'] = zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['cp']    = zeros([res['ntri'], res['nwav']], dtype=float)
+        
+        
+        l   = self.x / 1.496e13 / dpc / 3600. / 180.*pi 
+        m   = self.y / 1.496e13 / dpc / 3600. / 180.*pi 
+        dl  = l[1]-l[0]
+        dm  = m[1]-m[0]
+        
+        for itri in range(res['ntri']):
+            print 'Calculating baseline triangle # : ', itri
+            
+            dum = self.get_visibility(bl=res['bl'][itri,:], pa=res['pa'][itri,:], dpc=dpc)
+            res['u'][itri,:,:] = dum['u']
+            res['v'][itri,:,:] = dum['v']
+            res['vis'][itri,:,:] = dum['vis']
+            res['amp'][itri,:,:] = dum['amp']
+            res['phase'][itri,:,:] = dum['phase']
+            res['cp'][itri,:] = (dum['phase'].sum(0) / pi * 180.)%360.
+            ii = res['cp'][itri,:]>180.
+            if (res['cp'][itri,ii]).shape[0]>0:
+                res['cp'][itri,ii] = res['cp'][itri,ii]-360.
+
+        return res
+
 
 # --------------------------------------------------------------------------------------------------
-    def writefits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0):
+    def get_visibility(self, bl=None, pa=None, dpc=None):
+        """
+        Function to calculate visibilities for a given set of projected baselines and position angles
+        with the Discrete Fourier Transform
+
+        INPUT:
+        ------
+            bl       - a list or Numpy array containing the length of projected baselines in meter(!)
+            pa       - a list or Numpy array containing the position angles of projected baselines in degree(!)
+            dpc      - distance of the source in parsec
+
+        OUTPUT:
+        -------
+            returns a dictionary with the following keys:
+                
+                bl     - projected baseline in meter
+                pa     - position angle of the projected baseline in degree
+                nbl    - number of baselines
+                u      - spatial frequency along the x axis of the image
+                v      - spatial frequency along the v axis of the image
+                vis    - complex visibility at points (u,v)
+                amp    - correlation amplitude 
+                phase  - phase
+                wav    - wavelength 
+                nwav   - number of wavelengths
+
+        """
+
+        res   = {}
+        res['bl']    = array(bl, dtype=float)
+        res['pa']    = array(pa, dtype=float)
+        res['nbl']   = res['bl'].shape[0]
+        
+        res['wav']   = array(self.wav)
+        res['nwav']  = self.nwav
+
+        res['u']     = zeros([res['nbl'], self.nwav], dtype=float)
+        res['v']     = zeros([res['nbl'], self.nwav], dtype=float)
+
+        res['vis']   = zeros([res['nbl'], self.nwav], dtype=complex64)
+        res['amp']   = zeros([res['nbl'], self.nwav], dtype=float64)
+        res['phase'] = zeros([res['nbl'], self.nwav], dtype=float64)
+
+
+        l   = self.x / 1.496e13 / dpc / 3600. / 180.*pi 
+        m   = self.y / 1.496e13 / dpc / 3600. / 180.*pi 
+        dl  = l[1]-l[0]
+        dm  = m[1]-m[0]
+
+        for iwav in range(res['nwav']):
+        
+            # Calculate spatial frequencies 
+            res['u'][:,iwav] = res['bl'] * cos(res['pa']) * 1e6 / self.wav[iwav]
+            res['v'][:,iwav] = res['bl'] * sin(res['pa']) * 1e6 / self.wav[iwav]
+
+
+            for ibl in range(res['nbl']):
+                dum = complex(0.)
+                imu = complex(0., 1.)
+
+                dmv = zeros(self.image.shape[1])*0. + dm
+                
+
+                for il in range(len(l)):
+                    phase = 2.*pi * (res['u'][ibl]*l[il] + res['v'][ibl]*m)
+                    cterm = cos(phase)
+                    sterm = -sin(phase)
+                    dum   = dum + (self.image[il,:]*(cterm + imu*sterm)).sum()*dl*dm
+               
+                res['vis'][ibl, iwav]     = dum
+                res['amp'][ibl, iwav]     = sqrt(abs(dum * conj(dum)))
+                res['phase'][ibl, iwav]   = arccos(real(dum)/res['amp'][ibl])
+                if imag(dum)<0.:
+                    res['phase'][ibl, iwav] = 2.*pi - res['phase'][ibl, iwav]
+                     
+                print 'Calculating baseline # : ', ibl, ' wavelength # : ', iwav 
+
+        return res
+# --------------------------------------------------------------------------------------------------
+    def writefits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0, casa=False):
         """
         Function to write out a RADMC3D image data in fits format (CASA compatible)
   
         INPUT:
         ------
-         fname   : file name of the radmc3d output image (if omitted 'image.fits' is used)
-         coord   : image center coordinates
-         bandwidthmhz : if the image is in the continuum set the bandwidth of the image
+         fname        : File name of the radmc3d output image (if omitted 'image.fits' is used)
+         coord        : Image center coordinates
+         bandwidthmhz : Bandwidth of the image in MHz (equivalent of the CDELT keyword in the fits header)
+         casa         : If set to True a Stokes axis will be added to the image cube to make it compatible
+                        with the casa simulator
         """
 # --------------------------------------------------------------------------------------------------
         if fname=='':
@@ -170,13 +299,24 @@ class radmc3dImage():
         conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
 
         # Create the data to be written
-        data = zeros([self.nfreq, 1, self.ny, self.nx], dtype=float)
-        if self.nfreq==1:
-            data[0,0,:,:] = self.image[:,:] * conv
 
+        if casa:
+            data = zeros([self.nfreq, 1, self.ny, self.nx], dtype=float)
+            if self.nfreq==1:
+                data[0,0,:,:] = self.image[:,:] * conv
+
+            else:
+                for inu in range(self.nfreq):
+                    data[inu,0,:,:] = self.image[:,:,inu] * conv
         else:
-            for inu in range(self.nfreq):
-                data[inu,0,:,:] = self.image[:,:,inu] * conv
+            data = zeros([self.nfreq, self.ny, self.nx], dtype=float)
+            if self.nfreq==1:
+                data[0,:,:] = self.image[:,:] * conv
+
+            else:
+                for inu in range(self.nfreq):
+                    data[inu,:,:] = self.image[:,:,inu] * conv
+
 
         hdu     = pf.PrimaryHDU(data)
         hdulist = pf.HDUList([hdu])
@@ -192,26 +332,42 @@ class radmc3dImage():
         hdulist[0].header.update('CRVAL2', self.sizepix_y/1.496e13/dpc*0.5+target_dec, '')
         hdulist[0].header.update('CUNIT2', '     DEG', '')
         hdulist[0].header.update('CTYPE2', 'DEC--SIN', '')
-     
-        hdulist[0].header.update('CRPIX3', 1., '')
-        hdulist[0].header.update('CDELT3', 1., '')
-        hdulist[0].header.update('CRVAL3', 1., '')
-        hdulist[0].header.update('CUNIT3', '        ','')
-        hdulist[0].header.update('CTYPE3', 'STOKES  ','')
+    
 
-        if self.nwav==1:
-            hdulist[0].header.update('CRPIX4', 1.0, '')
-            hdulist[0].header.update('CDELT4', bandwidthmhz*1e6, '')
-            hdulist[0].header.update('CRVAL4', self.freq[0], '')
-            hdulist[0].header.update('CUNIT4', '      HZ', '')
-            hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
+        if casa:
+            hdulist[0].header.update('CRPIX3', 1., '')
+            hdulist[0].header.update('CDELT3', 1., '')
+            hdulist[0].header.update('CRVAL3', 1., '')
+            hdulist[0].header.update('CUNIT3', '        ','')
+            hdulist[0].header.update('CTYPE3', 'STOKES  ','')
+
+            if self.nwav==1:
+                hdulist[0].header.update('CRPIX4', 1.0, '')
+                hdulist[0].header.update('CDELT4', bandwidthmhz*1e6, '')
+                hdulist[0].header.update('CRVAL4', self.freq[0], '')
+                hdulist[0].header.update('CUNIT4', '      HZ', '')
+                hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
+            else:
+                hdulist[0].header.update('CRPIX4', 1.0, '')
+                hdulist[0].header.update('CDELT4', (self.freq[1]-self.freq[0]), '')
+                hdulist[0].header.update('CRVAL4', self.freq[0], '')
+                hdulist[0].header.update('CTYPE4', '      HZ', '')
+                hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
         else:
-            hdulist[0].header.update('CRPIX4', 1.0, '')
-            hdulist[0].header.update('CDELT4', (self.freq[1]-self.freq[0]), '')
-            hdulist[0].header.update('CRVAL4', self.freq[0], '')
-            hdulist[0].header.update('CTYPE4', '      HZ', '')
-            hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
-        
+            if self.nwav==1:
+                hdulist[0].header.update('CRPIX3', 1.0, '')
+                hdulist[0].header.update('CDELT3', bandwidthmhz*1e6, '')
+                hdulist[0].header.update('CRVAL3', self.freq[0], '')
+                hdulist[0].header.update('CUNIT3', '      HZ', '')
+                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+            else:
+                hdulist[0].header.update('CRPIX3', 1.0, '')
+                hdulist[0].header.update('CDELT3', (self.freq[1]-self.freq[0]), '')
+                hdulist[0].header.update('CRVAL3', self.freq[0], '')
+                hdulist[0].header.update('CTYPE3', '      HZ', '')
+                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+
+
         hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
         hdulist[0].header.update('BTYPE', 'INTENSITY', '')
         hdulist[0].header.update('BZERO', 0.0, '')
@@ -231,7 +387,7 @@ class radmc3dImage():
         else:
             hdu.writeto(fname)
 # --------------------------------------------------------------------------------------------------
-    def plot_momentmap(self, moment=0, nu0=0, wav0=0, zmapnorm=False, dpc=1., au=False, arcsec=False, cmap=None, vclip=None):
+    def plot_momentmap(self, moment=0, nu0=0, wav0=0, dpc=1., au=False, arcsec=False, cmap=None, vclip=None):
         """
         Function to plot moment maps
 
@@ -241,10 +397,12 @@ class radmc3dImage():
             nu0    : rest frequency of the line in Hz
             wav0   : rest wavelength of the line in micron
             dpc    : distance of the source in pc
+            au     : If true displays the image with AU as the spatial axis unit
+            arcsec : If true displays the image with arcsec as the spatial axis unit (dpc should also be set!)
+            cmap   : matplotlib colormap
+            vclip  : two element list / Numpy array containin the lower and upper limits for the values in the moment
+                      map to be displayed
 
-        OUTPUT:
-        -------
-            map : Numpy array with the same dimension as the individual channel maps
         """
 
         # I/O error handling
@@ -263,12 +421,11 @@ class radmc3dImage():
             print ' The current image array contains '+str(len(self.image.shape))+' dimensions'
             return
 
-        mmap = self.momentmap(moment=moment, nu0=nu0, wav0=wav0)
+        mmap = self.get_momentmap(moment=moment, nu0=nu0, wav0=wav0)
 
         if moment>0:
-            if zmapnorm:
-                mmap0 = self.momentmap(moment=0, nu0=nu0, wav0=wav0)
-                mmap = mmap / mmap0
+            mmap0 = self.get_momentmap(moment=0, nu0=nu0, wav0=wav0)
+            mmap = mmap / mmap0
 
 
 # Select the coordinates of the data
@@ -295,17 +452,11 @@ class radmc3dImage():
             cb_label = 'I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster*km/s]'
         if moment==1:
             mmap = mmap / (dpc*dpc) 
-            if not zmapnorm:
-                cb_label = 'I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster'+r'$\rm (km/s)^2$'+']'
-            else:
-                cb_label = 'v [km/s]'
+            cb_label = 'v [km/s]'
         if moment>1:
             mmap = mmap / (dpc*dpc) 
             powex = str(moment)
-            if not zmapnorm:
-                cb_label = 'I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster'+r'$(km/s)^'+powex+'$'+']'
-            else:
-                cb_label = r'v$^'+powex+'$ [(km/s)$^'+powex+'$]'
+            cb_label = r'v$^'+powex+'$ [(km/s)$^'+powex+'$]'
 
         close()
 
@@ -322,7 +473,7 @@ class radmc3dImage():
         xlabel(xlab)
         ylabel(ylab)
 # --------------------------------------------------------------------------------------------------
-    def momentmap(self, moment=0, nu0=0, wav0=0):
+    def get_momentmap(self, moment=0, nu0=0, wav0=0):
         """
         Function to calculate moment maps
 
@@ -439,196 +590,6 @@ class radmc3dImage():
         self.x = ((arange(self.nx, dtype=float64) + 0.5) - self.nx/2) * self.sizepix_x
         self.y = ((arange(self.ny, dtype=float64) + 0.5) - self.ny/2) * self.sizepix_y
 
-# --------------------------------------------------------------------------------------------------
-    def get_vis(self, bl=None, pa=None, dpc=None, int_type='nearest'):
-        """
-        Function to calculate visibilities 
-   
-        SYNTAX:
-        -------
-            vis = get_visibility(image=image, wav=[10.0], bl=[15.0], pa=[40.], dpc=103.)
- 
-        INPUT:
-        ------
-            image    : a radmc3dImage class returned by readimage
-            bl       : list of projected baselines in meter
-            pa       : list of position angles (start from north counterclockwise)
-            dpc      : distance of the source in parsec
-            int_type : interpolation type 'spline' or 'nearest'
-
-            NOTE!!!! bl and pa should have the same number of elements!
-
-        OUTPUT:
-        -------
-            result          : a radmc3dVisibility class 
-            result.fftImage : Fourier-transform of the image (shifted, but not normalized!)
-            result.u        : spatial frequency calculated from the image axes
-            result.v        : spatial frequency calculated from the image axes
-            result.bl       : projected baseline in meter
-            result.pa       : position angle of the projected baseline
-            result.blu      : spatial frequency corresponding to the projected baselines
-            result.blv      : spatial frequency corresponding to the projected baselines
-            result.mu       : spatial frequency at which the fourier transform was taken (nearest neighbour to result.blu)
-            result.mv       : spatial frequency at which the fourier transform was taken (nearest neighbour to result.blv)
-            result.mu_err   : relative error of in the u coordinate ((result.mu-result.blu)/result.blu)
-            result.mv_err   : relative error of in the u coordinate ((result.mv-result.blv)/result.blv)
-            result.wav      : wavelength of the image/visibility
-        """
-# --------------------------------------------------------------------------------------------------
-
-#
-# Safety check
-#
-        if (len(bl) != len(pa)):
-            print 'ERROR'
-            print ' Number of baselines and number of position angles differ!'
-            return -1   
-
-#
-# Natural constants
-#
-        au = 1.496e13
-
-#
-# Get the dimensions
-#
-        nbl  = len(bl)
-        npa  = len(pa)
-           
-
-# Create the radmc3dVisibility that will be returned at the end
-
-        res = radmc3dVisibility()
-
-        res.bl     = bl
-        res.pa     = pa
-        res.wav    = self.wav
-        res.cvis   = zeros([self.nwav, nbl], dtype=complex128)
-        res.vis    = zeros([self.nwav, nbl], dtype=float64)
-        res.amp    = zeros([self.nwav, nbl], dtype=float64)
-        res.phase  = zeros([self.nwav, nbl], dtype=float64)
-        res.mu     = zeros(nbl, dtype=float64)
-        res.mv     = zeros(nbl, dtype=float64)
-        res.mu_err = zeros([self.nwav, nbl], dtype=float64)
-        res.mv_err = zeros([self.nwav, nbl], dtype=float64)
-        res.blu    = zeros(nbl, dtype=float64)
-        res.blv    = zeros(nbl, dtype=float64)
-#
-# Now do two big loops to get the visibilites for each baseline-PA pair and each wavelength point
-#
-        for ilam in range(self.nwav):
-            image  = rot90(rot90(self.image))
-# Calculate the ra, dec axes
-            r_ra  = (arange(self.nx, dtype=float64) - (self.nx*0.5) + 0.5) * (-self.sizepix_x / au / dpc / 3600.)
-            r_dec = (arange(self.ny, dtype=float64) - (self.ny*0.5) + 0.5) * (self.sizepix_y / au / dpc / 3600.)
-# Calculate the Fourier transform of the image
-
-            f_image = fft.fft2(image)
-#            f_image = fft.rfft2(image)
-#
-# Shift the image along both axes and normalize it to u,v=(0,0)
-#  NOTE: I make the following assumption fft(image)[0,0] = max(fft(image)) 
-#
-            res.fftImage = fft.fftshift(f_image)
-            nsf_image = res.fftImage / self.image.sum()#res.fftImage.max() 
-            nsf_image_real = real(nsf_image)
-            nsf_image_imag = imag(nsf_image)
-#
-# Calculate the u-v points 
-#
-
-            res.u = (arange(self.nx, dtype=float64) - self.nx/2. + 1.) / \
-                (-(self.sizepix_x / au / dpc / 3600.) /180.*pi * self.nx)
-        
-            res.v = (arange(self.ny, dtype=float64) - self.ny/2. + 1.) / \
-                ((self.sizepix_x / au / dpc / 3600.) /180.*pi * self.ny)
-        
-
-            if int_type.strip().lower()=='spline':
-
-                #sp_real = bvspline(res.v, res.u[::-1], nsf_image_real[:,::-1])#,sx=0,sy=0)
-                #sp_imag = bvspline(res.v, res.u[::-1], nsf_image_imag[:,::-1])#,sx=0,sy=0)
-                
-                sp_real = rbs(res.v, res.u[::-1], nsf_image_real[:,::-1],kx=2,ky=2,s=0)
-                sp_imag = rbs(res.v, res.u[::-1], nsf_image_imag[:,::-1],kx=2,ky=2,s=0)
-                
-                for ibl in range(nbl):
-#
-# Calculate the u,v, coordinates from the basline length and position angle
-#
-
-                    res.blu[ibl] = bl[ibl] * 1e6 / self.wav[ilam] * cos(pa[ibl]/180.*pi + pi/2.)
-                    res.blv[ibl] = bl[ibl] * 1e6 / self.wav[ilam] * sin(pa[ibl]/180.*pi + pi/2.)
-
-#
-# Do spline interpolation
-#
-
-                    dum1 = sp_real(res.blv[ibl], res.blu[ibl])
-                    dum2 = sp_imag(res.blv[ibl], res.blu[ibl])
-                    
-                    res.cvis[ilam,ibl]   = complex(dum1, dum2)
-                    res.vis[ilam,ibl]    = abs(res.cvis[ilam,ibl])
-                    res.amp[ilam,ibl]    = real(sqrt(res.cvis[ilam,ibl] * conj(res.cvis[ilam,ibl])))
-                    res.phase[ilam,ibl]  = arccos(real(res.cvis[ilam,ibl]) / res.amp[ilam,ibl])
-                    if imag(res.cvis[ilam,ibl])<0.0 : 
-                        res.phase[ilam,ibl] = 2.0*pi -res.phase[ilam,ibl]
-                    res.mu[ibl]          = res.blu[ibl]
-                    res.mv[ibl]          = res.blv[ibl]
-                    res.mu_err[ilam, ibl] = (res.mu[ibl]-res.blu[ibl])/res.blu[ibl]
-                    res.mv_err[ilam, ibl] = (res.mu[ibl]-res.blv[ibl])/res.blv[ibl]
-
-
-            elif int_type.strip().lower()=='nearest':
-                
-                for ibl in range(nbl):
-#
-# Calculate the u,v, coordinates from the basline length and position angle
-#
-
-                    res.blu[ibl] = bl[ibl] * 1e6 / self.wav[ilam] * cos(pa[ibl]/180.*pi + pi/2.)
-                    res.blv[ibl] = bl[ibl] * 1e6 / self.wav[ilam] * sin(pa[ibl]/180.*pi + pi/2.)
-
-#
-# Take the nearest neighbour of the points (m_u, m_v) in the fourier transform 
-#
-
-                    diff = abs(res.u - res.blu[ibl])
-                    ii   = (diff==diff.min())
-                    
-                
-                
-                    diff = abs(res.v - res.blv[ibl])
-                    jj   = (diff==diff.min())
-
-                    print (res.u[1]-res.u[0])/1e6*self.wav[ilam], res.blu[ibl]/1e6*self.wav[ilam]
-
-                    res.cvis[ilam,ibl]   = nsf_image[ii,jj][0]
-                    res.vis[ilam,ibl]    = abs(nsf_image[ii,jj])
-                    res.amp[ilam,ibl]    = real(sqrt(nsf_image[ii,jj] * conj(nsf_image[ii,jj])))
-                    res.phase[ilam,ibl]  = arccos(real(res.cvis[ilam,ibl]) / res.amp[ilam,ibl])
-                    if imag(res.cvis[ilam,ibl])<0.0 : 
-                        res.phase[ilam,ibl] = 2.0*pi -res.phase[ilam,ibl]
-                    res.mu[ibl]          = res.u[ii][0]
-                    res.mv[ibl]          = res.v[jj][0]
-                    res.mu_err[ilam, ibl] = (res.mu[ibl]-res.blu[ibl])/res.blu[ibl]
-                    res.mv_err[ilam, ibl] = (res.mv[ibl]-res.blv[ibl])/res.blv[ibl]
-
-
-        um = res.u/1e6*self.wav[0]
-        print um.min(), um.max()
-
-        clf()
-        imshow(abs(imag(nsf_image)), extent=(um.min(), um.max(), um.min(), um.max()), \
-                interpolation='nearest')
-
-        dum = raw_input()
-
-        plot(res.blu/1e6*self.wav[0], res.blv/1e6*self.wav[0], 'ko')
-        #dum = raw_input()
-        #exit()
-
-        return res
 # --------------------------------------------------------------------------------------------------
     def imconv(self, fwhm=None, pa=None, dpc=None):
         """
@@ -761,7 +722,8 @@ def readimage(fname=None):
 
 # ***************************************************************************************************************
 def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=None, saturate=None, bunit=None, \
-                  ifreq=None, cmap=None, cmask_rad=None, interpolation='nearest'):
+        ifreq=None, cmask_rad=None, interpolation='nearest', cmap=cm.gist_gray, **kwargs):
+                  #ifreq=None, cmap=None, cmask_rad=None, interpolation='nearest'):
     """
     Function to plot a radmc3d image
     
@@ -779,12 +741,15 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
           dpc      : Distance to the source in parsec (This keywords should be set if arcsec=True, or bunit!=None)
           maxlog   : Logarithm of the lowest pixel value to be plotted, lower pixel values will be clippde
           saturate : Highest pixel values to be plotted in terms of the peak value, higher pixel values will be clipped
-          bunit    : Unit of the image, can be 'Jy' = [Jy/pixel], 'abs'-[erg/s/cm/cm/Hz/ster], 'None'-I_nu/max(I_nu)
+          bunit    : Unit of the image, (None - Inu/max(Inu), 'inu' - Inu, fnu - Jy/pixel) 
           ifreq    : If the image file/array consists of multiple frequencies/wavelengths ifreq denotes the index
                      of the frequency/wavelength in the image array to be plotted
           cmask_rad : Simulates coronographyic mask : sets the image values to zero within this radius of the image center
                       The unit is the same as the image axis (au, arcsec, cm)
                       NOTE: this works only on the plot, the image array is not changed (for that used the cmask() function)
+
+          cmap     : matplotlib color map
+          interpolation: interpolation keyword for imshow (e.g. 'nearest', 'bilinear', 'bicubic')
     """
 # ***************************************************************************************************************
 
@@ -837,18 +802,15 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
     if (bunit==None):
         if log:
-            cb_label = 'log(F'+r'$_\nu$'+'/max(F'+r'$_\nu$'+'))'
+            cb_label = 'log(I'+r'$_\nu$'+'/max(I'+r'$_\nu$'+'))'
         else:
-            cb_label = 'F'+r'$_\nu$'+'/max(F'+r'$_\nu$'+')'
-    elif (bunit=='abs'):
+            cb_label = 'I'+r'$_\nu$'+'/max(I'+r'$_\nu$'+')'
+    elif (bunit=='inu'):
         if log:
-            data    = data - log10(dpc*dpc) 
-            cb_label = 'log(F'+r'$_\nu$'+' [erg/s/cm/cm/Hz])'
+            cb_label = 'log(I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster])'
         else:
-            data    = data / (dpc*dpc) 
-            cb_label = 'F'+r'$_\nu$'+' [erg/s/cm/cm/Hz/]'
-
-    elif (bunit=='Jy'):
+            cb_label = 'I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster]'
+    elif (bunit=='fnu'):
         if dpc==None:
             print 'ERROR'
             print ' If Jy/pixel is selected for the image unit the dpc keyword should also be set'
@@ -856,10 +818,10 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         else:
             if log:
                 data    = data + log10(image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
-                cb_label = 'log(I'+r'$_\nu$'+ '[Jy/pixel])'
+                cb_label = 'log(F'+r'$_\nu$'+ '[Jy/pixel])'
             else:
                 data    = data * (image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
-                cb_label = 'I'+r'$_\nu$'+' [Jy/pixel]'
+                cb_label = 'F'+r'$_\nu$'+' [Jy/pixel]'
 
 # Set the color bar boundaries
     if log:
@@ -891,20 +853,21 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     delaxes()
     delaxes()
 
-    if (cmap==None): 
-        cmap = cm.gist_gray
+    #if (cmap==None): 
+        #cmap = cm.gist_gray
 #    implot = imshow(data, extent=ext, cmap=cm.gist_gray)
-    implot = imshow(data, extent=ext, cmap=cmap, interpolation=interpolation)
+    implot = imshow(data, extent=ext, cmap=cmap, interpolation=interpolation, **kwargs)
     xlabel(xlab)
     ylabel(ylab)
-    title(r'$\lambda$='+str(image.wav[ifreq])+r'$\mu$m')
+    title(r'$\lambda$='+("%.5f"%image.wav[ifreq])+r'$\mu$m')
     cbar = colorbar(implot)
     cbar.set_label(cb_label)
     show()
 # ***************************************************************************************************************
 
 def makeimage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None, pointau=None, \
-                  fluxcons=True, nostar=False, noscat=False):
+                  fluxcons=True, nostar=False, noscat=False, \
+                  widthkms=None, linenlam=None, vkms=None, iline=None):
     """
     Function to call RADMC3D to calculate a rectangular image
     
@@ -915,13 +878,17 @@ def makeimage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
            
     INPUT:
     ------
-           npix   : number of pixels on the rectangular images
-           sizeau : diameter of the image in au
-           incl   : inclination angle of the source
-           dpc    : distance of the source in parsec
-           phi    : azimuthal rotation angle of the source in the model space
-           posang : position angle of the source in the image plane
-           pointau: three elements list of the cartesian coordinates of the image center
+           npix    : number of pixels on the rectangular images
+           sizeau  : diameter of the image in au
+           incl    : inclination angle of the source
+           dpc     : distance of the source in parsec
+           phi     : azimuthal rotation angle of the source in the model space
+           posang  : position angle of the source in the image plane
+           pointau : three elements list of the cartesian coordinates of the image center
+           widthkms: width of the frequency axis of the channel maps
+           linenlam: number of wavelengths to calculate images at
+           vkms    : a single velocity value at which a channel map should be calculated 
+           iline   : line transition index
     
     KEYWORDS:
     ---------
@@ -981,69 +948,36 @@ def makeimage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     if fluxcons:
         com = com + ' fluxcons'
 
-#
-# Write the RADMC3D control file
-#
-#    print 'Writing radmc3d.inp'
-#    wfile = open('radmc3d.inp', 'w')
-#    wfile.write('%s\n'%('nphot='+str('%d'%nphot)))
-#    wfile.write('%s\n'%('nphot_scat='+str('%d'%nphot_scat)))
-#    wfile.write('%s\n'%('scattering_mode_max='+str('%d'%scattering_mode_max)))
-#    wfile.write('%s\n'%('tgas_eq_tdust='+str('%d'%tgas_eq_tdust)))
-#    wfile.close()
-#    if (nostar==False):
-#        com = com + ' inclstar'
-#
-#    if noscat:
-#        com = com + ' noscat'
+    if widthkms:
+        if vkms:
+            print ' ERROR '
+            print ' Either widthkms or vkms keyword should be set but not both'
+            return -1
+        com = com + ' widthkms '+("%.5e"%widthkms)
+
+    if vkms:
+        if widthkms:
+            print ' ERROR '
+            print ' Either widthkms or vkms keyword should be set but not both'
+            return -1
+        com = com + ' vkms '+("%.5e"%vkms)
+
+    if linenlam:
+        com = com + ' linenlam '+("%d"%linenlam)
+
+    if iline:
+        com = com + ' iline '+("%d"%iline)
+
 
 #
 # Now finally run radmc3d and calculate the image
 #
 
-    print com
     #dum = sp.Popen([com], stdout=sp.PIPE, shell=True).wait()
     dum = sp.Popen([com], shell=True).wait()
 
     return 0
 # **************************************************************************************************
-
-def get_visibility(image=None, bl=None, pa=None, dpc=None):
-    """
-    Function to calculate visibilities 
-
-    SYNTAX:
-    -------
-        vis = get_visibility(image=image, wav=[10.0], bl=[15.0], pa=[40.], dpc=103.)
- 
-    INPUT:
-    ------
-        image  : a radmc3dImage class returned by readimage
-        bl     : list of projected baselines in meter
-        pa     : list of position angles (start from north counterclockwise)
-        dpc    : distance of the source in parsec
-
-        NOTE!!!! bl and pa should have the same number of elements!
-
-    OUTPUT:
-    -------
-         result          : a radmc3dVisibility class 
-         result.fftImage : Fourier-transform of the image (shifted, but not normalized!)
-         result.u        : spatial frequency calculated from the image axes
-         result.v        : spatial frequency calculated from the image axes
-         result.bl       : projected baseline in meter
-         result.pa       : position angle of the projected baseline
-         result.blu      : spatial frequency corresponding to the projected baselines
-         result.blv      : spatial frequency corresponding to the projected baselines
-         result.mu       : spatial frequency at which the fourier transform was taken (nearest neighbour to result.blu)
-         result.mv       : spatial frequency at which the fourier transform was taken (nearest neighbour to result.blv)
-         result.mu_err   : relative error of in the u coordinate ((result.mu-result.blu)/result.blu)
-         result.mv_err   : relative error of in the u coordinate ((result.mv-result.blv)/result.blv)
-         result.wav      : wavelength of the image/visibility
-    """
-    res = image.get_vis(bl=bl, pa=pa, dpc=dpc)
-    return res
-           
 
 def cmask(im=None, rad=0.0, au=False, arcsec=False, dpc=None):
     """
