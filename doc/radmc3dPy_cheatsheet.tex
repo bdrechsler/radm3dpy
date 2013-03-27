@@ -1,0 +1,278 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[left=1.5cm, right=1.5cm, top=1.5cm, bottom=1.5cm]{geometry}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usetikzlibrary{shapes, shadows, arrows}
+
+
+\definecolor{darkgreen}{RGB}{0,150,0}
+\definecolor{lblue}{RGB}{200,200,250}
+\definecolor{lgreen}{RGB}{200,250,200}
+\definecolor{lred}{RGB}{250,200,200}
+\definecolor{yellow}{RGB}{230,230,150}
+
+\renewcommand{\rmdefault}{phv}
+\newcommand{\pymod}{{\tt  radmc3dPy }}
+
+
+\begin{document}
+
+% Some Tikz definitions for the flowchart
+\tikzstyle{decision} = [diamond, draw, fill=blue!50]
+\tikzstyle{line} = [draw, -stealth, thick]
+\tikzstyle{output}=[draw, ellipse, fill=green!50,minimum height=8mm, text width=7em, text centered]
+\tikzstyle{calc}=[draw, ellipse, fill=red!40,minimum height=8mm, text width=10em, text centered]
+\tikzstyle{input} = [draw, rectangle, fill=blue!30, text width=12em, text centered, minimum height=15mm, node distance=5em]
+\tikzstyle{opinput} = [draw, rectangle, fill=yellow!50, text width=12em, text centered, minimum height=15mm, node distance=5em]
+
+
+
+\begin{center}
+{\huge\bf radmc3dPy v0.22}\\
+\vspace{0.5cm}
+{\large Attila Juh\'asz}
+\end{center}
+
+\section*{module: setup}
+\begin{itemize}
+\item[] {\bf get\_model\_desc()} - Returns the brief description of the model
+\item[] {\bf get\_model\_names()} - Returns the list of available models
+\item[] {\bf problem\_setup\_dust()} - Creats a dust continuum model setup
+\item[] {\bf problem\_setup\_gas()} - Creates a gas model setup
+\end{itemize}
+
+\section*{module: analyze}
+\begin{itemize}
+\item[]{\bf read\_data()} - Reads variables (e.g. dust density, gas velocity, etc)
+\item[]{\bf read\_grid()} - Reads the spatial and frequency grid
+\item[]{\bf readopac()} - Reads the dust opacities
+\item[]{\bf readparams()} - Reads the parameter file (problem\_params.inp)
+\item[]{\bf write\_default\_parfile()} - Writes the default parameters for a model
+\item[]{\bf radmc3dData.get\_sigmadust()} - Calculates the dust surface density in g/cm$^2$
+\item[]{\bf radmc3dData.get\_sigmagas()} - Calculates the gas surface density in molecule/cm$^2$
+\item[]{\bf radmc3dData.get\_tau()} - Calculates the continuum optical depth 
+\item[]{\bf radmc3dData.write\_vtk()} - Writes variables to a VTK format for visualisation with e.g. Paraview 
+\end{itemize}
+
+\section*{module: image}
+\begin{itemize}
+\item[]{\bf makeimage()} - Calculates an image with RADMC-3D (both dust continuum and channel maps)
+\item[]{\bf plotimage()} - Plot the image / channel map
+\item[]{\bf readimage()} - Reads the image
+\item[]{\bf radmc3dImage.imconv()} - Convolve the image with a Gaussian beam 
+\item[]{\bf radmc3dImage.plot\_momentmap()} - Plots moment map for a 3d image cube
+\item[]{\bf radmc3dImage.write\_casafits()} - Writes the image to a FITS file which is compatible with CASA
+\end{itemize}
+
+\newpage
+\section*{Dust continuum model} 
+
+\begin{tikzpicture}
+
+% Input nodes
+\node [input] (grid) {{\bf Spatial \& Frequency grid}\\amr\_grid.inp, \\wavelength\_micron.inp};
+\node [input, below of=grid, yshift=-2.em] (radsource) {{\bf Radiation source(s)} \\ stars.inp};
+\node [input, below of=radsource, yshift=-2.em] (dustopac) {{\bf Dust opacity} \\ dustkappa\_xxx.inp, dustopac.inp};
+\node [input, below of=dustopac, yshift=-2.em] (dustdens) {{\bf Dust density} \\ dust\_density.inp};
+\node [input, below of=dustdens, yshift=-2.em] (codepar) {{\bf Code parameters} \\ radmc3d.inp};
+
+% MC calculation
+\node [calc, right of=dustopac, xshift=13.em] (thermalmc) {{\bf Themal Monte-Carlo ($\rightarrow$ T$_{\rm dust}$)} \\ dust\_temperature.dat};
+
+% Observables
+\node [output, right of=thermalmc, xshift=13.em, yshift=5em] (contsed) {{\bf Raytracing \\ SED} \\ spectrum.out};
+\node [output, right of=thermalmc, xshift=13.em, yshift=-5em] (contimag) {{\bf Raytracing \\ Image} \\ image.out};
+
+% Lines/arrows
+\path [line] (grid) -| node[xshift=3em, yshift=-10em] {} (thermalmc);
+\path [line] (radsource) -| node[xshift=1em, yshift=-10em] {} (thermalmc);
+\path [line] (dustopac) -- (thermalmc);
+\path [line] (dustdens) -| node[xshift=3em, yshift=10em] {} (thermalmc);
+\path [line] (codepar) -| node[xshift=1em, yshift=10em] {} (thermalmc);
+
+\path [line] (thermalmc) -- (contsed);
+\path [line] (thermalmc) -- (contimag);
+
+\end{tikzpicture}
+
+\subsection*{radmc3dPy commands}
+\begin{itemize}
+
+\item[1] Import \pymod.
+
+{\tt >>> import radmc3dPy}\\
+\item[2] Check which models are available:
+
+{\tt >>> radmc3dPy.setup.get\_model\_names()}\\
+\indent {\tt ['ppdisk']}\\
+\item[3] Create a parameter file with the default values
+
+{\tt >>> radmc3dPy.analyze.write\_default\_parfile('ppdisk')}\\
+\item[4] Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
+Create all necessary imput files.
+
+{\tt>>>radmc3dPy.setup.problem\_setup\_dust('ppdisk')}\\
+\item[5] Then run RADMC-3D from the shell with the Monte-Carlo simulation to calculate the dust temperature.
+
+{\tt \$>radmc3d mctherm}\\
+\item[6] After the thermal Monte-Carlo run has finished we can make an image. 
+
+{\tt \$>radmc3d image npix 400 sizeau 200 lambda 880.0 incl 45. phi 0. posang 43.}\\
+\item[7] After RADMC-3D finished we can go back to python and read the image and plot it. 
+
+{\tt>>>imag=radmc3dPy.image.readimage()}\\
+{\tt>>>radmc3dPy.image.plotimage()}
+\item[8] Now we can also calculate the SED. For that we can  either use the wavelength grid we used of the thermal
+Monte-Carlo simulation, but we can also specify our own wavelength grid. For this latter we need to create a file
+called {\tt camera\_wavelength\_micron.inp}. The file should be a simple formatted ascii text file. The first line should
+contain the number of wavelengths in the file, while the the following lines should contain the number of wavelengths
+in a single column format. E.g.:
+\begin{verbatim}
+5
+0.5
+3.6
+9.7
+70.
+1300.
+\end{verbatim} 
+
+SEDs can be calculated with the following command
+
+{\tt\$>radmc3d sed incl 45.0 phi 0.0 loadlambda}\\
+In this way only the dust is taken into account the gas is neglected. If we wish to include gas emission/absorption
+we should use the 'spectrum' option instead of 'sed'. The loadlambda keyword at the end of the command tells
+RADMC-3D that it should calculate the SED for the wavelength in the camera\_wavelength\_micron.inp file. 
+
+{\tt\$>radmc3d spectrum incl 45.0 phi 0.0 loadlambda}\\
+The result is a file called {\tt spectrum.out} that contains the wavelength and flux in a two column ascii format. 
+
+
+
+
+\end{itemize}
+
+
+\newpage
+\section*{Gas model} 
+
+\begin{tikzpicture}
+
+% Input nodes
+\node [input] (grid) {{\bf Spatial \& Frequency grid}\\amr\_grid.inp, \\wavelength\_micron.inp};
+\node [input, below of=grid, yshift=-1.em] (radsource) {{\bf Radiation source(s)} \\ stars.inp};
+\node [input, below of=radsource, yshift=-1.em] (dustopac) {{\bf Dust opacity} \\ dustkappa\_xxx.inp, dustopac.inp};
+\node [input, below of=dustopac, yshift=-1.em] (dustdens) {{\bf Dust density} \\ dust\_density.inp};
+%\node [input, below of=dustdens, yshift=-1.em] (dusttemp) {{\bf Dust temperature} \\ dust\_temperature.dat};
+\node [input, below of=dustdens, yshift=-2.em] (codepar) {{\bf Code parameters} \\ radmc3d.inp};
+
+\node [opinput, below of=codepar, yshift=-1.em] (gastemp) {{\bf Gas temperature} \\ gas\_temperature.dat};
+\node [opinput, below of=gastemp, yshift=-1.em] (velocity) {{\bf Velocity} \\ gas\_velocity.inp};
+\node [opinput, below of=velocity, yshift=-1.em] (gasdens) {{\bf Gas density} \\ numberdens\_xxx.inp};
+\node [opinput, below of=gasdens, yshift=-1.em] (moldata) {{\bf Molecular data} \\ molecule\_xxx.inp};
+\node [opinput, below of=moldata, yshift=-1.em] (linesinp) {{\bf Line RT setup} \\ lines.inp};
+
+
+
+% MC calculation
+\node [calc, right of=dustopac, xshift=13.em] (thermalmc) {{\bf Themal Monte-Carlo ($\rightarrow$ T$_{\rm dust}$)} \\ dust\_temperature.dat};
+% Excitation calculation
+\node [calc, right of=thermalmc, xshift=-2.em, yshift=-28.em] (excitation) {{\bf Excitation \\ ($\rightarrow$ Level pop.)} \\ };
+
+% Observables
+\node [output, right of=thermalmc, xshift=13.em, yshift=5em] (contsed) {{\bf Raytracing \\ SED} \\ spectrum.out};
+\node [output, right of=thermalmc, xshift=13.em, yshift=-5em] (contimag) {{\bf Raytracing \\ Image} \\ image.out};
+
+\node [output, right of=excitation, xshift=13.em, yshift=5em] (spectrum) {{\bf Raytracing \\ Spectrum} \\ spectrum.out};
+\node [output, right of=excitation, xshift=13.em, yshift=-5em] (cmap) {{\bf Raytracing \\ Channel map} \\ image.out};
+
+% Lines/arrows
+\path [line] (grid) -| node[xshift=3em, yshift=-10em] {} (thermalmc);
+\path [line] (radsource) -| node[xshift=1em, yshift=-10em] {} (thermalmc);
+\path [line] (dustopac) -- (thermalmc);
+\path [line] (dustdens) -| node[xshift=3em, yshift=10em] {} (thermalmc);
+\path [line] (codepar) -| node[xshift=1em, yshift=10em] {} (thermalmc);
+
+\path [line] (thermalmc) -- (contsed);
+\path [line] (thermalmc) -- (contimag);
+
+
+%\path [line] (gastemp) -- (excitation);
+\path [line] (gastemp) -| node[xshift=3em, yshift=-10em] {} (excitation);
+\path [line] (velocity) -| node[xshift=3em, yshift=-10em] {} (excitation);
+\path [line] (gasdens) -| node[xshift=3em, yshift=10em] {} (excitation);
+\path [line] (moldata) -| node[xshift=3em, yshift=10em] {} (excitation);
+\path [line] (linesinp) -| node[xshift=3em, yshift=10em] {} (excitation);
+\path [line] (thermalmc) -- (excitation);
+
+
+\path [line] (excitation) -- (spectrum);
+\path [line] (excitation) -- (cmap);
+\path [line] (thermalmc) -- (spectrum);
+\path [line] (thermalmc) -- (cmap);
+
+
+\end{tikzpicture}
+
+
+\subsection*{radmc3dPy commands}
+\begin{itemize}
+
+\item[1] Import \pymod.
+
+{\tt >>> import radmc3dPy}\\
+\item[2] Check which models are available:
+
+{\tt >>> radmc3dPy.setup.get\_model\_names()}\\
+\indent {\tt ['ppdisk']}\\
+\item[3] Create a parameter file with the default values
+
+{\tt >>> radmc3dPy.analyze.write\_default\_parfile('ppdisk')}\\
+\item[4] Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
+Create all necessary imput files.
+
+{\tt>>>radmc3dPy.setup.problem\_setup\_gas('ppdisk')}\\
+\item[5] This time we can skip the thermal Monte-Carlo simulation and go directly to raytracing, calculating images
+and spectra.
+
+{\tt \$>radmc3d image npix 400 sizeau 200 incl 45. phi 0. posang 43. iline 3 vkms 1.0}\\
+\item[6] This command calculates a single channel map at 
+
+{\tt>>>imag=radmc3dPy.image.readimage()}\\
+{\tt>>>radmc3dPy.image.plotimage()}
+\item[7] Now we can also calculate the SED. For that we can  either use the wavelength grid we used of the thermal
+Monte-Carlo simulation, but we can also specify our own wavelength grid. For this latter we need to create a file
+called {\tt camera\_wavelength\_micron.inp}. The file should be a simple formatted ascii text file. The first line should
+contain the number of wavelengths in the file, while the the following lines should contain the number of wavelengths
+in a single column format. E.g.:
+\begin{verbatim}
+5
+0.5
+3.6
+9.7
+70.
+1300.
+\end{verbatim} 
+
+SEDs can be calculated with the following command
+
+{\tt\$>radmc3d sed incl 45.0 phi 0.0 loadlambda}\\
+In this way only the dust is taken into account the gas is neglected. If we wish to include gas emission/absorption
+we should use the 'spectrum' option instead of 'sed'. The loadlambda keyword at the end of the command tells
+RADMC-3D that it should calculate the SED for the wavelength in the camera\_wavelength\_micron.inp file. 
+
+{\tt\$>radmc3d spectrum incl 45.0 phi 0.0 loadlambda}\\
+The result is a file called {\tt spectrum.out} that contains the wavelength and flux in a two column ascii format. 
+\end{itemize}
+
+
+
+
+
+
+
+
+
+\end{document}
