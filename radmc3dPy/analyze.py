@@ -3059,7 +3059,7 @@ class radmc3dPar():
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readopac(ext=[''], idust=None, used=False):
+def readopac(ext=[''], idust=None):
     """
     Function to read the dust opacity files 
     This function is an interface to radmc3dDustOpac.readopac()
@@ -3068,8 +3068,6 @@ def readopac(ext=[''], idust=None, used=False):
     ------
         ext  : file name extension (file names should look like 'dustkappa_ext.inp')
         idust: index of the dust species in the master opacity file (dustopac.inp')
-        used : if set to True the used dust opacity file ('dustkappa_ext.inp.used') file is read, 
-                which is interpolated to the frequency grid of the RADMC3D run
 
     OUTPUT:
     -------
@@ -3089,7 +3087,7 @@ def readopac(ext=[''], idust=None, used=False):
 
 
     res = radmc3dDustOpac()
-    res.readopac(ext=ext, idust=idust, used=used)
+    res.readopac(ext=ext, idust=idust)
     
     return res
 # --------------------------------------------------------------------------------------------------
