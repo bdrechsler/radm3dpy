@@ -945,7 +945,7 @@ class radmc3dData():
         return {'taux':taux, 'tauy':tauy}
 
 # --------------------------------------------------------------------------------------------------
-    def  get_tau(self, idust=[], axis='xy', wav=0., kappa=None, usedkappa=True):
+    def  get_tau(self, idust=[], axis='xy', wav=0., kappa=None):
         """
         Function to calculate the optical depth along any given combination of the axes 
 
@@ -1000,7 +1000,7 @@ class radmc3dData():
             self.tauy = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64) 
 
         for i in idust:
-            opac = readopac(ext=ext[i], used=usedkappa)
+            opac = readopac(ext=ext[i])
             if opac.ext==[]:
                 return -1
             else:
