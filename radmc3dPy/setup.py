@@ -551,7 +551,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
         if callable(getattr(mdl, 'get_gas_abundance')):
             for imol in range(len(ppar['gasspec_mol_name'])):
                 gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_mol_name'][imol])
-                data.ndens_mol = data.rhogas * gasabun
+                data.ndens_mol = data.rhogas / (2.4 * mp) * gasabun 
 
                 # Write the gas density
                 data.write_gasdens(ispec=ppar['gasspec_mol_name'][imol], binary=binary)
@@ -559,7 +559,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
             if abs(ppar['lines_mode'])>2:
                 for icp in range(len(ppar['gasspec_colpart_name'])):
                     gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_colpart_name'][icp])
-                    data.ndens_mol = data.rhogas * gasabun
+                    data.ndens_mol = data.rhogas / (2.4*mp) * gasabun 
                     # Write the gas density
                     data.write_gasdens(ispec=ppar['gasspec_colpart_name'][icp], binary=binary)
 

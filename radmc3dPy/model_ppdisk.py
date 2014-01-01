@@ -287,7 +287,8 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
     """
 
     gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
-    gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
+    gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] 
+
     return gasabun
 # ============================================================================================================================
 #

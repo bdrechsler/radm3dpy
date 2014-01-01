@@ -227,14 +227,14 @@ class radmc3dImage():
                 
 
                 for il in range(len(l)):
-                    phase = 2.*pi * (res['u'][ibl]*l[il] + res['v'][ibl]*m)
+                    phase = 2.*pi * (res['u'][ibl,iwav]*l[il] + res['v'][ibl,iwav]*m)
                     cterm = cos(phase)
                     sterm = -sin(phase)
-                    dum   = dum + (self.image[il,:]*(cterm + imu*sterm)).sum()*dl*dm
-               
+                    dum   = dum + (self.image[il,:,iwav]*(cterm + imu*sterm)).sum()*dl*dm
+              
                 res['vis'][ibl, iwav]     = dum
                 res['amp'][ibl, iwav]     = sqrt(abs(dum * conj(dum)))
-                res['phase'][ibl, iwav]   = arccos(real(dum)/res['amp'][ibl])
+                res['phase'][ibl, iwav]   = arccos(real(dum)/res['amp'][ibl, iwav])
                 if imag(dum)<0.:
                     res['phase'][ibl, iwav] = 2.*pi - res['phase'][ibl, iwav]
                      
@@ -242,7 +242,8 @@ class radmc3dImage():
 
         return res
 # --------------------------------------------------------------------------------------------------
-    def writefits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0, casa=False):
+    def writefits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0, 
+            casa=False, nu0=0., wav0=0.):
         """
         Function to write out a RADMC3D image data in fits format (CASA compatible)
   
@@ -301,7 +302,9 @@ class radmc3dImage():
         # Create the data to be written
 
         if casa:
-            data = zeros([self.nfreq, 1, self.ny, self.nx], dtype=float)
+            # For compatibility with ARTIST put the stokes axis to the 4th dimension
+            #data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
+            data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
             if self.nfreq==1:
                 data[0,0,:,:] = self.image[:,:] * conv
 
@@ -322,7 +325,7 @@ class radmc3dImage():
         hdulist = pf.HDUList([hdu])
         
         hdulist[0].header.update('CRPIX1', (self.nx+1.)/2., ' ')
-        hdulist[0].header.update('CDELT1', self.sizepix_x/1.496e13/dpc/3600., '')
+        hdulist[0].header.update('CDELT1', -self.sizepix_x/1.496e13/dpc/3600., '')
         hdulist[0].header.update('CRVAL1', self.sizepix_x/1.496e13/dpc*0.5+target_ra, '')
         hdulist[0].header.update('CUNIT1', '     DEG', '')
         hdulist[0].header.update('CTYPE1', 'RA---SIN', '')
@@ -333,26 +336,29 @@ class radmc3dImage():
         hdulist[0].header.update('CUNIT2', '     DEG', '')
         hdulist[0].header.update('CTYPE2', 'DEC--SIN', '')
     
-
+        
+        # For ARTIST compatibility put the stokes axis to the 4th dimension
         if casa:
-            hdulist[0].header.update('CRPIX3', 1., '')
-            hdulist[0].header.update('CDELT3', 1., '')
-            hdulist[0].header.update('CRVAL3', 1., '')
-            hdulist[0].header.update('CUNIT3', '        ','')
-            hdulist[0].header.update('CTYPE3', 'STOKES  ','')
+            hdulist[0].header.update('CRPIX4', 1., '')
+            hdulist[0].header.update('CDELT4', 1., '')
+            hdulist[0].header.update('CRVAL4', 1., '')
+            hdulist[0].header.update('CUNIT4', '        ','')
+            hdulist[0].header.update('CTYPE4', 'STOKES  ','')
 
             if self.nwav==1:
-                hdulist[0].header.update('CRPIX4', 1.0, '')
-                hdulist[0].header.update('CDELT4', bandwidthmhz*1e6, '')
-                hdulist[0].header.update('CRVAL4', self.freq[0], '')
-                hdulist[0].header.update('CUNIT4', '      HZ', '')
-                hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
+                hdulist[0].header.update('CRPIX3', 1.0, '')
+                hdulist[0].header.update('CDELT3', bandwidthmhz*1e6, '')
+                hdulist[0].header.update('CRVAL3', self.freq[0], '')
+                hdulist[0].header.update('CUNIT3', '      HZ', '')
+                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+
             else:
-                hdulist[0].header.update('CRPIX4', 1.0, '')
-                hdulist[0].header.update('CDELT4', (self.freq[1]-self.freq[0]), '')
-                hdulist[0].header.update('CRVAL4', self.freq[0], '')
-                hdulist[0].header.update('CTYPE4', '      HZ', '')
-                hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
+                hdulist[0].header.update('CRPIX3', 1.0, '')
+                hdulist[0].header.update('CDELT3', (self.freq[1]-self.freq[0]), '')
+                hdulist[0].header.update('CRVAL3', self.freq[0], '')
+                hdulist[0].header.update('CUNIT3', '      HZ', '')
+                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+                hdulist[0].header.update('RESTFRQ', self.freq[0])
         else:
             if self.nwav==1:
                 hdulist[0].header.update('CRPIX3', 1.0, '')
@@ -364,8 +370,49 @@ class radmc3dImage():
                 hdulist[0].header.update('CRPIX3', 1.0, '')
                 hdulist[0].header.update('CDELT3', (self.freq[1]-self.freq[0]), '')
                 hdulist[0].header.update('CRVAL3', self.freq[0], '')
-                hdulist[0].header.update('CTYPE3', '      HZ', '')
+                hdulist[0].header.update('CUNIT3', '      HZ', '')
                 hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+       
+       
+        
+        #if casa:
+            #hdulist[0].header.update('CRPIX3', 1., '')
+            #hdulist[0].header.update('CDELT3', 1., '')
+            #hdulist[0].header.update('CRVAL3', 1., '')
+            #hdulist[0].header.update('CUNIT3', '        ','')
+            #hdulist[0].header.update('CTYPE3', 'STOKES  ','')
+
+            #if self.nwav==1:
+                #hdulist[0].header.update('CRPIX4', 1.0, '')
+                #hdulist[0].header.update('CDELT4', bandwidthmhz*1e6, '')
+                #hdulist[0].header.update('CRVAL4', self.freq[0], '')
+                #hdulist[0].header.update('CUNIT4', '      HZ', '')
+                #hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
+            #else:
+                #hdulist[0].header.update('CRPIX4', 1.0, '')
+                #hdulist[0].header.update('CDELT4', (self.freq[1]-self.freq[0]), '')
+                #hdulist[0].header.update('CRVAL4', self.freq[0], '')
+                #hdulist[0].header.update('CUNIT4', '      HZ', '')
+                #hdulist[0].header.update('CTYPE4', 'FREQ-LSR', '')
+        #else:
+            #if self.nwav==1:
+                #hdulist[0].header.update('CRPIX3', 1.0, '')
+                #hdulist[0].header.update('CDELT3', bandwidthmhz*1e6, '')
+                #hdulist[0].header.update('CRVAL3', self.freq[0], '')
+                #hdulist[0].header.update('CUNIT3', '      HZ', '')
+                #hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+            #else:
+                #hdulist[0].header.update('CRPIX3', 1.0, '')
+                #hdulist[0].header.update('CDELT3', (self.freq[1]-self.freq[0]), '')
+                #hdulist[0].header.update('CRVAL3', self.freq[0], '')
+                #hdulist[0].header.update('CUNIT3', '      HZ', '')
+                #hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+
+        if nu0>0:
+            hdulist[0].header.update('RESTFRQ', nu0, '')
+        else:
+            if self.nwav==1:
+                hdulist[0].header.update('RESTFRQ', self.freq[0], '')
 
 
         hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
@@ -867,7 +914,8 @@ def plotimage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
 def makeimage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None, pointau=None, \
                   fluxcons=True, nostar=False, noscat=False, \
-                  widthkms=None, linenlam=None, vkms=None, iline=None):
+                  widthkms=None, linenlam=None, vkms=None, iline=None,\
+                  lambdarange=None, nlam=None):
     """
     Function to call RADMC3D to calculate a rectangular image
     
@@ -878,17 +926,20 @@ def makeimage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
            
     INPUT:
     ------
-           npix    : number of pixels on the rectangular images
-           sizeau  : diameter of the image in au
-           incl    : inclination angle of the source
-           dpc     : distance of the source in parsec
-           phi     : azimuthal rotation angle of the source in the model space
-           posang  : position angle of the source in the image plane
-           pointau : three elements list of the cartesian coordinates of the image center
-           widthkms: width of the frequency axis of the channel maps
-           linenlam: number of wavelengths to calculate images at
-           vkms    : a single velocity value at which a channel map should be calculated 
-           iline   : line transition index
+           npix        : number of pixels on the rectangular images
+           sizeau      : diameter of the image in au
+           incl        : inclination angle of the source
+           dpc         : distance of the source in parsec
+           phi         : azimuthal rotation angle of the source in the model space
+           posang      : position angle of the source in the image plane
+           pointau     : three elements list of the cartesian coordinates of the image center
+           widthkms    : width of the frequency axis of the channel maps
+           linenlam    : number of wavelengths to calculate images at
+           vkms        : a single velocity value at which a channel map should be calculated
+           iline       : line transition index
+           lambdarange : two element list with the wavelenght boundaries between which
+                         multiwavelength images should be calculated
+           nlam        : number of wavelengths to be calculated in lambdarange
     
     KEYWORDS:
     ---------
@@ -911,20 +962,36 @@ def makeimage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
         print ' incl keyword is not set'
         return -1
     if (wav==None):
-        print 'ERROR!'
-        print ' wav/lambda keyword is not set'
-        return -1
+        if (lambdarange==None)|(nlam==None):
+            print 'ERROR!'
+            print ' No wavelength is specified'
+            return -1
+    else:
+        if lambdarange!=None:
+            print 'ERROR'
+            print 'Either lambdarange or wav should be set but not both'
+            return -1
+
+    if lambdarange!=None:
+        if len(lambdarange)!=2:
+            print 'ERROR'
+            print 'lambdarange must have two and only two elements'
+            return -1
+
     if (sizeau==None):
         print 'ERROR!'
         print ' sizeau keyword is not set'
         return -1
 
     com = 'radmc3d image' 
-    com = com + ' npix ' + str(npix)
-    com = com + ' lambda ' + str(wav)
+    com = com + ' npix ' + str(int(npix))
     com = com + ' incl ' + str(incl)
     com = com + ' sizeau ' + str(sizeau)
     
+    if wav!=None:
+        com = com + ' lambda ' + str(wav)
+    else:
+        com = com + ' lambdarange ' + str(lambdarange[0]) + ' ' + str(lambdarange[1]) + ' nlam ' + str(int(nlam)) 
 #
 # Now add additional optional keywords/arguments
 #

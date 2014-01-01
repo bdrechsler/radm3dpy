@@ -62,6 +62,12 @@ def get_default_params():
     """
 
     defpar = ppdisk.get_default_params()
+    defpar.append(['gasspec_mol_name', "['co']", ''])
+    defpar.append(['gasspec_mol_abun', '[1e-4]', ''])
+    defpar.append(['gasspec_mol_dbase_type', "['leiden']", ''])
+    defpar.append(['gasspec_mol_dissoc_taulim', '[1.0]', 'Continuum optical depth limit below which all molecules dissociate'])
+    defpar.append(['gasspec_mol_freezeout_temp', '[19.0]', 'Freeze-out temperature of the molecules in Kelvin'])
+    defpar.append(['gasspec_mol_freezeout_dfact', '[1e-3]', 'Factor by which the molecular abundance should be decreased in the frezze-out zone'])
 
     defpar.append(['warp_model', "'generic_warp'", ' Name of the warp model'])
     defpar.append(['warp_rin', '2.0*au', ' Inner radius of the warp'])
@@ -82,7 +88,7 @@ def warp_angles(grid=None, ppar=None, outer=False):
         in an inclinded orbit with respect to the unpertured disks' midplane). No precession is taken
         into account.
 
-    The warp is described in a simple analytical formalism:
+    The warp is described in a simple analytical formula:
         z0 = z0 * (R/Rin_warp)**(-p) * cos(phi - omega*t) 
         omega = omega0 * (R/Rin_warp)**(-q)
 
@@ -136,10 +142,125 @@ def warp_angles(grid=None, ppar=None, outer=False):
     ylabel('Y [AU]')
     title('Z [AU')
 
+
     return {'z0':z0, 'incl':incl, 'omt':omega*ppar['warp_t']}
 
 
 
+
+# ============================================================================================================================
+#
+# ============================================================================================================================
+def get_gas_abundance(grid=None, ppar=None, ispec=''):
+    """
+    Function to create the conversion factor from volume density to number density of molecule ispec.
+    The number density of a molecule is rhogas * abun 
+   
+    INPUT:
+    ------
+        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
+        ppar - Dictionary containing all parameters of the model 
+        ispec - The name of the gas species whose abundance should be calculated
+
+    OUTPUT:
+    -------
+        returns the abundance as a Numpy array
+    """
+
+    # Read the dust density and temperature
+    try: 
+        data = read_data(ddens=True, dtemp=True, binary=True)
+    except:
+        try: 
+            data = read_data(ddens=True, dtemp=True, binary=False)
+        except:
+            print 'WARNING!!'
+            print 'No data could be read in binary or in formatted ascii format'
+            print '  '
+            return 0
+
+    # Calculate continuum optical depth 
+    data.get_tau(axis='xy', wav=0.55)
+    
+
+    nspec = len(ppar['gasspec_mol_name'])
+    ndust = data.dustemp.shape[3]
+
+    if ppar['gasspec_mol_name'].__contains__(ispec):
+
+        sid   = ppar['gasspec_mol_name'].index(ispec)
+        # Check where the radial and vertical optical depth is below unity
+        gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)  
+        
+        for spec in range(nspec):
+            gasabun[:,:,:] = ppar['gasspec_mol_abun'][sid]
+           
+
+        for iz in range(data.grid.nz):
+            for iy in range(data.grid.ny):
+                ii = (data.taux[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                gasabun[ii,iy,iz] = 1e-90
+
+                ii = (data.dusttemp[:,iy,iz,ndust-1]<ppar['gasspec_mol_freezeout_temp'][sid])
+                gasabun[ii,iy,iz] =  ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
+        
+        #for iz in range(data.grid.nz):
+            #for iy in range(data.grid.ny/2):
+
+                #ii = (data.tauy[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                #gasabun[ii,iy,iz] = 1e-90
+                #gasabun[ii,data.grid.ny-1-iy,iz] = 1e-90
+
+    else:
+        gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-10
+        print 'WARNING !!!'
+        print 'Molecule name "'+ispec+'" is not found in gasspec_mol_name'
+        print 'A default 1e-10 abundance will be used'
+        print ' ' 
+
+
+    #gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
+    #gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
+
+    return gasabun
+# -----------------------------------------------------------------------------------------------
+# 
+# -----------------------------------------------------------------------------------------------
+def get_gas_density(grid=None, ppar=None):
+
+#
+# Apply perturbations 
+#
+ 
+    z0   = zeros([grid.nx, grid.nz, grid.ny], dtype=float64)
+    dum  = warp_angles(grid=grid, ppar=ppar)
+    for iy in range(grid.ny):
+        z0[:,:,iy] = dum['z0']
+#    z0   = dum['z0']
+
+    rr, th = np.meshgrid(grid.x, grid.y)
+    rcyl = rr * np.sin(th)
+    zz   = rr * np.cos(th)
+
+    for ix in range(grid.nx):
+        for iy in range(grid.ny):
+            if (rcyl[iy,ix]<ppar['warp_rin']):
+                z0[ix,:,iy] = 0.0
+
+    print dum['incl'].max()/pi*180.
+    print z0.max() / au
+
+    if ppar.has_key('warp_model'):
+        if ppar['warp_model']=='generic_warp':
+            rho = ppdisk.get_gas_density(z0=z0, grid=grid, ppar=ppar)
+        else:
+            rho = ppdisk.get_gas_density(grid=grid, ppar=ppar)
+    else:
+        rho = ppdisk.get_dust_density(grid=grid, ppar=ppar)
+
+
+
+    return rho
 
 # -----------------------------------------------------------------------------------------------
 # 

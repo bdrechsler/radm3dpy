@@ -353,7 +353,7 @@ class radmc3dGrid():
                     self.z  = 0.5*(self.zi[0:self.nz] + self.zi[1:self.nz+1])
                 else:
                     self.z = [0.]
-                    self.zi = [0., 0.,]
+                    self.zi = [0., 0.0]
                     self.nz = 1
                     self.nzi = 2
 
@@ -519,7 +519,7 @@ class radmc3dGrid():
                     self.z  = 0.5*(self.zi[0:self.nz] + self.zi[1:self.nz+1])
                 else:
                     self.z = [0.]
-                    self.zi = [0., 0.,]
+                    self.zi = [0., np.pi*2.]
                     self.nz = 1
                     self.nzi = 2
                 
@@ -1000,22 +1000,27 @@ class radmc3dData():
             self.tauy = zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=float64) 
 
         for i in idust:
-            opac = readopac(ext=ext[i])
-            if opac.ext==[]:
-                return -1
-            else:
-                kabs = 10.**interp(log10(array(wav)), log10(opac.wav[0]), log10(opac.kabs[0]))
+
+            if kappa==None:
+                opac = readopac(ext=ext[i])
+                if opac.ext==[]:
+                    return -1
+                else:
+                    kabs = 10.**interp(log10(array(wav)), log10(opac.wav[0]), log10(opac.kabs[0]))
                 if opac.ksca[0][0]>0:
                     ksca = 10.**interp(log10(array(wav)), log10(opac.wav[0]), log10(opac.ksca[0]))
                 else:
                     ksca = array(kabs)*0.
-
+            
                 print ' Opacity at '+("%.2f"%wav)+'um : ', kabs+ksca
                 dum  = self.get_tau_1dust(i, axis=axis, kappa=kabs + ksca)
-                if axis.find('x')>=0:
-                    self.taux = self.taux + dum['taux']
-                if axis.find('y')>=0:
-                    self.tauy = self.tauy + dum['tauy']
+            else:
+                dum  = self.get_tau_1dust(i, axis=axis, kappa=kappa[i])
+
+            if axis.find('x')>=0:
+                self.taux = self.taux + dum['taux']
+            if axis.find('y')>=0:
+                self.tauy = self.tauy + dum['tauy']
 
 # --------------------------------------------------------------------------------------------------
     def read_dustdens(self, fname='', binary=True):
@@ -1089,6 +1094,12 @@ class radmc3dData():
                 self.grid.read_grid()
 
             print 'Reading gas velocity'
+            
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
 
             if (rfile!=(-1)):            
                 hdr = fromfile(fname, count=3, dtype=int)
@@ -1200,14 +1211,12 @@ class radmc3dData():
         if (self.grid.nx==-1):
             self.grid.read_grid()
             
-        print 'Reading gas density (numberdens_'+ispec
+        print 'Reading gas density (numberdens_'+ispec+'.inp)'
 
         if binary:
-            if fname=='':
-                fname = 'numberdens_'+ispec+'.binp'
+            fname = 'numberdens_'+ispec+'.binp'
         else:
-            if fname=='':
-                fname = 'numberdens_'+ispec+'.inp'
+            fname = 'numberdens_'+ispec+'.inp'
             
         self.ndens_mol = self._scalarfield_reader(fname=fname, binary=binary)
        
@@ -1615,9 +1624,10 @@ class radmc3dData():
         for ix in range(self.grid.nx):
             surf[ix,:] = diff_r2[ix] * diff_phi
 
+        
         # Now get the surface density 
         dum = squeeze(mass.sum(1))
-        self.sigmadust = dum / surf
+        self.sigmadust = dum / squeeze(surf)
 
 # --------------------------------------------------------------------------------------------------
     def get_sigmagas(self):
@@ -1631,7 +1641,6 @@ class radmc3dData():
         vol  = self.grid.get_cell_volume()
         # Total number of molecules / gas mass in each grid cell
         mass = vol * self.rhogas
-
         # Calculate the surface are of each grid facet in the midplane
         surf     = zeros([self.grid.nx, self.grid.nz], dtype=float64)
         diff_r2  = (self.grid.xi[1:]**2 - self.grid.xi[:-1]**2) * 0.5
@@ -1642,7 +1651,7 @@ class radmc3dData():
 
         # Now get the surface density 
         dum = squeeze(mass.sum(1))
-        self.sigmagas = dum / surf
+        self.sigmagas = dum / squeeze(surf)
 
 # --------------------------------------------------------------------------------------------------
 class radmc3dStars():
@@ -2867,12 +2876,14 @@ class radmc3dPar():
         try:
             self.ppar[parname] = eval(parlist[1].strip(), glob)
             glob[parname] = self.ppar[parname]
-        except:
+        except Exception, e:
+            print e
             try:
                 self.ppar[parname] = eval(parlist[1].strip(), loc)
                 loc[parname] = self.ppar[parname]
-            except:
+            except Exception, e:
                 print 'Unknown expression '+parlist[1].strip()
+                print e
                 return
 
         self.pvalstr[parname] = parlist[1].strip()
@@ -2952,7 +2963,7 @@ class radmc3dPar():
         self.add_par(['gasspec_colpart_name', "['h2']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
         self.add_par(['gasspec_colpart_abun', '[1e0]', '  Abundance of the molecule', 'Gas line RT']) 
         self.add_par(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
-        #self.add_par(['write_gastemp', 'False', '  Whether or not to write a separate dust temperature file (gas_temperature.inp)', 'Gas line RT'])
+        #self.add_par(['write_gastemp', 'False', '  Whether or not to write a separate gas temperature file (gas_temperature.inp) if such function exists in the model', 'Gas line RT'])
         #
         # Code parameters
         #
@@ -2987,7 +2998,6 @@ class radmc3dPar():
                 dum.append('Model '+model)
                 self.add_par(dum)
         
-
 # --------------------------------------------------------------------------------------------------
     def write_parfile(self, fname=''):
         """

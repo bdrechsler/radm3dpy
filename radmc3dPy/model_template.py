@@ -133,17 +133,15 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
         returns the abundance as a Numpy array
     """
    
-    mugas = 2.3
-
     gasabun = -1
     if ppar['gasspec_mol_name'].__contains__(ispec):
         ind = ppar['gasspec_mol_name'].index(ispec)
-        gasabun[:,:,:] = ppar['gasspec_mol_abun'][ind]/(mugas*mp)
+        gasabun[:,:,:] = ppar['gasspec_mol_abun'][ind]
  
     elif ppar['gasspec_colpart_name'].__contains__(ispec):
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
         ind = ppar['gasspec_colpart_name'].index(ispec)
-        gasabun[:,:,:] = ppar['gasspec_colpart_abun'][ind]/(mugas*mp)
+        gasabun[:,:,:] = ppar['gasspec_colpart_abun'][ind]
     else:
         print 'ERROR'
         print ' The abundance of "'+ispec+'" is not specified in the parameter file'

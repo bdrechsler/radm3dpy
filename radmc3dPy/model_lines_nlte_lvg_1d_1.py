@@ -141,18 +141,18 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
     """
     
     # Mass of gas per H2-molecule
-    mgas    = mp*(2.0*ppar['abun_h2']+4*ppar['abun_he'])/ppar['abun_h2']
+    #mgas    = mp*(2.0*ppar['abun_h2']+4*ppar['abun_he'])/ppar['abun_h2']
 
     gasabun = -1
     if ppar['gasspec_mol_name'].__contains__(ispec):
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
         ind = ppar['gasspec_mol_name'].index(ispec)
-        gasabun[:,:,:] = ppar['gasspec_mol_abun'][ind]/mgas
+        gasabun[:,:,:] = ppar['gasspec_mol_abun'][ind]#/mgas
  
     elif ppar['gasspec_colpart_name'].__contains__(ispec):
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
         ind = ppar['gasspec_colpart_name'].index(ispec)
-        gasabun[:,:,:] = ppar['gasspec_colpart_abun'][ind]/mgas
+        gasabun[:,:,:] = ppar['gasspec_colpart_abun'][ind]#/mgas
     else:
         print 'ERROR'
         print ' The abundance of "'+ispec+'" is not specified in the parameter file'

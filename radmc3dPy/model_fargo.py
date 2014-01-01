@@ -74,7 +74,7 @@ def get_default_params():
             ['fargo_linscale', '5.7', 'Scale factor to change linear scales in the model'],
             ['fargo_umass', 'ms', 'Unit mass'],
             ['fargo_ulength', 'fargo_linscale*au', 'Unit length'],
-            ['fargo_uvelo', 'sqrt(gg*mstar/(fargo_linscale*au))', 'Unit velocity'],
+            ['fargo_uvelo', 'sqrt(gg*mstar[0]/(fargo_linscale*au))', 'Unit velocity'],
             ['gfargo', 'False', 'Set it to True if the output is coming from the GPU version of FARGO']]
 
     return defpar
@@ -98,7 +98,7 @@ def get_dust_density(grid=None, ppar=None):
 
 # Get the gas surface density
     rhogas = self.get_gas_density(grid=grid, ppar=ppar)
-    rho    = array(rhogas)*0.
+    rho    = array(rhogas) * ppar['dusttogas']
 
 # Split up the dust density if we have a grain size distribution
     if ppar.has_key('dustkappa_ext'):
@@ -130,6 +130,10 @@ def get_dust_density(grid=None, ppar=None):
         rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
         for igs in range(ngs):
             rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
+    else:
+        rho_old = array(rho)
+        rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
+        rho[:,:,:,0] = rho_old
     
     return rho
 
