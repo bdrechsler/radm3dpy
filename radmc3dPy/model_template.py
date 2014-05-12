@@ -42,7 +42,7 @@ def getModelDesc():
     Function to provide a brief description of the model
     """
 
-    return "Example model: A 1D simple velocity gradient model to calculate lines with the LVG method"
+    return "Example model template"
            
 
 # ============================================================================================================================

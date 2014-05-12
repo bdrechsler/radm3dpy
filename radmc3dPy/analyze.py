@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013
+(c) Attila Juhasz 2011,2012,2013,2014
 
 This sub-module contains classes and functions to read and write input/output data to/from RADMC3D
 

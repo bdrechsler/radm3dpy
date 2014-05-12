@@ -1,0 +1,21 @@
+include doc/*.pdf
+include radmc3dPy/*.py
+include python_examples/datafiles/*
+include python_examples/run_lines_nlte_lvg_1d_1/*
+include python_examples/run_ppdisk_dust+gas/*
+include python_examples/run_simple_1/*
+include python_examples/run_simple_1_binary/*
+include python_examples/run_spher1d_1/*
+include python_examples/run_spher2d_1/*
+include python_examples/run_test_scattering_1/*
+
+exclude radmc3dPy/model_allen.py
+exclude radmc3dPy/model_eccdisk_fargosim.py
+exclude radmc3dPy/model_fargo.py
+exclude radmc3dPy/model_generic_warp.py
+exclude radmc3dPy/model_m97.py
+exclude radmc3dPy/model_ol02.py
+exclude radmc3dPy/model_tb93.py
+exclude radmc3dPy/crd_trans_vec.py
+exclude radmc3dPy/makeopac.py
+

@@ -1,0 +1,35 @@
+
+RADMC-3D Python module v0.25
+
+Attila Juhasz 
+Leiden Observatory
+juhasz@strw.leidenuniv.nl
+
+
+INSTALLATION
+------------
+
+radmc3dPy can be installed in two ways:
+
+1) Standard python install with distutils
+
+    $>python setup install
+
+This will install radmc3dPy to the /usr directory, thus root privileges are likely to be needed
+
+2) Manual install
+
+    Add the directory where this file is located to the PYTHONPATH environment variable, and
+    that is it. The best way to do so is in the .bashrc or .csrc files so it will automatically
+    be loaded at every single shell startup. I.e. for bash add the following line to the 
+    .bashrc file
+
+    export PYTHONPATH=${PYTHONPATH}:ABSOLUTE-PATH-TO-THIS-DIRECTORY
+
+    or for c-shell add the following line to the .csrc file:
+
+    setenv PYTHONPATH ${PYTHONPATH}:ABSOLUTE-PATH-TO-THIS-DIRECTORY
+
+   
+
+

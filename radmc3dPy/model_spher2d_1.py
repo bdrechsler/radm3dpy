@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz, Kees Dullemond 2011,2012,2013
+(c) Attila Juhasz, Kees Dullemond 2011,2012,2013,2014
 
 Original IDL model by Kees Dullemond, Python translation by Attila Juhasz
 """

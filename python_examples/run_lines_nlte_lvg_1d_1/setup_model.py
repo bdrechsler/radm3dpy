@@ -3,13 +3,13 @@ import radmc3dPy
 import os
 
 # Write the parameter file with the default parameters
-radmc3dPy.analyze.write_default_parfile('lines_nlte_lvg_1d_1')
+radmc3dPy.analyze.writeDefaultParfile('lines_nlte_lvg_1d_1')
 
 # Dust model setup with ascii input files
-radmc3dPy.setup.problem_setup_dust('lines_nlte_lvg_1d_1', binary=False, write_dusttemp=True)
+radmc3dPy.setup.problemSetupDust('lines_nlte_lvg_1d_1', binary=False, write_dusttemp=True)
 
 # Gas model setup with ascii input files
-radmc3dPy.setup.problem_setup_gas('lines_nlte_lvg_1d_1', binary=False, write_gastemp=True)
+radmc3dPy.setup.problemSetupGas('lines_nlte_lvg_1d_1', binary=False, write_gastemp=True)
 
 # Copy the dust opacity and co data files from the datafiles directory
 os.system('cp -v ../datafiles/dustkappa_silicate.inp .')

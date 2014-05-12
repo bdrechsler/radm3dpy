@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013
+(c) Attila Juhasz 2011,2012,2013,2014
 
 This sub-module functions to set up a RADMC3D model for dust and/or line simulations
 For help on the syntax or functionality of each function see the help of the individual functions

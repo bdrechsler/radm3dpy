@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013
+(c) Attila Juhasz 2011,2012,2013,2014
 
 Generic protoplanetary disk model with a simple chemistry
 
@@ -20,13 +20,6 @@ Generic protoplanetary disk model with a simple chemistry
     is dropped to zero. For freeze-out the molecular abundance below a threshold temperature is decreased
     by a given fractor. 
 
-FUNCTIONS:
-----------
-
-    getDustDensity() - Calculates the dust volume density in g/cm^3
-    getGasDensity()  - Calculates the gas volume density in g/cm^3
-    getVelocity()     - Calculates the velocity field
-    getDesc()         - Returns the short description of this model
 
 """
 try:
@@ -408,6 +401,25 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
     #gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
 
     return gasabun
+# ============================================================================================================================
+#
+# ============================================================================================================================
+def getVTurb(grid=None, ppar=None):
+    """
+    Function to create the turbulent velocity field
+    
+    INPUT:
+    ------
+        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
+        ppar - Dictionary containing all parameters of the model 
+    
+    OUTPUT:
+    -------
+        returns the turbulent velocity in cm/s
+    """
+
+    vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + ppar['gasspec_vturb']
+    return vturb
 # ============================================================================================================================
 #
 # ============================================================================================================================

@@ -233,6 +233,23 @@ def getGasDensity(grid=None, ppar=None):
         
     
     return rho
+# -----------------------------------------------------------------------------------------------
+def getVTurb(grid=None, ppar=None):
+    """
+    Function to create the turbulent velocity field
+    
+    INPUT:
+    ------
+        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
+        ppar - Dictionary containing all parameters of the model 
+    
+    OUTPUT:
+    -------
+        returns the turbulent velocity in cm/s
+    """
+
+    vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + ppar['gasspec_vturb']
+    return vturb
 
 # -----------------------------------------------------------------------------------------------
 def getVelocity(grid=None, ppar=None):

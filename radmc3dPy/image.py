@@ -1,6 +1,6 @@
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013
+(c) Attila Juhasz 2011,2012,2013,2014
 
 This sub-module contains classes/functions to create and read images with radmc3d and to calculate
 interferometric visibilities and write fits files
@@ -39,6 +39,7 @@ except:
 try:
     from scipy.interpolate import RectBivariateSpline as rbs
     from scipy.interpolate import BivariateSpline as bvspline
+    from scipy.signal import fftconvolve 
 except:
     print 'WARNING'
     print ' Scipy.interpolate.BivariateSpline or Scipy.interpolate.RectBivariateSpline cannot be imported'
@@ -46,10 +47,13 @@ except:
 try:
     import pyfits as pf
 except:
-    print 'WARNING'
-    print ' PyFits cannot be imported'
-    print ' The PyFits module is needed to write RADMC-3D images to FITS format'
-    print ' Without PyFits no fits file can be written'
+    try:
+        from astropy.io import fits as pf
+    else:
+        print 'WARNING'
+        print ' PyFits (or astropy.io.fits) cannot be imported'
+        print ' The PyFits/astropy.io.fits module is needed to write RADMC-3D images to FITS format'
+        print ' Without PyFits no fits file can be written'
 
 from copy import deepcopy
 import subprocess as sp
@@ -78,20 +82,23 @@ class radmc3dImage():
 
     """
     def __init__(self):
-        self.image = 0
+        self.image       = 0
         self.imageJyppix = 0
-        self.x = 0 
-        self.y = 0
-        self.nx = 0
-        self.ny = 0
-        self.sizepix_x = 0
-        self.sizepix_y = 0
-        self.nfreq = 0 
-        self.freq = 0
-        self.nwav = 0 
-        self.wav = 0
-        self.stokes = False
-
+        self.x           = 0
+        self.y           = 0
+        self.nx          = 0
+        self.ny          = 0
+        self.sizepix_x   = 0
+        self.sizepix_y   = 0
+        self.nfreq       = 0
+        self.freq        = 0
+        self.nwav        = 0
+        self.wav         = 0
+        self.stokes      = False
+        self.psf         = {}
+        self.fwhm        = []
+        self.pa          = 0
+        self.dpc         = 0
 # --------------------------------------------------------------------------------------------------
     def getClosurePhase(self, bl=None, pa=None, dpc=None):
         """
@@ -244,7 +251,7 @@ class radmc3dImage():
         return res
 # --------------------------------------------------------------------------------------------------
     def writeFits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0, 
-            casa=False, nu0=0., wav0=0., stokes='I'):
+            casa=False, nu0=0., wav0=0., stokes='I', fitsheadkeys=[]):
         """
         Function to write out a RADMC3D image data in fits format (CASA compatible)
   
@@ -253,8 +260,15 @@ class radmc3dImage():
          fname        : File name of the radmc3d output image (if omitted 'image.fits' is used)
          coord        : Image center coordinates
          bandwidthmhz : Bandwidth of the image in MHz (equivalent of the CDELT keyword in the fits header)
-         casa         : If set to True a Stokes axis will be added to the image cube to make it compatible
-                        with the casa simulator
+         casa         : If set to True a CASA compatible four dimensional image cube will be written
+         nu0          : Rest frequency of the line (for channel maps)
+         wav0         : Rest wavelength of the line (for channel maps)
+         stokes       : Stokes parameter to be written if the image contains Stokes IQUV (possible 
+                        choices: 'I', 'Q', 'U', 'V', 'PI' -Latter being the polarized intensity)
+         fitsheadkeys : Dictionary containing all (extra) keywords to be added to the fits header. If 
+                        the keyword is already in the fits header (e.g. CDELT1) it will be updated/changed
+                        to the value in fitsheadkeys, if the keyword is not present the keyword is added to 
+                        the fits header. 
         """
 # --------------------------------------------------------------------------------------------------
         if self.stokes:
@@ -306,13 +320,18 @@ class radmc3dImage():
         target_ra = (ra[0] + ra[1]/60. + ra[2]/3600.) * 15.
         target_dec = (dec[0] + dec[1]/60. + dec[2]/3600.) 
 
-        # Conversion from erg/s/cm/cm/ster to Jy/pixel
-        conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
+        if len(self.fwhm)==0:
+            # Conversion from erg/s/cm/cm/ster to Jy/pixel
+            conv = self.sizepix_x * self.sizepix_y / (dpc * pc)**2. * 1e23
+        else:
+            # If the image has already been convolved with a gaussian psf then self.image has
+            # already the unit of erg/s/cm/cm/beam, so we need to multiply it by 10^23 to get
+            # to Jy/beam
+            conv = 1e23
 
         # Create the data to be written
-
         if casa:
-            # For compatibility with ARTIST put the stokes axis to the 4th dimension
+            # Put the stokes axis to the 4th dimension
             #data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
             data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
             if self.nfreq==1:
@@ -408,13 +427,25 @@ class radmc3dImage():
                 hdulist[0].header.update('RESTFRQ', self.freq[0], '')
 
 
-        hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
+        if len(self.fwhm)==0:
+            hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
+        else:
+            hdulist[0].header.update('BUNIT', 'JY/BEAM', '')
+            hdulist[0].header.update('BMAJ', self.fwhm[0]/3600., '')
+            hdulist[0].header.update('BMIN', self.fwhm[1]/3600., '')
+            hdulist[0].header.update('BPA', self.pa, '')
+
         hdulist[0].header.update('BTYPE', 'INTENSITY', '')
         hdulist[0].header.update('BZERO', 0.0, '')
         hdulist[0].header.update('BSCALE', 1.0, '')
         
         hdulist[0].header.update('EPOCH', 2000.0, '')
         hdulist[0].header.update('LONPOLE', 180.0, '')
+
+
+        if len(fitsheadkeys.keys())>0:
+            for ikey in fitsheadkeys.keys():
+                hdulist[0].header.update(ikey, fitsheadkeys[ikey], '')
 
         if os.path.exists(fname):
             print fname+' already exists'
@@ -684,16 +715,16 @@ class radmc3dImage():
         self.y = ((arange(self.ny, dtype=float64) + 0.5) - self.ny/2) * self.sizepix_y
 
 # --------------------------------------------------------------------------------------------------
-    def imConv(self, fwhm=None, pa=None, dpc=None):
+    def imConv(self, fwhm=None, pa=None, dpc=1.):
         """
         Function to convolve a radmc3d image with a two dimensional Gaussian psf 
     
         INPUT:
         ------
               fwhm    : A list of two numbers; the FWHM of the two dimensional psf along the two principal axes
-                            The unit is assumed to be arcsec if dpc keyword is set, otherwise the unit is pixel
+                            The unit is assumed to be arcsec 
               pa      : Position angle of the psf ellipse (counts from North counterclockwise)
-              dpc     : Distance of the source in pc, if omitted the unit of FWHM is assumed to be pixel
+              dpc     : Distance of the source in pc
     
         OUTPUT:
         -------
@@ -707,6 +738,7 @@ class radmc3dImage():
 # --------------------------------------------------------------------------------------------------
 # Natural constants    
         au = 1.496e13
+        pc = 3.0857200e+18
     
         nx = self.nx
         ny = self.ny
@@ -717,14 +749,14 @@ class radmc3dImage():
     
 # Calculate the Gaussian psf
         dum   = getPSF(nx=self.nx, ny=self.ny, fwhm=fwhm, pa=pa, pscale=[dx,dy])
-        psf   = dum['psf']
+        psf   = dum['psf'] 
         f_psf = fft.fft2(psf)
 
         if self.stokes:
             if self.nfreq==1:
                 cimage = zeros([self.nx,self.ny,4], dtype=float64)
                 for istokes in range(4):
-                    imag = rot90(rot90(self.image[:,:,istokes]))
+                    imag = self.image[:,:,istokes]
                     f_imag  = fft.fft2(imag)
                     f_cimag = f_psf * f_imag
                     cimage[:,:,istokes] = abs(fft.ifftshift(fft.ifft2(f_cimag)))
@@ -732,7 +764,7 @@ class radmc3dImage():
                 cimage = zeros([self.nx,self.ny,4,self.nfreq], dtype=float64)
                 for ifreq in range(nfreq):
                     for istokes in range(4):
-                        imag = rot90(rot90(self.image[:,:,istokes,ifreq]))
+                        imag = self.image[:,:,istokes,ifreq]
                         f_imag  = fft.fft2(imag)
                         f_cimag = f_psf * f_imag
                         cimage[:,:,istokes,ifreq] = abs(fft.ifftshift(fft.ifft2(f_cimag)))
@@ -740,7 +772,7 @@ class radmc3dImage():
         else:
             cimage = zeros([self.nx,self.ny,self.nfreq], dtype=float64)
             for ifreq in range(nfreq):
-                imag = rot90(rot90(self.image[:,:,ifreq]))
+                imag = self.image[:,:,ifreq]
                 f_imag  = fft.fft2(imag)
                 f_cimag = f_psf * f_imag
                 cimage[:,:,ifreq] = abs(fft.ifftshift(fft.ifft2(f_cimag)))
@@ -750,12 +782,14 @@ class radmc3dImage():
   
 # Return the convolved image (copy the image class and replace the image attribute to the convolved image)
 
-        res = deepcopy(self)
-        res.image = cimage
-        res.psf   = psf
-        res.fwhm  = fwhm
-        res.pa    = pa
-        res.dpc   = dpc
+        res             = deepcopy(self)
+        conv            = res.sizepix_x * res.sizepix_y / (dpc*pc)**2./ (fwhm[0] * fwhm[1] * pi / (4.*log(2.)))
+        res.image       = cimage * conv
+        res.imageJyppix = res.image * 1e23
+        res.psf         = psf
+        res.fwhm        = fwhm
+        res.pa          = pa
+        res.dpc         = dpc
 
 
         return res
@@ -790,8 +824,8 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
     else:
         dx,dy = 1., 1.
 
-    x = ((arange(nx, dtype=float64) + 0.5) - nx/2) * dx
-    y = ((arange(ny, dtype=float64) + 0.5) - ny/2) * dy
+    x = (arange(nx, dtype=float64) - nx/2) * dx
+    y = (arange(ny, dtype=float64) - ny/2) * dy
 
 # Calculate the standard deviation of the Gaussians
     sigmax = fwhm[0] / (2.0 * sqrt(2.0 * log(2.)))
@@ -813,7 +847,10 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
 
             psf[ix,iy] = exp(-0.5*xx*xx/sigmax/sigmax - 0.5*yy*yy/sigmay/sigmay)
 
-    psf = psf / psf.sum()
+    
+    # Normalize the PSF 
+    psf = psf / norm 
+
     res = {'psf':psf, 'x':x, 'y':y}
 
     return res
@@ -968,11 +1005,19 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
             return
         else:
             if log:
-                data    = data + log10(image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
-                cb_label = 'log(F'+r'$_\nu$'+ '[Jy/pixel])'
+                if len(image.fwhm)>0:
+                    data    = data + log10(1e23) 
+                    cb_label = 'log(F'+r'$_\nu$'+ '[Jy/beam])'
+                else:
+                    data    = data + log10(image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
+                    cb_label = 'log(F'+r'$_\nu$'+ '[Jy/pixel])'
             else:
-                data    = data * (image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
-                cb_label = 'F'+r'$_\nu$'+' [Jy/pixel]'
+                if len(image.fwhm)>0:
+                    data    = data * 1e23
+                    cb_label = 'F'+r'$_\nu$'+' [Jy/beam]'
+                else:
+                    data    = data * (image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
+                    cb_label = 'F'+r'$_\nu$'+' [Jy/pixel]'
 
 # Set the color bar boundaries
     if log:
