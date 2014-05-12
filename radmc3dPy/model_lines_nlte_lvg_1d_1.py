@@ -18,7 +18,7 @@ from radmc3dPy.natconst import *
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_desc():
+def getModelDesc():
     """
     Function to provide a brief description of the model
     """
@@ -29,7 +29,7 @@ def get_desc():
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -84,7 +84,7 @@ def get_default_params():
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_temperature(grid=None, ppar=None):
+def getGasTemperature(grid=None, ppar=None):
     """
     Function to calcualte/set the gas temperature
     
@@ -104,7 +104,7 @@ def get_gas_temperature(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_dust_temperature(grid=None, ppar=None):
+def getDustTemperature(grid=None, ppar=None):
     """
     Function to calcualte/set the dust temperature
     
@@ -124,7 +124,7 @@ def get_dust_temperature(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_abundance(grid=None, ppar=None, ispec=''):
+def getGasAbundance(grid=None, ppar=None, ispec=''):
     """
     Function to create the conversion factor from volume density to number density of molecule ispec.
     The number density of a molecule is rhogas * abun 
@@ -162,7 +162,7 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_density(grid=None, ppar=None):
+def getGasDensity(grid=None, ppar=None):
     """
     Function to create the total gas density distribution 
     
@@ -183,7 +183,7 @@ def get_gas_density(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
     """
     Function to create the dust density distribution 
     
@@ -197,7 +197,7 @@ def get_dust_density(grid=None, ppar=None):
         returns the volume density in g/cm^3
     """
 
-    rhogas  = get_gas_density(grid=grid, ppar=ppar)
+    rhogas  = getGasDensity(grid=grid, ppar=ppar)
     rhodust = np.zeros([grid.nx, grid.ny, grid.nz, 1], dtype=np.float64) 
     rhodust[:,:,:,0] = rhogas * ppar['dusttogas']
     return rhodust
@@ -205,7 +205,7 @@ def get_dust_density(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_vturb(grid=None, ppar=None):
+def getVTurb(grid=None, ppar=None):
     """
     Function to create the turbulent velocity field
     
@@ -225,7 +225,7 @@ def get_vturb(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_velocity(grid=None, ppar=None):
+def getVelocity(grid=None, ppar=None):
     """
     Function to create the turbulent velocity field
     

@@ -12,8 +12,8 @@ FUNCTIONS:
     get_template_model() - Copy the template model file from the library directory (radmc3dPy) to the current working directory
     problem_setup_dust() - Function to set up a dust model
     problem_setup_gas()  - Function to set up a line simulation
-    write_lines_inp()    - Writes the lines.inp master command file for line simulations
-    write_radmc3d_inp()  - Writes the radmc3d.inp master command file required for all RADMC3D runs
+    writeLinesInp()    - Writes the lines.inp master command file for line simulations
+    writeRadmc3dInp()  - Writes the radmc3d.inp master command file required for all RADMC3D runs
 
 """
 
@@ -139,7 +139,7 @@ def get_model_desc(model=''):
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
+def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     """
     Function to set up a dust model for RADMC3D 
     
@@ -155,6 +155,8 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
         binary : If True input files will be written in binary format, if False input files are
                 written as formatted ascii text. 
 
+        writeDustTemp: If True a separate dust_temperature.inp/dust_tempearture.binp file will be
+                written under the condition that the model contains a function getDustTemperature() 
     OPTIONS:
     --------
         Any varible name in problem_params.inp can be used as a keyword argument.
@@ -187,7 +189,7 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
     """
   
     # Read the parameters from the problem_params.inp file 
-    modpar = readparams()
+    modpar = readParams()
 
     # Make a local copy of the ppar dictionary
     ppar = modpar.ppar
@@ -213,11 +215,11 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
             modpar.ppar[ikey] = kwargs[ikey]
             
             if type(kwargs[ikey]) is float:
-                modpar.add_par([ikey, ("%.7e"%kwargs[ikey]), '', ''])
+                modpar.setPar([ikey, ("%.7e"%kwargs[ikey]), '', ''])
             elif type(kwargs[ikey]) is int:
-                modpar.add_par([ikey, ("%d"%kwargs[ikey]), '', ''])
+                modpar.setPar([ikey, ("%d"%kwargs[ikey]), '', ''])
             elif type(kwargs[ikey]) is str:
-                modpar.add_par([ikey, kwargs[ikey], '', ''])
+                modpar.setPar([ikey, kwargs[ikey], '', ''])
             elif type(kwargs[ikey]) is list:
                 dum = '['
                 for i in range(len(kwargs[ikey])):
@@ -235,9 +237,9 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
                     if i<len(kwargs[ikey])-1:
                         dum = dum + ', '
                 dum = dum + (']') 
-                modpar.add_par([ikey, dum, '', ''])
+                modpar.setPar([ikey, dum, '', ''])
 
-        modpar.write_parfile()
+        modpar.writeParfile()
         ppar = modpar.ppar
 
 # --------------------------------------------------------------------------------------------
@@ -246,10 +248,10 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
     grid = radmc3dGrid()
     
     # Wavelength grid
-    grid.make_wav_grid(ppar=ppar)
+    grid.makeWavelengthGrid(ppar=ppar)
 
     # Spatial grid
-    grid.make_spatial_grid(ppar=ppar)
+    grid.makeSpatialGrid(ppar=ppar)
 
 # --------------------------------------------------------------------------------------------
 # Dust opacity
@@ -257,17 +259,17 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
     if ppar.has_key('dustkappa_ext'):
         opac=radmc3dDustOpac()
         #Master dust opacity file
-        opac.write_masteropac(ext=ppar['dustkappa_ext'])
+        opac.writeMasterOpac(ext=ppar['dustkappa_ext'], scattering_mode_max=ppar['scattering_mode_max'])
     else:
         opac=radmc3dDustOpac()
         # Calculate the opacities and write the master opacity file
-        opac.makeopac(ppar=ppar)
+        opac.makeOpac(ppar=ppar)
 # --------------------------------------------------------------------------------------------
 # Create the input radiation field (stars at this point) 
 # --------------------------------------------------------------------------------------------
 
     stars = radmc3dStars(ppar=ppar)
-    stars.get_stellar_spectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
+    stars.getStellarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
 
 # --------------------------------------------------------------------------------------------
 # Try to get the specified model
@@ -288,34 +290,34 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
 # --------------------------------------------------------------------------------------------
 # Create the dust density distribution 
 # --------------------------------------------------------------------------------------------
-    if dir(mdl).__contains__('get_dust_density'):
-        if callable(getattr(mdl, 'get_dust_density')):
-            data.rhodust = mdl.get_dust_density(grid=grid, ppar=ppar)
+    if dir(mdl).__contains__('getDustDensity'):
+        if callable(getattr(mdl, 'getDustDensity')):
+            data.rhodust = mdl.getDustDensity(grid=grid, ppar=ppar)
         else:
             print 'WARNING'
-            print 'model_'+model+'.py does not contain a get_dust_density() function, therefore, '
+            print 'model_'+model+'.py does not contain a getDustDensity() function, therefore, '
             print ' dust_density.inp cannot be written'
             return 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a get_dust_density() function, therefore, '
+        print 'model_'+model+'.py does not contain a getDustDensity() function, therefore, '
         print ' dust_density.inp cannot be written'
         return 
 # --------------------------------------------------------------------------------------------
 # Create the dust temperature distribution if the model has such function
 # --------------------------------------------------------------------------------------------
-    if write_dusttemp:
-        if dir(mdl).__contains__('get_dust_temperature'):
-            if callable(getattr(mdl, 'get_dust_temperature')):
-                data.dusttemp = mdl.get_dust_temperature(grid=grid, ppar=ppar)
+    if writeDustTemp:
+        if dir(mdl).__contains__('getDustTemperature'):
+            if callable(getattr(mdl, 'getDustTemperature')):
+                data.dusttemp = mdl.getDustTemperature(grid=grid, ppar=ppar)
             else:
                 print 'WARNING'
-                print 'model_'+model+'.py does not contain a get_dust_temperature() function, therefore, '
+                print 'model_'+model+'.py does not contain a getDustTemperature() function, therefore, '
                 print ' dust_temperature.dat cannot be written'
                 return 
         else:
             print 'WARNING'
-            print 'model_'+model+'.py does not contain a get_dust_temperature() function, therefore, '
+            print 'model_'+model+'.py does not contain a getDustTemperature() function, therefore, '
             print ' dust_temperature.dat cannot be written'
             return 
     #data.rhodust = mdl.get_temperature(grid=grid, ppar=ppar) * ppar['dusttogas']
@@ -324,32 +326,32 @@ def problem_setup_dust(model='', binary=True, write_dusttemp=False, **kwargs):
 # --------------------------------------------------------------------------------------------
 
     #Frequency grid
-    grid.write_wav_grid()
+    grid.writeWavelengthGrid()
     #Spatial grid
-    grid.write_spatial_grid()
+    grid.writeSpatialGrid()
     #Input radiation field
-    stars.write_starsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
+    stars.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
     #Dust density distribution
-    data.write_dustdens(binary=binary)
+    data.writeDustDens(binary=binary)
     #Dust temperature distribution
-    if write_dusttemp:
-        data.write_dusttemp(binary=binary)
+    if writeDustTemp:
+        data.writeDustTemp(binary=binary)
     #radmc3d.inp
-    write_radmc3d_inp(modpar=modpar)
+    writeRadmc3dInp(modpar=modpar)
 
 # --------------------------------------------------------------------------------------------
 # Calculate optical depth for diagnostics purposes
 # --------------------------------------------------------------------------------------------
     
     stars = radmc3dStars()
-    stars.read_starsinp()
-    pwav = stars.find_peak_starspec()[0]
-    #data.get_tau(wav=pwav, usedkappa=False)
+    stars.readStarsinp()
+    pwav = stars.findPeakStarspec()[0]
+    #data.getTau(wav=pwav, usedkappa=False)
     #print 'Radial optical depth at '+("%.2f"%pwav)+'um : ', data.taux.max()
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=False, **kwargs):
+def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False, **kwargs):
     """
     Function to set up a gas model for RADMC3D 
     
@@ -370,7 +372,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
         binary : If True input files will be written in binary format, if False input files are
                 written as formatted ascii text. 
 
-        write_gastemp: If True a separate gas_temperature.inp/gas_tempearture.binp file will be
+        writeGasTemp: If True a separate gas_temperature.inp/gas_tempearture.binp file will be
                 written under the condition that the model contains a function get_gas_temperature() 
 
     OPTIONS:
@@ -413,7 +415,7 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
 
     """
     
-    dum = readparams()
+    dum = readParams()
     ppar = dum.ppar
 
     if not ppar:
@@ -432,11 +434,11 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
             modpar.ppar[keys] = kwargs[keys]
             
             if type(kwargs[ikey]) is float:
-                modpar.add_par([ikey, ("%.7e"%kwargs[ikey]), '', ''])
+                modpar.setPar([ikey, ("%.7e"%kwargs[ikey]), '', ''])
             elif type(kwargs[ikey]) is int:
-                modpar.add_par([ikey, ("%d"%kwargs[ikey]), '', ''])
+                modpar.setPar([ikey, ("%d"%kwargs[ikey]), '', ''])
             elif type(kwargs[ikey]) is str:
-                modpar.add_par([ikey, kwargs[ikey], '', ''])
+                modpar.setPar([ikey, kwargs[ikey], '', ''])
             elif type(kwargs[ikey]) is list:
                 dum = '['
                 for i in range(len(kwargs[ikey])):
@@ -454,9 +456,9 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
                     if i<len(kwargs[ikey])-1:
                         dum = dum + ', '
                 dum = dum + (']') 
-                modpar.add_par([ikey, dum, '', ''])
+                modpar.setPar([ikey, dum, '', ''])
 
-        modpar.write_parfile()
+        modpar.writeParfile()
         ppar = modpar.ppar
             
             
@@ -474,36 +476,36 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
         grid = radmc3dGrid()
     
         # Wavelength grid
-        grid.make_wav_grid(ppar=ppar)
+        grid.makeWavelengthGrid(ppar=ppar)
 
         # Spatial grid
-        grid.make_spatial_grid(ppar=ppar)
+        grid.makeSpatialGrid(ppar=ppar)
 
 # --------------------------------------------------------------------------------------------
 # Create the input radiation field (stars at this point) 
 # --------------------------------------------------------------------------------------------
 
         stars = radmc3dStars(ppar=ppar)
-        stars.get_stellar_spectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
+        stars.getStellarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
 
 # --------------------------------------------------------------------------------------------
 # Now write out everything 
 # --------------------------------------------------------------------------------------------
 
         #Frequency grid
-        grid.write_wav_grid()
+        grid.writeWavelengthGrid()
         #Spatial grid
-        grid.write_spatial_grid()
+        grid.writeSpatialGrid()
         #Input radiation field
-        stars.write_starsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
+        stars.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
         #radmc3d.inp
-        write_radmc3d_inp(ppar=ppar)
+        writeRadmc3dInp(ppar=ppar)
 # --------------------------------------------------------------------------------------------
 # If the current working directory contains already a dust setup then we can use the
 #   already existing grid files 
 # --------------------------------------------------------------------------------------------
     else:
-        grid=read_grid()
+        grid=readGrid()
 # --------------------------------------------------------------------------------------------
 # Try to get the specified model
 # --------------------------------------------------------------------------------------------
@@ -529,15 +531,15 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
     # Calculate the gas density and velocity
     # NOTE: the density function in the model sub-modules should provide the gas volume density
     #       in g/cm^3 but RADMC3D needs the number density in 1/cm^3 so we should convert the
-    #       output of the get_density() function to number density using ppar['gasspec_mol_abun']
+    #       output of the get_density() function to number density using ppar['gasspecMolAbun']
     #       which is the abundance of the gas species with respect to hydrogen divided by the
     #       mean molecular weight
-    if dir(mdl).__contains__('get_gas_density'):
-        if callable(getattr(mdl, 'get_gas_density')):
-            data.rhogas = mdl.get_gas_density(grid=grid, ppar=ppar)
+    if dir(mdl).__contains__('getGasDensity'):
+        if callable(getattr(mdl, 'getGasDensity')):
+            data.rhogas = mdl.getGasDensity(grid=grid, ppar=ppar)
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a get_gas_density() function, therefore, '
+        print 'model_'+model+'.py does not contain a getGasDensity() function, therefore, '
         print ' numberdens_***.inp cannot be written'
         return 
        
@@ -547,39 +549,39 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
     #if ppar.has_key('gasspec_mol_abun'):
         #data.rhogas = data.rhogas * ppar['gasspec_mol_abun']
     #else:
-    if dir(mdl).__contains__('get_gas_abundance'):
-        if callable(getattr(mdl, 'get_gas_abundance')):
+    if dir(mdl).__contains__('getGasAbundance'):
+        if callable(getattr(mdl, 'getGasAbundance')):
             for imol in range(len(ppar['gasspec_mol_name'])):
-                gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_mol_name'][imol])
+                gasabun = mdl.getGasAbundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_mol_name'][imol])
                 data.ndens_mol = data.rhogas / (2.4 * mp) * gasabun 
 
                 # Write the gas density
-                data.write_gasdens(ispec=ppar['gasspec_mol_name'][imol], binary=binary)
+                data.writeGasDens(ispec=ppar['gasspec_mol_name'][imol], binary=binary)
            
             if abs(ppar['lines_mode'])>2:
                 for icp in range(len(ppar['gasspec_colpart_name'])):
-                    gasabun = mdl.get_gas_abundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_colpart_name'][icp])
+                    gasabun = mdl.getGasAbundance(grid=grid, ppar=ppar, ispec=ppar['gasspec_colpart_name'][icp])
                     data.ndens_mol = data.rhogas / (2.4*mp) * gasabun 
                     # Write the gas density
-                    data.write_gasdens(ispec=ppar['gasspec_colpart_name'][icp], binary=binary)
+                    data.writeGasDens(ispec=ppar['gasspec_colpart_name'][icp], binary=binary)
 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a get_gas_abundance() function, and no "gasspec_mol_abun" '
+        print 'model_'+model+'.py does not contain a getGasAbundance() function, and no "gasspec_mol_abun" '
         print ' parameter is found in the problem_setup.inp file. numberdens_***.inp cannot be written'
         return
 
 # --------------------------------------------------------------------------------------------
 # Get the gas velocity field
 # --------------------------------------------------------------------------------------------
-    if dir(mdl).__contains__('get_velocity'):
-        if callable(getattr(mdl, 'get_velocity')):
-            data.gasvel = mdl.get_velocity(grid=grid, ppar=ppar)
+    if dir(mdl).__contains__('getVelocity'):
+        if callable(getattr(mdl, 'getVelocity')):
+            data.gasvel = mdl.getVelocity(grid=grid, ppar=ppar)
             # Write the gas velocity
-            data.write_gasvel(binary=binary) 
+            data.writeGasVel(binary=binary) 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a get_velocity() function, therefore, '
+        print 'model_'+model+'.py does not contain a getVelocity() function, therefore, '
         print ' gas_velocity.inp cannot be written'
         return
     
@@ -587,37 +589,37 @@ def problem_setup_gas(model='', fullsetup=False, binary=True,  write_gastemp=Fal
 # Get the kinetik gas temperature
 # --------------------------------------------------------------------------------------------
     # Write the gas temperature if specified 
-    if write_gastemp:
-        if dir(mdl).__contains__('get_gas_temperature'):
-            if callable(getattr(mdl, 'get_gas_temperature')):
-                data.gastemp = mdl.get_gas_temperature(grid=grid, ppar=ppar)
+    if writeGasTemp:
+        if dir(mdl).__contains__('getGasTemperature'):
+            if callable(getattr(mdl, 'getGasTemperature')):
+                data.gastemp = mdl.getGasTemperature(grid=grid, ppar=ppar)
                 # Write the gas temperature
-                data.write_gastemp(binary=binary) 
+                data.writeGasTemp(binary=binary) 
         else:
             print 'WARNING'
-            print 'model_'+model+'.py does not contain a get_gas_temperature() function, therefore, '
+            print 'model_'+model+'.py does not contain a getGasTemperature() function, therefore, '
             print ' gas_temperature.inp cannot be written'
             return
 
 # --------------------------------------------------------------------------------------------
 # Get the turbulent velocity field
 # --------------------------------------------------------------------------------------------
-    if dir(mdl).__contains__('get_vturb'):
-        if callable(getattr(mdl, 'get_vturb')):
-            data.vturb = mdl.get_vturb(grid=grid, ppar=ppar)
+    if dir(mdl).__contains__('getVTurb'):
+        if callable(getattr(mdl, 'getVTurb')):
+            data.vturb = mdl.getVTurb(grid=grid, ppar=ppar)
             # Write the turbulent velocity field
-            data.write_vturb(binary=binary) 
+            data.writeVTurb(binary=binary) 
     else:
         data.vturb = zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
         data.vturb[:,:,:] = 0.
-        data.write_vturb(binary=binary)
+        data.writeVTurb(binary=binary)
 # --------------------------------------------------------------------------------------------
 # Write the line RT control file
 # --------------------------------------------------------------------------------------------
     # Write the lines.inp the main control file for the line RT
-    write_lines_inp(ppar=ppar)
+    writeLinesInp(ppar=ppar)
 # --------------------------------------------------------------------------------------------------
-def write_radmc3d_inp(modpar=None):
+def writeRadmc3dInp(modpar=None):
     """
     Function to write the radmc3d.inp master command file for RADMC3D
 
@@ -646,7 +648,7 @@ def write_radmc3d_inp(modpar=None):
     wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-def write_lines_inp(ppar=None):
+def writeLinesInp(ppar=None):
     """
     Function to write the lines.inp master command file for line simulation in RADMC3D
 

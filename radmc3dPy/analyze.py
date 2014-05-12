@@ -14,11 +14,11 @@ CLASSES:
 FUNCTIONS:
 ----------
     read_data()
-    read_grid()
-    read_masteropac()
-    write_masteropac()
-    readopac()
-    readparams()
+    readGrid()
+    readMasterOpac()
+    writeMasterOpac()
+    readOpac()
+    readParams()
 
 """
 try:
@@ -99,7 +99,7 @@ class radmc3dGrid():
         self.freq  = -1
 
 # --------------------------------------------------------------------------------------------------
-    def make_wav_grid(self, wbound=None, nw=None, ppar=None):
+    def makeWavelengthGrid(self, wbound=None, nw=None, ppar=None):
         """
         Function to create a wavelength/frequency grid 
 
@@ -138,7 +138,7 @@ class radmc3dGrid():
         self.nfreq = self.nwav
 
 # --------------------------------------------------------------------------------------------------
-    def write_wav_grid(self, fname=''):
+    def writeWavelengthGrid(self, fname=''):
         """
         Function to write the wavelength grid to a file (e.g. wavelength_micron.inp)
 
@@ -158,7 +158,7 @@ class radmc3dGrid():
         wfile.close()
        
 # --------------------------------------------------------------------------------------------------
-    def make_spatial_grid(self,crd_sys=None,xbound=None,ybound=None,zbound=None,nxi=None,nyi=None,nzi=None,ppar=None):
+    def makeSpatialGrid(self,crd_sys=None,xbound=None,ybound=None,zbound=None,nxi=None,nyi=None,nzi=None,ppar=None):
         """
         Function to create the spatial grid
 
@@ -266,14 +266,12 @@ class radmc3dGrid():
                 return
 
 #
-# Type checking (what is in the dimension numbers)
+# Type checking 
 #
 
             if (type(nxi).__name__=='int'):  nxi = [nxi]
             if (type(nyi).__name__=='int'):  nyi = [nyi]
             if (type(nzi).__name__=='int'):  nzi = [nzi]
-
-
 
 #
 # Create the x-axis
@@ -384,8 +382,6 @@ class radmc3dGrid():
             if (type(nxi).__name__=='int'):  nxi = [nxi]
             if (type(nyi).__name__=='int'):  nyi = [nyi]
             if (type(nzi).__name__=='int'):  nzi = [nzi]
-
-
 #
 # Create the x axis
 #
@@ -456,32 +452,62 @@ class radmc3dGrid():
 # Create the y axis
 #
             if (len(nyi)>1):
-                self.nyi = sum(nyi)+1
-                self.ny  = self.nyi-1
-                self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))                
-                for ipart in range(1,len(nyi)-1):
-                    # Now make sure that pi/2 will be a cell interface
-                    # 
-                    # BUGFIX! 16-05-2012
-                    # The grid was not symmetric to pi/2 when the grid contained multiple sections (i.e. len(nyi)>1)
-                    # This is now fixed
-                    if (ybound[ipart]<pi/2.):
-                        dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]))
-                    else:
-                        if (ybound[ipart]==pi/2.):
-                            dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart]+1, dtype=float64))/(float(nyi[ipart])))
+                
+                # Check if we go to the full [0,pi] interval or only use the upper half-plane [0, pi/2]
+                
+                if ybound[len(ybound)-1]!=pi/2.:
+                    self.nyi = sum(nyi)+1
+                    self.ny  = self.nyi-1
+                    self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))                
+                    for ipart in range(1,len(nyi)-1):
+                        # Now make sure that pi/2 will be a cell interface
+                        # 
+                        # BUGFIX! 16-05-2012
+                        # The grid was not symmetric to pi/2 when the grid contained multiple sections (i.e. len(nyi)>1)
+                        # This is now fixed
+                        if (ybound[ipart]<pi/2.):
+                            dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]))
                         else:
-                            dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64)+1.)/float(nyi[ipart]))
+                            if (ybound[ipart]==pi/2.):
+                                dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart]+1, dtype=float64))/(float(nyi[ipart])))
+                            else:
+                                dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64)+1.)/float(nyi[ipart]))
 
-                    self.yi = append(self.yi, dum)
+                        self.yi = append(self.yi, dum)
 
-                ipart   = len(nyi)-1 
-                if len(nyi)==2:
-                    dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64))/(float(nyi[ipart])-1.))
+                    ipart   = len(nyi)-1 
+                    if len(nyi)==2:
+                        dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64))/(float(nyi[ipart])-1.))
+                    else:
+                        dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64)+1.)/float(nyi[ipart]))
+
                 else:
-                    dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64)+1.)/float(nyi[ipart]))
+                    self.nyi = sum(nyi)+1
+                    self.ny  = self.nyi-1
+                    self.yi  = ybound[0] + (ybound[1] - ybound[0])*(arange(nyi[0], dtype=float64)/float(nyi[0]))                
+                    for ipart in range(1,len(nyi)-1):
+                        # Now make sure that pi/2 will be a cell interface
+                        # 
+                        # BUGFIX! 16-05-2012
+                        # The grid was not symmetric to pi/2 when the grid contained multiple sections (i.e. len(nyi)>1)
+                        # This is now fixed
+                        if (ybound[ipart]<pi/2.):
+                            dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*(arange(nyi[ipart], dtype=float64)/float(nyi[ipart]))
+                        else:
+                            dum = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart]+1, dtype=float64))/(float(nyi[ipart])))
+                        
+                        self.yi = append(self.yi, dum)
+
+                    ipart   = len(nyi)-1 
+
+                    if len(nyi)==2:
+                        dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart]+1, dtype=float64))/(float(nyi[ipart])))
+                    else:
+                        dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((arange(nyi[ipart], dtype=float64)+1.)/float(nyi[ipart]))
 
 
+
+            
                 self.yi = append(self.yi, dum)
                 self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
 
@@ -530,7 +556,7 @@ class radmc3dGrid():
             #return
 
 # --------------------------------------------------------------------------------------------------
-    def write_spatial_grid(self, fname=''):
+    def writeSpatialGrid(self, fname=''):
         """
         Function to write the wavelength grid to a file (e.g. amr_grid.inp)
 
@@ -565,7 +591,7 @@ class radmc3dGrid():
 
 
 # --------------------------------------------------------------------------------------------------
-    def read_grid(self, fname=''):
+    def readGrid(self, fname=''):
         """
         Function to read the spatial (amr_grid.inp) and frequency grid (wavelength_micron.inp).
         
@@ -656,7 +682,7 @@ class radmc3dGrid():
         rfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def get_cell_volume(self):
+    def getCellVolume(self):
         """
         Function to calculate the volume of grid cells
         """
@@ -743,7 +769,7 @@ class radmc3dData():
         self.sigmadust = -1
         self.sigmagas  = -1
 # --------------------------------------------------------------------------------------------------
-    def _scalarfield_writer(self, data=None, fname='', binary=True):
+    def _scalarfieldWriter(self, data=None, fname='', binary=True):
         """
         Function to write a scalar field to a file
 
@@ -804,7 +830,7 @@ class radmc3dData():
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def _scalarfield_reader(self, fname='', binary=True):
+    def _scalarfieldReader(self, fname='', binary=True):
         """
         Function to read a scalar field from file
 
@@ -889,7 +915,7 @@ class radmc3dData():
         return data
 
 # --------------------------------------------------------------------------------------------------
-    def  get_tau_1dust(self, idust=0, axis='', kappa=0.):
+    def  getTauOneDust(self, idust=0, axis='', kappa=0.):
         """
         Function to calculate the optical depth of a single dust species along any given combination of the axes 
 
@@ -945,7 +971,7 @@ class radmc3dData():
         return {'taux':taux, 'tauy':tauy}
 
 # --------------------------------------------------------------------------------------------------
-    def  get_tau(self, idust=[], axis='xy', wav=0., kappa=None):
+    def  getTau(self, idust=[], axis='xy', wav=0., kappa=None):
         """
         Function to calculate the optical depth along any given combination of the axes 
 
@@ -986,7 +1012,7 @@ class radmc3dData():
         else:  
             # Read the master opacity file to get the dustkappa file name extensions
             dum = radmc3dDustOpac()
-            dummy_ext = dum.read_masteropac()['ext']
+            dummy_ext = dum.readMasterOpac()['ext']
             if len(dummy_ext)<=max(idust):
                 print 'ERROR'
                 print 'There are less dust species specified in dustopac.inp than some of the specified idust indices'
@@ -1002,7 +1028,7 @@ class radmc3dData():
         for i in idust:
 
             if kappa==None:
-                opac = readopac(ext=ext[i])
+                opac = readOpac(ext=ext[i])
                 if opac.ext==[]:
                     return -1
                 else:
@@ -1013,9 +1039,9 @@ class radmc3dData():
                     ksca = array(kabs)*0.
             
                 print ' Opacity at '+("%.2f"%wav)+'um : ', kabs+ksca
-                dum  = self.get_tau_1dust(i, axis=axis, kappa=kabs + ksca)
+                dum  = self.getTauOneDust(i, axis=axis, kappa=kabs + ksca)
             else:
-                dum  = self.get_tau_1dust(i, axis=axis, kappa=kappa[i])
+                dum  = self.getTauOneDust(i, axis=axis, kappa=kappa[i])
 
             if axis.find('x')>=0:
                 self.taux = self.taux + dum['taux']
@@ -1023,7 +1049,7 @@ class radmc3dData():
                 self.tauy = self.tauy + dum['tauy']
 
 # --------------------------------------------------------------------------------------------------
-    def read_dustdens(self, fname='', binary=True):
+    def readDustDens(self, fname='', binary=True):
         """
         Function to read the dust density
 
@@ -1035,7 +1061,7 @@ class radmc3dData():
         """
     
         if (self.grid.nx==-1):
-            self.grid.read_grid()
+            self.grid.readGrid()
             
         print 'Reading dust density'
 
@@ -1046,9 +1072,9 @@ class radmc3dData():
             if fname=='':
                 fname = 'dust_density.inp'
             
-        self.rhodust = self._scalarfield_reader(fname=fname, binary=binary)
+        self.rhodust = self._scalarfieldReader(fname=fname, binary=binary)
 # --------------------------------------------------------------------------------------------------
-    def read_dusttemp(self, fname='', binary=True):
+    def readDustTemp(self, fname='', binary=True):
         """
         Function to read the dust temperature
 
@@ -1061,7 +1087,7 @@ class radmc3dData():
        
 
         if (self.grid.nx==-1):
-            self.grid.read_grid()
+            self.grid.readGrid()
             
         print 'Reading dust temperature'
 
@@ -1072,10 +1098,10 @@ class radmc3dData():
             if fname=='':
                 fname = 'dust_temperature.dat'
             
-        self.dusttemp = self._scalarfield_reader(fname=fname, binary=binary)
+        self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary)
 
 # --------------------------------------------------------------------------------------------------
-    def read_gasvel(self, fname='', binary=True):
+    def readGasVel(self, fname='', binary=True):
         """
         Function to read the gas velocity.  
         
@@ -1091,7 +1117,7 @@ class radmc3dData():
             if fname=='':
                 fname = 'gas_velocity.binp'
             if (self.grid.nx==-1):
-                self.grid.read_grid()
+                self.grid.readGrid()
 
             print 'Reading gas velocity'
             
@@ -1130,7 +1156,7 @@ class radmc3dData():
                 fname = 'gas_velocity.inp'
 
             if (self.grid.nx==-1):
-                self.grid.read_grid()
+                self.grid.readGrid()
 
             print 'Reading gas velocity'
 
@@ -1167,7 +1193,7 @@ class radmc3dData():
 
             rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def read_vturb(self, fname='', binary=True):
+    def readVTurb(self, fname='', binary=True):
         """
         Function to read the turbulent velocity field. 
         
@@ -1179,7 +1205,7 @@ class radmc3dData():
         """
         
         if (self.grid.nx==-1):
-            self.grid.read_grid()
+            self.grid.readGrid()
             
         print 'Reading microturbulence'
 
@@ -1190,10 +1216,10 @@ class radmc3dData():
             if fname=='':
                 fname = 'microturbulence.inp'
             
-        self.vturb = self._scalarfield_reader(fname=fname, binary=binary)
+        self.vturb = self._scalarfieldReader(fname=fname, binary=binary)
        
 # --------------------------------------------------------------------------------------------------
-    def read_gasdens(self,ispec='',binary=True):
+    def readGasDens(self,ispec='',binary=True):
         """
         Function to read the gas density
 
@@ -1209,7 +1235,7 @@ class radmc3dData():
         """
         
         if (self.grid.nx==-1):
-            self.grid.read_grid()
+            self.grid.readGrid()
             
         print 'Reading gas density (numberdens_'+ispec+'.inp)'
 
@@ -1218,11 +1244,11 @@ class radmc3dData():
         else:
             fname = 'numberdens_'+ispec+'.inp'
             
-        self.ndens_mol = self._scalarfield_reader(fname=fname, binary=binary)
+        self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary)
        
 # --------------------------------------------------------------------------------------------------
 
-    def read_gastemp(self, fname='', binary=True):
+    def readGasTemp(self, fname='', binary=True):
         """
         Function to read the gas temperature
 
@@ -1234,7 +1260,7 @@ class radmc3dData():
         """
       
         if (self.grid.nx==-1):
-            self.grid.read_grid()
+            self.grid.readGrid()
             
         print 'Reading gas temperature'
 
@@ -1245,10 +1271,10 @@ class radmc3dData():
             if fname=='':
                 fname = 'gas_temperature.inp'
             
-        self.gastemp = self._scalarfield_reader(fname=fname, binary=binary)
+        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary)
 
 # --------------------------------------------------------------------------------------------------
-    def write_dustdens(self, fname='', binary=True):
+    def writeDustDens(self, fname='', binary=True):
         """
         Function to write the dust density
 
@@ -1266,11 +1292,11 @@ class radmc3dData():
 
         print 'Writing '+fname
 
-        self._scalarfield_writer(data=self.rhodust, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary)
 
 
 # --------------------------------------------------------------------------------------------------
-    def write_dusttemp(self, fname='', binary=True):
+    def writeDustTemp(self, fname='', binary=True):
         """
         Function to write the dust density
 
@@ -1286,10 +1312,10 @@ class radmc3dData():
                 fname = 'dust_temperature.dat'
 
         print 'Writing '+fname
-        self._scalarfield_writer(data=self.dusttemp, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary)
     
 # --------------------------------------------------------------------------------------------------
-    def write_gasdens(self, fname='', ispec='',binary=True):
+    def writeGasDens(self, fname='', ispec='',binary=True):
         """
         Function to write the gas density
 
@@ -1314,11 +1340,11 @@ class radmc3dData():
                     fname = 'numberdens_'+ispec+'.inp'
 
             print 'Writing '+fname
-            self._scalarfield_writer(data=self.ndens_mol, fname=fname, binary=binary)
+            self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary)
         
        
 # --------------------------------------------------------------------------------------------------
-    def write_gastemp(self, fname='', binary=True):
+    def writeGasTemp(self, fname='', binary=True):
         """
         Function to write the gas temperature
 
@@ -1335,10 +1361,10 @@ class radmc3dData():
                 fname = 'gas_temperature.inp'
 
         print 'Writing '+fname
-        self._scalarfield_writer(data=self.gastemp, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.gastemp, fname=fname, binary=binary)
    
 # --------------------------------------------------------------------------------------------------
-    def write_gasvel(self, fname='', binary=True):
+    def writeGasVel(self, fname='', binary=True):
         """
         Function to write the gas velocity
 
@@ -1381,7 +1407,7 @@ class radmc3dData():
             wfile.close()
         print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
-    def write_vturb(self, fname='', binary=True):
+    def writeVTurb(self, fname='', binary=True):
         """
         Function to write the microturbulence file
 
@@ -1399,11 +1425,11 @@ class radmc3dData():
                 fname = 'microturbulence.inp'
 
         print 'Writing '+fname
-        self._scalarfield_writer(data=self.vturb, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.vturb, fname=fname, binary=binary)
 
 
 # --------------------------------------------------------------------------------------------------
-    def write_vtk(self, vtk_fname='', ddens=False, dtemp=False, idust=[0], \
+    def writeVTK(self, vtk_fname='', ddens=False, dtemp=False, idust=[0], \
                           gdens=False, gvel=False, gtemp=False):
         """
         Function to dump all physical variables to a legacy vtk file 
@@ -1596,7 +1622,7 @@ class radmc3dData():
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def get_sigmadust(self, idust=0):
+    def getSigmaDust(self, idust=0):
         """
         Function to calculate dust surface density 
         
@@ -1607,7 +1633,7 @@ class radmc3dData():
         """
 
         # Calculate the volume of each grid cell
-        vol  = self.grid.get_cell_volume()
+        vol  = self.grid.getCellVolume()
         # Dustmass in each grid cell
         if len(self.rhodust)>3:
             if idust>=0:
@@ -1630,7 +1656,7 @@ class radmc3dData():
         self.sigmadust = dum / squeeze(surf)
 
 # --------------------------------------------------------------------------------------------------
-    def get_sigmagas(self):
+    def getSigmaGas(self):
         """
         Function to calculate gas surface density 
         This function uses radmc3dData.rhogas to calculate the surface density, thus the 
@@ -1638,7 +1664,7 @@ class radmc3dData():
         """
 
         # Calculate the volume of each grid cell
-        vol  = self.grid.get_cell_volume()
+        vol  = self.grid.getCellVolume()
         # Total number of molecules / gas mass in each grid cell
         mass = vol * self.rhogas
         # Calculate the surface are of each grid facet in the midplane
@@ -1709,7 +1735,7 @@ class radmc3dStars():
 
 # --------------------------------------------------------------------------------------------------
 
-    def find_peak_starspec(self):
+    def findPeakStarspec(self):
 
         """
         Function to  calculate the peak wavelength of the stellar spectrum
@@ -1741,7 +1767,7 @@ class radmc3dStars():
         return pwav
 
 # --------------------------------------------------------------------------------------------------
-    def read_starsinp(self, fname=''):
+    def readStarsinp(self, fname=''):
         """
         Function to read the stellar data from the stars.inp file
 
@@ -1798,10 +1824,10 @@ class radmc3dStars():
         # Now calculates the stellar spectrum
         #
 
-        self.get_stellar_spectrum()
+        self.getStellarSpectrum()
 
 # --------------------------------------------------------------------------------------------------
-    def write_starsinp(self, wav=None, freq=None, pstar=None, tstar=None):
+    def writeStarsinp(self, wav=None, freq=None, pstar=None, tstar=None):
         """
         Writes the stars.inp file
 
@@ -1852,7 +1878,7 @@ class radmc3dStars():
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def get_stellar_spectrum(self, tstar=None, rstar=None, lstar=None, nu=None, wav=None):
+    def getStellarSpectrum(self, tstar=None, rstar=None, lstar=None, nu=None, wav=None):
         """
         Function to calculate a blackbody stellar spectrum
 
@@ -1941,11 +1967,11 @@ class radmc3dDustOpac():
 
     METHODS:
     --------
-        readopac()          - Read the dust opacity files
-        read_masteropac()   - Read the master opacity file
-        write_masteropac()  - Write the master opacity file
-        makeopac()          - Calculates opacities with the Mie-code that comes with RADMC-3D (using the run_makedust() function)
-        run_makedust()      - Runs the Mie-code to calculate dust opacities
+        readOpac()          - Read the dust opacity files
+        readMasterOpac()   - Read the master opacity file
+        writeMasterOpac()  - Write the master opacity file
+        makeOpac()          - Calculates opacities with the Mie-code that comes with RADMC-3D (using the runMakedust() function)
+        runMakedust()      - Runs the Mie-code to calculate dust opacities
 
     """
 # --------------------------------------------------------------------------------------------------
@@ -1963,7 +1989,7 @@ class radmc3dDustOpac():
         self.therm   = []
          
 # --------------------------------------------------------------------------------------------------
-    def  readopac(self, ext=[''], idust=None):
+    def  readOpac(self, ext=[''], idust=None):
         """
         Function to read the dust opacity files
 
@@ -1986,7 +2012,7 @@ class radmc3dDustOpac():
                 return [-1]
         
         # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
-        mopac = self.read_masteropac()
+        mopac = self.readMasterOpac()
 
         # Find the file name extensions in the master opacity file if idust is specified instead of ext
         if idust:
@@ -2088,7 +2114,7 @@ class radmc3dDustOpac():
             rfile.close()
         return 0 
 #--------------------------------------------------------------------------------------------------------------------
-    def makeopac(self, ppar=None, wav=None):
+    def makeOpac(self, ppar=None, wav=None):
         """
         Function to create dust opacities for RADMC3D using MIE calculation 
         
@@ -2106,7 +2132,7 @@ class radmc3dDustOpac():
     #
         if wav==None:
             grid = radmc3dGrid()
-            grid.make_wav_grid(ppar=ppar)
+            grid.makeWavelengthGrid(ppar=ppar)
             wav = grid.wav
 
     #
@@ -2162,7 +2188,7 @@ class radmc3dDustOpac():
                 wfile.close()
 
                 # Run makedust
-                self.run_makedust(freq=cc/wav*1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'], \
+                self.runMakedust(freq=cc/wav*1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'], \
                         lnk_fname='opt_const.dat', gdens=ppar['gdens'][idust])
 
                 # Change the name of makedust's output
@@ -2179,7 +2205,7 @@ class radmc3dDustOpac():
                     for igs in range(ppar['ngs']):
                         mixnames = ['dustkappa_igsize_'+str(igs+1)+'.inp']
                         mixspecs = [['dustkappa_idust_'+str(idust+1)+'_igsize_'+str(igs+1)+'.inp' for idust in range(len(ppar['lnk_fname']))]]
-                        self.mixopac(mixnames=mixnames, mixspecs=mixspecs, mixabun=[ppar['mixabun']])
+                        self.mixOpac(mixnames=mixnames, mixspecs=mixspecs, mixabun=[ppar['mixabun']])
                     
                         ext.append('igsize_'+str(igs+1))
                 else:
@@ -2189,7 +2215,7 @@ class radmc3dDustOpac():
                     return
             
             therm = [True for i in range(len(ext))]
-            self.write_masteropac(ext=ext, therm=therm)
+            self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'])
 
         else:
             # makedust needs the lnk file to be sorted in wavelength so create a dummy file 
@@ -2235,7 +2261,7 @@ class radmc3dDustOpac():
             wfile.close()
 
             # Run makedust
-            self.run_makedust(freq=cc/wav*1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'], \
+            self.runMakedust(freq=cc/wav*1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'], \
                     lnk_fname='opt_const.dat', gdens=ppar['gdens'][0])
 
             # Change the name of makedust's output
@@ -2249,13 +2275,13 @@ class radmc3dDustOpac():
 #            dum = Popen('mv dustkappa_1.inp dustkappa_idust_1_igsize_1.inp', shell=True).wait()
 #            os.remove('opt_const.dat')
 
-            self.write_masteropac(ext=ext, therm=therm)
+            self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'])
         
         # Clean up and remove dust.inp and frequency.inp
         os.remove('dust.inp')
         os.remove('frequency.inp')
 # --------------------------------------------------------------------------------------------------
-    def mixopac(self, ppar=None, mixnames=[], mixspecs=[], mixabun=[], writefile=True):
+    def mixOpac(self, ppar=None, mixnames=[], mixspecs=[], mixabun=[], writefile=True):
         """
         Function to mix opacities
 
@@ -2264,7 +2290,7 @@ class radmc3dDustOpac():
             ppar     - A dictionary containing all parameters of the actual model setup
                         If any keyword is set besides ppar, the value of the separate keyword
                         will be taken instead of that in ppar. If mixname, mixspecs, and mixabun are all set
-                        ppar is completely omitted and not necessary to set when mixopac is called.
+                        ppar is completely omitted and not necessary to set when mixOpac is called.
             mixnames  - Names of the files into which the mixed dust opacities will be written (not needed if writefile=False)
             mixspecs  - Names of the files from which the dust opacities are read (not needed if readfile=False)
             mixabun   - Abundances of different dust species
@@ -2278,7 +2304,7 @@ class radmc3dDustOpac():
                     mixnames = ppar['mixnames']
                 else:
                     print 'ERROR'
-                    print ' Neither ppar nor mixnames are set in mixopac '
+                    print ' Neither ppar nor mixnames are set in mixOpac '
                     return
 
         if len(mixspecs)==0:
@@ -2286,7 +2312,7 @@ class radmc3dDustOpac():
                 mixspecs = ppar['mixspecs']
             else:
                 print 'ERROR'
-                print ' Neither ppar nor mixspecs are set in mixopac '
+                print ' Neither ppar nor mixspecs are set in mixOpac '
                 return
             
         if len(mixabun)==0:
@@ -2294,7 +2320,7 @@ class radmc3dDustOpac():
                 mixabun = ppar['mixabun']
             else:
                 print 'ERROR'
-                print ' Neither ppar nor mixabun are set in mixopac '
+                print ' Neither ppar nor mixabun are set in mixOpac '
                 return
 
         mwav  = []
@@ -2457,7 +2483,7 @@ class radmc3dDustOpac():
 
         return 
 # --------------------------------------------------------------------------------------------------
-    def  read_masteropac(self):
+    def  readMasterOpac(self):
         """
         Function to read the master opacity file 'dustopac.inp' 
         it reads the dustkappa filename extensions (dustkappa_ext.inp) corresponding to dust species indices
@@ -2504,7 +2530,7 @@ class radmc3dDustOpac():
 
         return {'ext':ext, 'therm':therm}
 # --------------------------------------------------------------------------------------------------
-    def  write_masteropac(self, ext=None, therm=None):
+    def  writeMasterOpac(self, ext=None, therm=None, scattering_mode_max=1):
         """
         Function to write the master opacity file 'dustopac.inp' 
 
@@ -2544,10 +2570,13 @@ class radmc3dDustOpac():
         # Separator
         wfile.write('%s\n'%'============================================================================')
 
-
         for idust in range(len(ext)):
             # Dust opacity will be read from a file
-            wfile.write('%-15s %s\n'%('1', 'Way in which this dust species is read'))
+            if scattering_mode_max<5:
+                wfile.write('%-15s %s\n'%('1', 'Way in which this dust species is read'))
+            else:
+                wfile.write('%-15s %s\n'%('10', 'Way in which this dust species is read'))
+
             # Check if the dust grain is thermal or quantum heated
             if therm:
                 if therm[idust]:
@@ -2564,7 +2593,7 @@ class radmc3dDustOpac():
 #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # --------------------------------------------------------------------------------------------------
-    def run_makedust(self, freq=None, gmin=None, gmax=None, ngs=None, lnk_fname=None, gdens=None):
+    def runMakedust(self, freq=None, gmin=None, gmax=None, ngs=None, lnk_fname=None, gdens=None):
         """
         Interface function to the F77 code makedust to calculate mass absorption
         coefficients from the optical constants using Mie-theory
@@ -2644,7 +2673,7 @@ class radmc3dPar():
         self.pblock = {}
         self.pvalstr = {}
 # --------------------------------------------------------------------------------------------------
-    def readparams(self, fname=''):
+    def readPar(self, fname=''):
         """
         Function to read a parameter file 
         The parameters in the files should follow the python syntax
@@ -2835,7 +2864,7 @@ class radmc3dPar():
         return
 
 # --------------------------------------------------------------------------------------------------
-    def add_par(self,parlist=[]):
+    def setPar(self,parlist=[]):
         """
         Function to add parameter to the radmc3DPar parameter class
         If the paramter is already defined its value will be modified
@@ -2859,7 +2888,7 @@ class radmc3dPar():
         if len(parlist)==2:
             if not self.ppar.keys().__contains__(parname):
                 print ' ERROR'
-                print ' The argument of radmc3dPar.add_par() should be a four element list if a new'
+                print ' The argument of radmc3dPar.setPar() should be a four element list if a new'
                 print ' parameter is defined 1) parameter name, 2) parameter expression/value as a string'
                 print ' 3) Parameter description (= comment field in the parameter file)'
                 print ' 4) The name of the block in which the parameter must be placed in the problem_params.inp file'
@@ -2897,7 +2926,7 @@ class radmc3dPar():
 
 
 # --------------------------------------------------------------------------------------------------
-    def load_defaults(self, model='', ppar={}, reset=True):
+    def loadDefaults(self, model='', ppar={}, reset=True):
         """
         Function to fill up the classs attributes with default values
 
@@ -2922,60 +2951,60 @@ class radmc3dPar():
         #
         # Radiation sources
         #
-        self.add_par(['mstar', '[1.0*ms]', '# Mass of the star(s)', 'Radiation sources'])
-        self.add_par(['rstar','[2.0*rs]', '# Radius of the star(s)', 'Radiation sources'])
-        self.add_par(['tstar','[4000.0]', '# Effective temperature of the star(s) [K]', 'Radiation sources'])
-        self.add_par(['pstar','[0.0, 0.0, 0.0]', '# Position of the star(s) (cartesian coordinates)', 'Radiation sources'])
+        self.setPar(['mstar', '[1.0*ms]', '# Mass of the star(s)', 'Radiation sources'])
+        self.setPar(['rstar','[2.0*rs]', '# Radius of the star(s)', 'Radiation sources'])
+        self.setPar(['tstar','[4000.0]', '# Effective temperature of the star(s) [K]', 'Radiation sources'])
+        self.setPar(['pstar','[0.0, 0.0, 0.0]', '# Position of the star(s) (cartesian coordinates)', 'Radiation sources'])
         #
         # Grid parameters
         #
-        self.add_par(['crd_sys', "'sph'", '  Coordinate system used (car/cyl)', 'Grid parameters']) 
-        self.add_par(['nx', '50', '  Number of grid points in the first dimension', 'Grid parameters']) 
-        self.add_par(['ny', '30', '  Number of grid points in the second dimension', 'Grid parameters'])
-        self.add_par(['nz', '36', '  Number of grid points in the third dimension', 'Grid parameters'])
-        self.add_par(['xbound', '[1.0*au, 100.*au]', '  Boundaries for the x grid', 'Grid parameters'])
-        self.add_par(['ybound', '[0.0, pi]', '  Boundaries for the y grid', 'Grid parameters'])
-        self.add_par(['zbound', '[0.0, 2.0*pi]', '  Boundraries for the z grid', 'Grid parameters'])
-        self.add_par(['xres_nlev', '3', 'Number of refinement levels (spherical coordinates only', 'Grid parameters'])
-        self.add_par(['xres_nspan', '3', 'Number of the original grid cells to refine (spherical coordinates only)', 'Grid parameters'])
-        self.add_par(['xres_nstep', '3', 'Number of grid cells to create in a refinement level (spherical coordinates only)', 'Grid parameters'])
-        self.add_par(['wbound', '[0.1, 7.0, 25., 1e4]', '  Boundraries for the wavelength grid', 'Grid parameters'])
-        self.add_par(['nw', '[19, 50, 30]', '  Number of points in the wavelength grid', 'Grid parameters'])
+        self.setPar(['crd_sys', "'sph'", '  Coordinate system used (car/cyl)', 'Grid parameters']) 
+        self.setPar(['nx', '50', '  Number of grid points in the first dimension', 'Grid parameters']) 
+        self.setPar(['ny', '30', '  Number of grid points in the second dimension', 'Grid parameters'])
+        self.setPar(['nz', '36', '  Number of grid points in the third dimension', 'Grid parameters'])
+        self.setPar(['xbound', '[1.0*au, 100.*au]', '  Boundaries for the x grid', 'Grid parameters'])
+        self.setPar(['ybound', '[0.0, pi]', '  Boundaries for the y grid', 'Grid parameters'])
+        self.setPar(['zbound', '[0.0, 2.0*pi]', '  Boundraries for the z grid', 'Grid parameters'])
+        self.setPar(['xres_nlev', '3', 'Number of refinement levels (spherical coordinates only', 'Grid parameters'])
+        self.setPar(['xres_nspan', '3', 'Number of the original grid cells to refine (spherical coordinates only)', 'Grid parameters'])
+        self.setPar(['xres_nstep', '3', 'Number of grid cells to create in a refinement level (spherical coordinates only)', 'Grid parameters'])
+        self.setPar(['wbound', '[0.1, 7.0, 25., 1e4]', '  Boundraries for the wavelength grid', 'Grid parameters'])
+        self.setPar(['nw', '[19, 50, 30]', '  Number of points in the wavelength grid', 'Grid parameters'])
 
         #
         # Dust opacity
         #
-        self.add_par(['lnk_fname', "['/disk2/juhasz/Data/JPDOC/astrosil/astrosil_WD2001_new.lnk', '/disk2/juhasz/Data/JPDOC/carbon/A/cel600.lnk']", ' ', 'Dust opacity'])
-        self.add_par(['gdens', '[3.6, 1.8]', ' Bulk density of the materials in g/cm^3', 'Dust opacity'])
-        self.add_par(['gsmin', '0.1', ' Minimum grain size', 'Dust opacity'])
-        self.add_par(['gsmax', '10.0', ' Maximum grain size', 'Dust opacity'])
-        self.add_par(['ngs', '3', ' Number of grain sizes', 'Dust opacity'])
-        self.add_par(['gsdist_powex', '-3.5', ' Grain size distribution power exponent', 'Dust opacity'])
-        self.add_par(['mixabun',       '[0.75, 0.25]', ' Mass fractions of the dust componetns to be mixed', 'Dust opacity'])
-        self.add_par(['dustkappa_ext',"['silicate']", ' ', 'Dust opacity'])
+        self.setPar(['lnk_fname', "['/disk2/juhasz/Data/JPDOC/astrosil/astrosil_WD2001_new.lnk', '/disk2/juhasz/Data/JPDOC/carbon/A/cel600.lnk']", ' ', 'Dust opacity'])
+        self.setPar(['gdens', '[3.6, 1.8]', ' Bulk density of the materials in g/cm^3', 'Dust opacity'])
+        self.setPar(['gsmin', '0.1', ' Minimum grain size', 'Dust opacity'])
+        self.setPar(['gsmax', '10.0', ' Maximum grain size', 'Dust opacity'])
+        self.setPar(['ngs', '3', ' Number of grain sizes', 'Dust opacity'])
+        self.setPar(['gsdist_powex', '-3.5', ' Grain size distribution power exponent', 'Dust opacity'])
+        self.setPar(['mixabun',       '[0.75, 0.25]', ' Mass fractions of the dust componetns to be mixed', 'Dust opacity'])
+        self.setPar(['dustkappa_ext',"['silicate']", ' ', 'Dust opacity'])
         
         #
         # Gas line RT 
         #
-        self.add_par(['gasspec_mol_name', "['co']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
-        self.add_par(['gasspec_mol_abun', '[1e-4]', '  Abundance of the molecule', 'Gas line RT']) 
-        self.add_par(['gasspec_mol_dbase_type',"['leiden']", '  leiden or linelist', 'Gas line RT'])
-        self.add_par(['gasspec_colpart_name', "['h2']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
-        self.add_par(['gasspec_colpart_abun', '[1e0]', '  Abundance of the molecule', 'Gas line RT']) 
-        self.add_par(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
-        #self.add_par(['write_gastemp', 'False', '  Whether or not to write a separate gas temperature file (gas_temperature.inp) if such function exists in the model', 'Gas line RT'])
+        self.setPar(['gasspec_mol_name', "['co']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
+        self.setPar(['gasspec_mol_abun', '[1e-4]', '  Abundance of the molecule', 'Gas line RT']) 
+        self.setPar(['gasspec_mol_dbase_type',"['leiden']", '  leiden or linelist', 'Gas line RT'])
+        self.setPar(['gasspec_colpart_name', "['h2']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
+        self.setPar(['gasspec_colpart_abun', '[1e0]', '  Abundance of the molecule', 'Gas line RT']) 
+        self.setPar(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
+        #self.setPar(['writeGasTemp', 'False', '  Whether or not to write a separate gas temperature file (gas_temperature.inp) if such function exists in the model', 'Gas line RT'])
         #
         # Code parameters
         #
-        self.add_par(['nphot', 'long(1e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
-        self.add_par(['nphot_scat','long(3e4)', '  Nr of photons for the scattering Monte Carlo (for images)', 'Code parameters'])
-        self.add_par(['nphot_spec','long(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)', 'Code parameters'])
-        self.add_par(['scattering_mode_max','1', '  0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering', 'Code parameters'])
-        self.add_par(['lines_mode', '-1', '  Line raytracing mode', 'Code parameters'])
-        self.add_par(['istar_sphere', '0', '  1 - take into account the finite size of the star, 0 - take the star to be point-like', 'Code parameters'])
-        self.add_par(['itempdecoup', '1', '  Enable for different dust components to have different temperatures', 'Code parameters'])
-        self.add_par(['tgas_eq_tdust', '1', '  Take the dust temperature to identical to the gas temperature', 'Code parameters'])
-        self.add_par(['rto_style', '3', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary', 'Code parameters'])
+        self.setPar(['nphot', 'long(1e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
+        self.setPar(['nphot_scat','long(3e4)', '  Nr of photons for the scattering Monte Carlo (for images)', 'Code parameters'])
+        self.setPar(['nphot_spec','long(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)', 'Code parameters'])
+        self.setPar(['scattering_mode_max','1', '  0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering', 'Code parameters'])
+        self.setPar(['lines_mode', '-1', '  Line raytracing mode', 'Code parameters'])
+        self.setPar(['istar_sphere', '0', '  1 - take into account the finite size of the star, 0 - take the star to be point-like', 'Code parameters'])
+        self.setPar(['itempdecoup', '1', '  Enable for different dust components to have different temperatures', 'Code parameters'])
+        self.setPar(['tgas_eq_tdust', '1', '  Take the dust temperature to identical to the gas temperature', 'Code parameters'])
+        self.setPar(['rto_style', '3', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary', 'Code parameters'])
         #
         # Model parameters
         #
@@ -2992,14 +3021,56 @@ class radmc3dPar():
                     print ' in the radmc3d python module directory'
                     return
 
-            modpar = mdl.get_default_params()
+            modpar = mdl.getDefaultParams()
             for i in range(len(modpar)):
                 dum = modpar[i]
                 dum.append('Model '+model)
-                self.add_par(dum)
+                self.setPar(dum)
         
 # --------------------------------------------------------------------------------------------------
-    def write_parfile(self, fname=''):
+    def printPar(self):
+        """
+        Print the parameters of the current model
+        
+        """
+        
+        #
+        # First get the unique block names 
+        #
+
+        blocknames = ['Radiation sources', 'Grid parameters', 'Dust opacity', 'Gas line RT', 'Code parameters']
+        for key in self.pblock.keys():
+            dum = self.pblock[key]
+            if not blocknames.__contains__(dum):
+                blocknames.append(dum)
+
+       
+        #
+        # Get the parameter block names and distionary keys
+        #
+        par_keys = self.pblock.keys()
+        par_block = self.pblock.values()
+
+        #
+        # Print the parameters by blocks 
+        #
+        for iblock in blocknames:
+            print ('%s'%'# -------------------------------------------------------------------------------------------------------------------------')
+            txt = '# Block: '+iblock
+            print ('%s'%txt)
+            print ('%s'%'# -------------------------------------------------------------------------------------------------------------------------')
+           
+
+            keys = []
+            for i in range(len(par_block)):
+                if par_block[i]==iblock:
+                    keys.append(par_keys[i])
+
+            keys.sort()
+            for key in keys:
+                print (key.ljust(25) + ' = ' + self.pvalstr[key].strip() + '  # ' + self.pdesc[key].strip())
+# --------------------------------------------------------------------------------------------------
+    def writeParfile(self, fname=''):
         """
         Function to write a parameter file 
 
@@ -3069,10 +3140,10 @@ class radmc3dPar():
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readopac(ext=[''], idust=None):
+def readOpac(ext=[''], idust=None):
     """
     Function to read the dust opacity files 
-    This function is an interface to radmc3dDustOpac.readopac()
+    This function is an interface to radmc3dDustOpac.readOpac()
 
     INPUT:
     ------
@@ -3103,7 +3174,7 @@ def readopac(ext=[''], idust=None):
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True):
+def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True):
     """
     Function to read the model data (e.g. density, velocity, temperature)
 
@@ -3133,11 +3204,11 @@ def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, is
     """
 
     res = radmc3dData()
-    if ddens: res.read_dustdens(binary=binary)
-    if dtemp: res.read_dusttemp(binary=binary)
-    if gvel: res.read_gasvel(binary=binary)
-    if gtemp: res.read_gastemp(binary=binary)
-    if vturb: res.read_vturb(binary=binary)
+    if ddens: res.readDustDens(binary=binary)
+    if dtemp: res.readDustTemp(binary=binary)
+    if gvel: res.readGasVel(binary=binary)
+    if gtemp: res.readGasTemp(binary=binary)
+    if vturb: res.readVTurb(binary=binary)
     if gdens:
         if not ispec:
             print 'ERROR'
@@ -3146,12 +3217,12 @@ def read_data(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, is
             print ' numberdens_gasspecname.inp'
             return 0
         else:
-            res.read_gasdens(ispec=ispec,binary=binary)
+            res.readGasDens(ispec=ispec,binary=binary)
 
     return res
 
 # --------------------------------------------------------------------------------------------------
-def read_grid():
+def readGrid():
     """
     Function to read the spatial and frequency grid
 
@@ -3181,14 +3252,14 @@ def read_grid():
     """
 
     grid = radmc3dGrid()
-    grid.read_grid()
+    grid.readGrid()
 
     return grid
 
 # --------------------------------------------------------------------------------------------------
-def readparams():
+def readParams():
     """
-    Function to read the problem_params.inp file (interface function to radmc3dPar.readparams())
+    Function to read the problem_params.inp file (interface function to radmc3dPar.readPar())
 
     OUTPUT:
     -------
@@ -3201,10 +3272,10 @@ def readparams():
     """
 
     dum = radmc3dPar()
-    dum.readparams()
+    dum.readPar()
     return dum
 # --------------------------------------------------------------------------------------------------
-def write_default_parfile(model='', fname=''):
+def writeDefaultParfile(model='', fname=''):
     """
     Function to write a parameter file (problem_params.inp) with default parameters for a given model
 
@@ -3225,10 +3296,10 @@ def write_default_parfile(model='', fname=''):
         return
 
     dum  = radmc3dPar()
-    dum.load_defaults(model=model)
-    dum.write_parfile()
+    dum.loadDefaults(model=model)
+    dum.writeParfile()
 # --------------------------------------------------------------------------------------------------
-def read_spectrum(fname=''):
+def readSpectrum(fname=''):
     """
     Function to read the spectrum / SED
 
@@ -3265,4 +3336,157 @@ def read_spectrum(fname=''):
         res[iwav,1] = float(dum[1])
     rfile.close()
     return res
+
+# --------------------------------------------------------------------------------------------------
+def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=[], idust=None, mstar=0.):
+    """
+    Calculates the vertical hydrostatic equilibrium
+
+    INPUT:
+    ------
+        data        - An instance of the radmc3DData class
+        vmean_temp  - If True (T(z) = T(-z) = 0.5*(T(z) + T(-z))) if False (T(z)!=T(-z)) 
+        idust       - List of dust indices whose structure must be calculated
+        mstar       - Stellar mass
+    
+    OPTIONS:
+    --------
+        ispec_tgas  - Index of dust species whose temperature is taken to be the gas temperature
+        gsize       - Dust grain sizes - If specified, the gas temperature is calculated as the average temperature
+                      of all dust grains in the grid cell weighted by the total surface area of dust grains with given
+                      size - NOTE: this approach assumes that all dust grains of a given size have the same bulk density
+
+    OUTPUT:
+    -------
+        Returns a Numpy array with the dust density
+    """
+        
+    # Fix the mean molecular weight to 2.3
+    mu = 2.3
+
+    # Pre-calculate some constants
+    A  = mu*mp*gg*mstar / kk
+    cost  = cos(data.grid.y)
+    costi = cos(data.grid.yi)
+
+    if not mstar:
+        print 'ERROR'
+        print ' You should specify the stellar mass (mstar = ??)'
+        return
+
+    if idust==None:
+        print ' No dust index was given for which the vertical structure should be calculated'
+        print ' So we do for all dust species'
+        idust = range(data.rhodust.shape[3])
+    else:
+        if (type(idust).__name__=='int')| (type(idust).__name__=='float'):
+            idust = [idust]
+    # To improve the smoothness of the temperature structure, if the density structure is
+    #  symmetric to the disk midplane we use T_new(theta) = T_new(pi-theta) = 0.5 * (T(theta) + T(pi-theta))
+    if vmean_temp:
+
+        if abs(data.grid.yi[data.grid.nyi-1]-pi/2.)<1e-8:
+            print 'ERROR'
+            print "Cannot average temperature in the vertical direction if theta mirroring is active"
+            return None
+        else:
+            print ' Smoothing the vertical temperature structure by averaging the temperature of the '
+            print " two half planes above and below the disk midplane"
+            dusttemp = zeros(data.dusttemp.shape, dtype=float64)
+            for iy in range(data.grid.ny/2):
+                print iy
+                dusttemp[:,iy,:,:] = 0.5 * (data.dusttemp[:,iy,:,:] + data.dusttemp[:,data.grid.ny-1-iy,:,:])
+                dusttemp[:,data.grid.ny-1-iy,:,:] = dusttemp[:,iy,:,:]
+    # Calculate the vertical hydrostatic equilibrium for the two half space (z<0, z>0) separately
+    else:
+        dusttemp = data.dusttemp
+      
+    #rho_new = zeros(data.rhodust.shape, dtype=float64)
+    rho_new = array(data.rhodust)
+    if len(gsize)!=0:
+        mean_dusttemp = zeros([data.grid.nx, data.grid.ny, data.grid.nz], dtype=float64)
+        w             = zeros(data.rhodust.shape, dtype=float64)
+        for ispec in idust:
+            w[:,:,:,ispec] = gsize[ispec]**2 * (data.rhodust[:,:,:,ispec] / gsize[ispec]**3) 
+        
+        wnorm = w.sum(3)
+        for ispec in idust:
+            w[:,:,:,ispec] = w[:,:,:,ispec]/wnorm
+
+        for ispec in idust:
+            mean_dusttemp = mean_dusttemp + data.dusttemp[:,:,:,ispec] * w[:,:,:,ispec]
+
+    # Loop over all dust species where we should calculate the vertical structure
+    for ispec in idust:
+        rho_new[:,:,:,ispec] = 0.
+        for ir in range(data.grid.nx):
+            print ir, data.grid.nx-1
+            r     = data.grid.x[ir]
+            z     = r * cost
+            zi    = r * costi
+            dz    = z[:-1] - z[1:]
+            const = A / r**3
+
+            # Do we have theta mirroring active?
+            if abs(data.grid.yi[data.grid.nyi-1]-pi/2.)<1e-8:
+                for ip in range(data.grid.nz):
+                    dlgrho  = log(data.rhodust[ir,1:,ip,ispec]) - log(data.rhodust[ir,:-1,ip,ispec])
+                    if len(gsize)!=0:
+                        temp    = mean_dusttemp[ir,:,ip] 
+                    else:
+                        temp    = dusttemp[ir,:,ip,ispec]
+                    
+                    it = data.grid.ny-1
+                    temp[it] = 0.5 * (temp[it] + temp[it-1])    
+
+                    dlgtemp = log(temp[1:]) - log(temp[:-1])
+                    zpt     = z/temp
+                    zpt     = 0.5*(zpt[1:] + zpt[:-1])
+
+
+                    # Calculate the normalized (rho[z=0] = 1.0) density
+                    rho_new[ir,data.grid.ny-1,ip,ispec] = 1.0
+
+                    for it in range(data.grid.ny-1)[::-1]:
+                        rho_new[ir,it,ip,ispec] = rho_new[ir,it+1,ip,ispec] * exp(-(const*zpt[it] + dlgtemp[it]/dz[it])*dz[it])
+                
+                    rho_new = rho_new.clip(1e-90, 1e90)
+                  
+                    # Now re-normalize the surface density to the input value
+                    sigma = (data.rhodust[ir,:,ip,ispec] * (zi[1:] - zi[:-1])).sum()
+                    sigma_new = (rho_new[ir,:,ip,ispec] * (zi[1:] - zi[:-1])).sum()
+
+                    rho_new[ir,:,ip,ispec] = rho_new[ir,:,ip,ispec] * sigma / sigma_new
+
+            else:
+                for ip in range(data.grid.nz):
+                    dlgrho  = log(data.rhodust[ir,1:,ip,ispec]) - log(data.rhodust[ir,:-1,ip,ispec])
+                    if len(ispec_weights)!=0:
+                        temp    = (dusttemp[ir,:,ip,ispec]*ispec_weights).sum()
+                    else:
+                        temp    = dusttemp[ir,:,ip,ispec]
+                    dlgtemp = log(temp[1:]) - log(temp[:-1])
+                    zpt     = z/temp
+                    zpt     = 0.5*(zpt[1:] + zpt[:-1])
+
+                    # Calculate the normalized (rho[z=0] = 1.0) density
+                    rho_new[ir,data.grid.ny/2-1,ip,ispec] = 1.0
+                    rho_new[ir,data.grid.ny/2,ip,ispec] = 1.0
+
+                    for it in range(data.grid.ny/2)[::-1]:
+                        rho_new[ir,it-1,ip,ispec] = rho_new[ir,it,ip,ispec] * exp(-(const*zpt[it] + dlgtemp[it]/dz[it])*dz[it])
+                    for it in range(data.grid.ny/2, data.grid.ny-1)[::1]:
+                        rho_new[ir,it,ip,ispec] = rho_new[ir,it-1,ip,ispec] * exp((const*zpt[it-1] + dlgtemp[it-1]/dz[it-1])*dz[it-1])
+                   
+                    rho_new = rho_new.clip(1e-90, 1e90)
+
+                    # Now re-normalize the surface density to the input value
+                    sigma = (data.rhodust[ir,:,ip,ispec] * (zi[1:] - zi[:-1])).sum()
+                    sigma_new = (rho_new[ir,:,ip,ispec] * (zi[1:] - zi[:-1])).sum()
+
+                    rho_new[ir,:,ip,ispec] = rho_new[ir,:,ip,ispec] * sigma / sigma_new
+            
+            print rho_new[ir,data.grid.ny/2-1,ip,ispec]
+
+    return rho_new
 

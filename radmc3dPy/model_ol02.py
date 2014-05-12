@@ -38,7 +38,7 @@ Circumstellar disk with spiral waves
 
 """
 
-def get_desc():
+def getModelDesc():
     """
     Function to provide a brief description of the model
     """
@@ -46,7 +46,7 @@ def get_desc():
     return "Circumstellar disk model with spiral waves (spiral wake equation is taken from Oglivie & Lubov 2002)"
            
 
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -64,7 +64,7 @@ def get_default_params():
 
     """
 
-    defpar = ppdisk.get_default_params()
+    defpar = ppdisk.getDefaultParams()
 
     defpar.append(['dcomp', '10.0*au', 'Distance of the companion exciting the spiral waves from the central star'])
     defpar.append(['eps', '0.1', 'Inverse of the Mach-number'])
@@ -78,7 +78,7 @@ def get_default_params():
 
 
 
-def init_spiral_amp_ol02(rin=None, rout=None, dcomp=None, nr=None):
+def initSpiralAmpOL02(rin=None, rout=None, dcomp=None, nr=None):
     """
     Function to initialize some variables for creating spiral arms in
       protoplanetary disks (Ogilvie & Lubow 2002, MNRAS, 330, 950)
@@ -89,7 +89,7 @@ def init_spiral_amp_ol02(rin=None, rout=None, dcomp=None, nr=None):
     
     SYNTAX
     -----
-    INIT = init_spiral_amp(rin=rin, rout=rout, dcomp=dcomp, nr=nr)
+    INIT = initSpiralAmpOL02(rin=rin, rout=rout, dcomp=dcomp, nr=nr)
     
     INPUT
     -----
@@ -120,7 +120,7 @@ def init_spiral_amp_ol02(rin=None, rout=None, dcomp=None, nr=None):
 
 
 
-def get_spiral_amp_ol02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa=None, sp_sig=None, nfold=None, azim_shift=None, \
+def getSpiralAmpOL02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa=None, sp_sig=None, nfold=None, azim_shift=None, \
                        location=None):
     """
     Function to calculate the spiral wake caused by a companion in a
@@ -129,7 +129,7 @@ def get_spiral_amp_ol02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa
     SYNTAX
     ------
 
-    INIT = get_spiral_amp(rin=rin, rout=rout, dcomp=dcomp, nr)
+    INIT = getSpiralAmpOL02(rin=rin, rout=rout, dcomp=dcomp, nr)
 
     INPUT
     -----
@@ -270,7 +270,7 @@ def get_spiral_amp_ol02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa
 # ***********************************************************************************************
 # 
 # ***********************************************************************************************
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
 
 #
 # Apply perturbations 
@@ -283,15 +283,15 @@ def get_dust_density(grid=None, ppar=None):
 
     if ppar.has_key('do_spiral_ol02'):
         if ppar['do_spiral_ol02']:
-            init = init_spiral_amp_ol02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
+            init = initSpiralAmpOL02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
                                             nr=ppar['nx'])
             if ppar.has_key('sp_sig'):
-                sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+                sp_amp = getSpiralAmpOL02(grid=grid,  init=init, eps=ppar['eps'], \
                                          spa=ppar['spa'], sp_sig=ppar['sp_sig'], \
                                          nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
                                          location=ppar['spiral_location'])
             else:
-                sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+                sp_amp = getSpiralAmpOL02(grid=grid,  init=init, eps=ppar['eps'], \
                                          spa=ppar['spa'], \
                                          nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
                                          location=ppar['spiral_location'])
@@ -340,7 +340,7 @@ def get_dust_density(grid=None, ppar=None):
                 hp = hp * (1.0 + sp_amp) 
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_dust_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+                rho = ppdisk.getDustDensity(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
 
 
 
@@ -382,7 +382,7 @@ def get_dust_density(grid=None, ppar=None):
                 sigma = sigma * (1.0 + sp_amp)
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_dust_density(grid=grid, sigma=sigma,ppar=ppar)
+                rho = ppdisk.getDustDensity(grid=grid, sigma=sigma,ppar=ppar)
 
 
 # ------------------------------------------------------------------------------------------
@@ -429,14 +429,14 @@ def get_dust_density(grid=None, ppar=None):
                 hp = hp * (1.0 + sp_amp) 
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_dust_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+                rho = ppdisk.getDustDensity(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
 
 
     return rho
 # ***********************************************************************************************
 # 
 # ***********************************************************************************************
-def get_gas_density(grid=None, ppar=None):
+def getGasDensity(grid=None, ppar=None):
 
 #
 # Apply perturbations 
@@ -449,15 +449,15 @@ def get_gas_density(grid=None, ppar=None):
 
     if ppar.has_key('do_spiral_ol02'):
         if ppar['do_spiral_ol02']:
-            init = init_spiral_amp_ol02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
+            init = initSpiralAmpOL02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
                                             nr=ppar['nx'])
             if ppar.has_key('sp_sig'):
-                sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+                sp_amp = getSpiralAmpOL02(grid=grid,  init=init, eps=ppar['eps'], \
                                          spa=ppar['spa'], sp_sig=ppar['sp_sig'], \
                                          nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
                                          location=ppar['spiral_location'])
             else:
-                sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+                sp_amp = getSpiralAmpOL02(grid=grid,  init=init, eps=ppar['eps'], \
                                          spa=ppar['spa'], \
                                          nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
                                          location=ppar['spiral_location'])
@@ -506,7 +506,7 @@ def get_gas_density(grid=None, ppar=None):
                 hp = hp * (1.0 + sp_amp) 
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_gas_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+                rho = ppdisk.getGasDensity(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
 
 
 
@@ -548,7 +548,7 @@ def get_gas_density(grid=None, ppar=None):
                 sigma = sigma * (1.0 + sp_amp)
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_gas_density(grid=grid, sigma=sigma,ppar=ppar)
+                rho = ppdisk.getGasDensity(grid=grid, sigma=sigma,ppar=ppar)
 
 
 # ------------------------------------------------------------------------------------------
@@ -595,12 +595,12 @@ def get_gas_density(grid=None, ppar=None):
                 hp = hp * (1.0 + sp_amp) 
 
 # Calculate the volume density of the whole disk
-                rho = ppdisk.get_gas_density(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
+                rho = ppdisk.getGasDensity(grid=grid, sigma=sigma, hp=hp, ppar=ppar)
 
 
     return rho
 
-def get_velocity(grid=None, ppar=None):
+def getVelocity(grid=None, ppar=None):
     """
     Function to calculate the velocity in a disk with a spiral wave in it.
         The velocity field is a simple Keplerian field with an additional
@@ -634,16 +634,16 @@ def get_velocity(grid=None, ppar=None):
     v_planet = sqrt(gg*ppar['mstar'][0] / ppar['dcomp'])
 
     # Calculate the spiral wake
-    init = init_spiral_amp_ol02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
+    init = initSpiralAmpOL02(rin=ppar['rin'], rout=ppar['rdisk'], dcomp=ppar['dcomp'], \
                                     nr=ppar['nx'])
 
     if ppar.has_key('sp_sig'):
-        sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+        sp_amp = getSpiralAmpOL02(grid=grid,  init=init, eps=ppar['eps'], \
                                  spa=1.0, sp_sig=ppar['sp_sig'], \
                                  nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
                                  location=ppar['spiral_location'])
     else:
-        sp_amp = get_spiral_amp_ol02(grid=grid,  init=init, eps=ppar['eps'], \
+        sp_amp = getSpiralAmpOL02(grid=grid,  init=init, eps=ppar['eps'], \
                                  spa=1.0, \
                                  nfold=ppar['nfold'], azim_shift=ppar['azim_shift'], \
                                  location=ppar['spiral_location'])

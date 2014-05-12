@@ -38,14 +38,14 @@ Warped circumstellar disk model of Terquem & Bertout 1993
 
 """
 
-def get_desc():
+def getModelDesc():
     """
     A one line description of the model
     """
 
     return 'A warped disk model of Terquem & Bertout 1993'
 
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -63,7 +63,7 @@ def get_default_params():
 
     """
 
-    defpar = ppdisk.get_default_params()
+    defpar = ppdisk.getDefaultParams()
 
     defpar.append(['warp_model', "'tb93'", ' Name of the warp model'])
     defpar.append(['warp_dcomp', '300.0*au', ' Distance of the companion causing the warp (warp_dcomp>rdisk (!!))'])
@@ -79,7 +79,7 @@ def get_default_params():
 
 
 
-def get_warp_z0_tb93(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, rdisk=None, \
+def getWarpZ0TB93(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, rdisk=None, \
         icomp=None, mcomp=None, t=None):
     """
     Function to create a twist-free warp (Terquem & Bertout 1993, A&A, 274, 291)
@@ -87,7 +87,7 @@ def get_warp_z0_tb93(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, rdi
     by a companion outside of the disk (R_DISK<D_COMP)
     USAGE
 
-    Z0 = get_warp_z0_TB93(CRD=CRD, MSTAR=MSTAR, DCOMP=DCOMP, RDISK=RDISK, $
+    Z0 = getWarpZ0TB93(CRD=CRD, MSTAR=MSTAR, DCOMP=DCOMP, RDISK=RDISK, $
                              ICOMP=ICOMP, MCOMP=MCOMP, T=T)
 
     OUTPUT
@@ -153,7 +153,7 @@ def get_warp_z0_tb93(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, rdi
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_warp_omega_prec(rcyl=None, mstar=None, dcomp=None, rdisk=None, \
+def getWarpOmegaPrec(rcyl=None, mstar=None, dcomp=None, rdisk=None, \
         icomp=None, mcomp=None, t=None):
 
     sr = np.sqrt(np.pi)/2.0 * (rcyl/rdisk)**(1.5) * 3.0/(2.0*np.pi) * \
@@ -164,7 +164,7 @@ def get_warp_omega_prec(rcyl=None, mstar=None, dcomp=None, rdisk=None, \
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
 
 #
 # Apply perturbations 
@@ -174,7 +174,7 @@ def get_dust_density(grid=None, ppar=None):
 
     if ppar.has_key('warp_model'):
         if ppar['warp_model'].lower()=='tb93':
-            z0 =get_warp_z0_tb93(grid=grid, mstar=ppar['mstar'][0], \
+            z0 =getWarpZ0TB93(grid=grid, mstar=ppar['mstar'][0], \
                                      dcomp=ppar['warp_dcomp'], icomp=ppar['warp_icomp'], \
                                      mcomp=ppar['warp_mcomp'], t=ppar['warp_t'], rdisk=ppar['rdisk'])
 
@@ -188,5 +188,5 @@ def get_dust_density(grid=None, ppar=None):
             if (rcyl[iy,ix]>ppar['warp_dcomp']):
                 z0[ix,:,iy] = 0.0
 
-    rho = ppdisk.get_dust_density(z0=z0, grid=grid, ppar=ppar)
+    rho = ppdisk.getDustDensity(z0=z0, grid=grid, ppar=ppar)
     return rho

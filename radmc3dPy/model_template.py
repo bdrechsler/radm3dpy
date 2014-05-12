@@ -2,15 +2,15 @@
 This is a radmc3dPy model template 
 A radmc3dPy model file can contain any / all of the functions below
 
-    get_default_params()
-    get_desc()
-    get_dust_density()
-    get_dust_temperature()
-    get_gas_abundance()
-    get_gas_density()
-    get_gas_temperature()
-    get_velocity()
-    get_vturb()
+    getDefaultParams()
+    getModelDesc()
+    getDustDensity()
+    getDustTemperature()
+    getGasAbundance()
+    getGasDensity()
+    getGasTemperature()
+    getVelocity()
+    getVTurb()
 
 The description of the individual functions can be found in the docstrings below the function name.
 If a model does not provide a variable or the variable should be calculated by RADMC-3D 
@@ -37,7 +37,7 @@ from radmc3dPy.natconst import *
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_desc():
+def getModelDesc():
     """
     Function to provide a brief description of the model
     """
@@ -48,7 +48,7 @@ def get_desc():
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -77,7 +77,7 @@ def get_default_params():
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_temperature(grid=None, ppar=None):
+def getGasTemperature(grid=None, ppar=None):
     """
     Function to calcualte/set the gas temperature
     
@@ -97,7 +97,7 @@ def get_gas_temperature(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_dust_temperature(grid=None, ppar=None):
+def getDustTemperature(grid=None, ppar=None):
     """
     Function to calcualte/set the dust temperature
     
@@ -117,7 +117,7 @@ def get_dust_temperature(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_abundance(grid=None, ppar=None, ispec=''):
+def getGasAbundance(grid=None, ppar=None, ispec=''):
     """
     Function to create the conversion factor from volume density to number density of molecule ispec.
     The number density of a molecule is rhogas * abun 
@@ -151,7 +151,7 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_density(grid=None, ppar=None):
+def getGasDensity(grid=None, ppar=None):
     """
     Function to create the total gas density distribution 
     
@@ -172,7 +172,7 @@ def get_gas_density(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
     """
     Function to create the dust density distribution 
     
@@ -194,7 +194,7 @@ def get_dust_density(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_vturb(grid=None, ppar=None):
+def getVTurb(grid=None, ppar=None):
     """
     Function to create the turbulent velocity field
     
@@ -214,7 +214,7 @@ def get_vturb(grid=None, ppar=None):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_velocity(grid=None, ppar=None):
+def getVelocity(grid=None, ppar=None):
     """
     Function to create the turbulent velocity field
     

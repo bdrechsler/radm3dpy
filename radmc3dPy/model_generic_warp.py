@@ -36,14 +36,14 @@ PYTHON module for RADMC3D
 Generic warped protoplanetary disk model
 
 """
-def get_desc():
+def getModelDesc():
     """
     A one line description of the model
     """
 
     return 'A generic warped disk model with analyitcal description for the warp'
 
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -61,14 +61,7 @@ def get_default_params():
 
     """
 
-    defpar = ppdisk.get_default_params()
-    defpar.append(['gasspec_mol_name', "['co']", ''])
-    defpar.append(['gasspec_mol_abun', '[1e-4]', ''])
-    defpar.append(['gasspec_mol_dbase_type', "['leiden']", ''])
-    defpar.append(['gasspec_mol_dissoc_taulim', '[1.0]', 'Continuum optical depth limit below which all molecules dissociate'])
-    defpar.append(['gasspec_mol_freezeout_temp', '[19.0]', 'Freeze-out temperature of the molecules in Kelvin'])
-    defpar.append(['gasspec_mol_freezeout_dfact', '[1e-3]', 'Factor by which the molecular abundance should be decreased in the frezze-out zone'])
-
+    defpar = ppdisk.getDefaultParams()
     defpar.append(['warp_model', "'generic_warp'", ' Name of the warp model'])
     defpar.append(['warp_rin', '2.0*au', ' Inner radius of the warp'])
     defpar.append(['warp_powex', '-4.0', ' Power exponent of the inclination angle as a function of cylindrical radius'])
@@ -82,7 +75,7 @@ def get_default_params():
 
 
 
-def warp_angles(grid=None, ppar=None, outer=False):
+def getWarpAngles(grid=None, ppar=None, outer=False):
     """
     Function to calculate the vertical elevation of a disk warp (due to e.g. the presence of a companion
         in an inclinded orbit with respect to the unpertured disks' midplane). No precession is taken
@@ -151,7 +144,7 @@ def warp_angles(grid=None, ppar=None, outer=False):
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_abundance(grid=None, ppar=None, ispec=''):
+def getGasAbundance(grid=None, ppar=None, ispec=''):
     """
     Function to create the conversion factor from volume density to number density of molecule ispec.
     The number density of a molecule is rhogas * abun 
@@ -169,10 +162,10 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
 
     # Read the dust density and temperature
     try: 
-        data = read_data(ddens=True, dtemp=True, binary=True)
+        data = readData(ddens=True, dtemp=True, binary=True)
     except:
         try: 
-            data = read_data(ddens=True, dtemp=True, binary=False)
+            data = readData(ddens=True, dtemp=True, binary=False)
         except:
             print 'WARNING!!'
             print 'No data could be read in binary or in formatted ascii format'
@@ -180,7 +173,7 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
             return 0
 
     # Calculate continuum optical depth 
-    data.get_tau(axis='xy', wav=0.55)
+    data.getTau(axis='xy', wav=0.55)
     
 
     nspec = len(ppar['gasspec_mol_name'])
@@ -226,14 +219,14 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_gas_density(grid=None, ppar=None):
+def getGasDensity(grid=None, ppar=None):
 
 #
 # Apply perturbations 
 #
  
     z0   = zeros([grid.nx, grid.nz, grid.ny], dtype=float64)
-    dum  = warp_angles(grid=grid, ppar=ppar)
+    dum  = getWarpAngles(grid=grid, ppar=ppar)
     for iy in range(grid.ny):
         z0[:,:,iy] = dum['z0']
 #    z0   = dum['z0']
@@ -252,11 +245,11 @@ def get_gas_density(grid=None, ppar=None):
 
     if ppar.has_key('warp_model'):
         if ppar['warp_model']=='generic_warp':
-            rho = ppdisk.get_gas_density(z0=z0, grid=grid, ppar=ppar)
+            rho = ppdisk.getGasDensity(z0=z0, grid=grid, ppar=ppar)
         else:
-            rho = ppdisk.get_gas_density(grid=grid, ppar=ppar)
+            rho = ppdisk.getGasDensity(grid=grid, ppar=ppar)
     else:
-        rho = ppdisk.get_dust_density(grid=grid, ppar=ppar)
+        rho = ppdisk.getDustDensity(grid=grid, ppar=ppar)
 
 
 
@@ -265,14 +258,14 @@ def get_gas_density(grid=None, ppar=None):
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
 
 #
 # Apply perturbations 
 #
  
     z0   = zeros([grid.nx, grid.nz, grid.ny], dtype=float64)
-    dum  = warp_angles(grid=grid, ppar=ppar)
+    dum  = getWarpAngles(grid=grid, ppar=ppar)
     for iy in range(grid.ny):
         z0[:,:,iy] = dum['z0']
 #    z0   = dum['z0']
@@ -291,9 +284,9 @@ def get_dust_density(grid=None, ppar=None):
 
     if ppar.has_key('warp_model'):
         if ppar['warp_model']=='generic_warp':
-            rho = ppdisk.get_dust_density(z0=z0, grid=grid, ppar=ppar)
+            rho = ppdisk.getDustDensity(z0=z0, grid=grid, ppar=ppar)
         else:
-            rho = ppdisk.get_dust_density(grid=grid, ppar=ppar)
+            rho = ppdisk.getDustDensity(grid=grid, ppar=ppar)
     else:
         rho = ppdisk.get_density(grid=grid, ppar=ppar)
 
@@ -304,11 +297,11 @@ def get_dust_density(grid=None, ppar=None):
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_velocity(grid=None, ppar=None):
+def getVelocity(grid=None, ppar=None):
 
     
     # Calculate the rotation angles of the precessing warp
-    dum = warp_angles(grid=grid, ppar=ppar)
+    dum = getWarpAngles(grid=grid, ppar=ppar)
     rcyl = zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
     for ix in range(grid.nx):
         for iz in range(grid.nz):

@@ -39,14 +39,14 @@ Warped protoplanetary disk model of Mouillet et al. 1997
 
 """
 
-def get_desc():
+def getModelDesc():
     """
     A one line description of the model
     """
 
     return 'Warped circumstellar disk model of Mouillet et al. 1997'
 
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -64,7 +64,7 @@ def get_default_params():
 
     """
 
-    defpar = ppdisk.get_default_params()
+    defpar = ppdisk.getDefaultParams()
 
     defpar.append(['warp_model', "'m97'", ' Name of the warp model'])
     defpar.append(['warp_dcomp', '5.0*au', ' Distance of the companion, causing the perturbation, from the central star'])
@@ -74,7 +74,7 @@ def get_default_params():
 
     return defpar
 
-def get_warp_z0_m97(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, icomp=None, \
+def getWarpZ0M97(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, icomp=None, \
                         mcomp=None, t=None):
     """
      Function to create a twisted warp (Mouillet et al. 1997, MNRAS, 292, 896)
@@ -82,7 +82,7 @@ def get_warp_z0_m97(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, icom
        disk caused by a companion within the disk (R_DISK>D_COMP)
      USAGE
     
-     Z0 = get_warp_z0_mouillet97(GRID=GRID, M_STAR=M_STAR, D_COMP=D_COMP, $
+     Z0 = getWarpZ0M97(GRID=GRID, M_STAR=M_STAR, D_COMP=D_COMP, $
                                  I_COMP=I_COMP, M_COMP=M_COMP, T=T)
     
      OUTPUT
@@ -141,7 +141,7 @@ def get_warp_z0_m97(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, icom
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_warp_omega_prec(rcyl=None, phi=None, mstar=None, dcomp=None, icomp=None, \
+def getWarpOmegaPrec(rcyl=None, phi=None, mstar=None, dcomp=None, icomp=None, \
                                 mcomp=None, t=None):
 
     nc  = natconst()
@@ -165,7 +165,7 @@ def get_warp_omega_prec(rcyl=None, phi=None, mstar=None, dcomp=None, icomp=None,
 
 # -----------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------
-def get_gas_density(grid=None, ppar=None):
+def getGasDensity(grid=None, ppar=None):
     """
     Calculates dust density in g/cm^3
     """
@@ -179,7 +179,7 @@ def get_gas_density(grid=None, ppar=None):
 
     if ppar.has_key('warp_model'):
         if ppar['warp_model'].lower()=='m97':
-            z0 =get_warp_z0_m97(grid=grid, mstar=ppar['mstar'], \
+            z0 =getWarpZ0M97(grid=grid, mstar=ppar['mstar'], \
                                     dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
                                     t=ppar['warp_t'])
 
@@ -193,13 +193,13 @@ def get_gas_density(grid=None, ppar=None):
                 z0[ix,:,iy] = 0.0
 
 
-    rho = ppdisk.get_gas_density(z0=z0, grid=grid, ppar=ppar)
+    rho = ppdisk.getGasDensity(z0=z0, grid=grid, ppar=ppar)
 
 
     return rho
 # -----------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
     """
     Calculates dust density in g/cm^3
     """
@@ -213,7 +213,7 @@ def get_dust_density(grid=None, ppar=None):
 
     if ppar.has_key('warp_model'):
         if ppar['warp_model'].lower()=='m97':
-            z0 =get_warp_z0_m97(grid=grid, mstar=ppar['mstar'], \
+            z0 =getWarpZ0M97(grid=grid, mstar=ppar['mstar'], \
                                     dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
                                     t=ppar['warp_t'])
 
@@ -227,7 +227,7 @@ def get_dust_density(grid=None, ppar=None):
                 z0[ix,:,iy] = 0.0
 
 
-    rho = ppdisk.get_dust_density(z0=z0, grid=grid, ppar=ppar)
+    rho = ppdisk.getDustDensity(z0=z0, grid=grid, ppar=ppar)
 
 
     return rho
@@ -236,7 +236,7 @@ def get_dust_density(grid=None, ppar=None):
 # -----------------------------------------------------------------------------------------------
 # 
 # -----------------------------------------------------------------------------------------------
-def get_velocity(grid=None, ppar=None):
+def getVelocity(grid=None, ppar=None):
 
     
 

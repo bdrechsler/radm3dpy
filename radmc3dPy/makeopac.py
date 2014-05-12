@@ -252,7 +252,7 @@ def makeopac(ppar=None, wav=None):
 #
     if wav==None:
         grid = radmc3dGrid()
-        grid.make_wav_grid(ppar=ppar)
+        grid.makeWavelengthGrid(ppar=ppar)
         wav = grid.wav
 
 #

@@ -2,7 +2,7 @@
 PYTHON module for RADMC3D 
 (c) Attila Juhasz 2011,2012,2013
 
-Generic protoplanetary disk model 
+Generic protoplanetary disk model with a simple chemistry
 
     The density is given by 
 
@@ -14,13 +14,19 @@ Generic protoplanetary disk model
         Hp    - Pressure scale height
         Hp/r  = hrdisk * (r/rdisk)^plh
 
+    The molecular abundance function takes into account dissociation and freeze-out of the molecules
+    For photodissociation only the continuum (dust) shielding is taken into account in a way that
+    whenever the continuum optical depth radially drops below a threshold value the molecular abundance
+    is dropped to zero. For freeze-out the molecular abundance below a threshold temperature is decreased
+    by a given fractor. 
+
 FUNCTIONS:
 ----------
 
-    get_dust_density() - Calculates the dust volume density in g/cm^3
-    get_gas_density()  - Calculates the gas volume density in g/cm^3
-    get_velocity()     - Calculates the velocity field
-    get_desc()         - Returns the short description of this model
+    getDustDensity() - Calculates the dust volume density in g/cm^3
+    getGasDensity()  - Calculates the gas volume density in g/cm^3
+    getVelocity()     - Calculates the velocity field
+    getDesc()         - Returns the short description of this model
 
 """
 try:
@@ -42,13 +48,14 @@ except:
     print ' display images'
 
 from radmc3dPy.crd_trans import vrot
+from radmc3dPy.analyze import readData
 import sys
 
 
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_desc():
+def getModelDesc():
     """
     Function to provide a brief description of the model
     """
@@ -59,7 +66,7 @@ def get_desc():
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -91,6 +98,9 @@ def get_default_params():
     ['gasspec_mol_name', "['co']", ''],
     ['gasspec_mol_abun', '[1e-4]', ''],
     ['gasspec_mol_dbase_type', "['leiden']", ''],
+    ['gasspec_mol_dissoc_taulim', '[1.0]', 'Continuum optical depth limit below which all molecules dissociate'],
+    ['gasspec_mol_freezeout_temp', '[19.0]', 'Freeze-out temperature of the molecules in Kelvin'],
+    ['gasspec_mol_freezeout_dfact', '[1e-3]', 'Factor by which the molecular abundance should be decreased in the frezze-out zone'],
     ['rin', '1.0*au', ' Inner radius of the disk'],
     ['rdisk', '200.0*au', ' Outer radius of the disk'],
     ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
@@ -100,6 +110,8 @@ def get_default_params():
     ['sig0', '0.0', ' Surface density at rdisk'],
     ['mdisk', '1e-4*ms', ' Mass of the disk (either sig0 or mdisk should be set to zero or commented out)'],
     ['bgdens', '1e-30', ' Background density (g/cm^3)'],
+    ['srim_rout', '2.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
+    ['srim_plsig', '2.0', 'Power exponent of the density reduction inside of srim_rout*rin'],
     ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
     ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
     ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
@@ -111,7 +123,7 @@ def get_default_params():
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
+def getDustDensity(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
     """
     Function to create the density distribution in a protoplanetary disk
     
@@ -122,36 +134,65 @@ def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, 
     """
 
 # Get the gas density
-    rhogas = get_gas_density(rcyl=rcyl, phi=phi, z=z, z0=z0, hp=hp, sigma=sigma, grid=grid, ppar=ppar)
+    rhogas = getGasDensity(rcyl=rcyl, phi=phi, z=z, z0=z0, hp=hp, sigma=sigma, grid=grid, ppar=ppar)
 
     rho = array(rhogas) * ppar['dusttogas']
 
 # Split up the disk density distribution according to the given abundances
-    if ppar.has_key('dustkappa_ext'):
-        ngs  = len(ppar['dustkappa_ext'])
-        if ppar.has_key('mfrac'):
-            gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+
+    if ppar.has_key('ngs'):
+        if ppar['ngs']>1:
+            ngs = ppar['ngs']
+            #
+            # WARNING!!!!!!
+            # At the moment I assume that the multiple dust population differ from each other only in 
+            # grain size but not in bulk density thus when I calculate the abundances / mass fractions 
+            # they are independent of the grains bulk density since abundances/mass fractions are normalized
+            # to the total mass. Thus I use 1g/cm^3 for all grain sizes.
+            # TODO: Add the possibility to handle multiple dust species with different bulk densities and 
+            # with multiple grain sizes.
+            #
+            gdens = zeros(ngs, dtype=float) + 1.0
+            gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
+            gmass = 4./3.*np.pi*gs**3. * gdens
+            gsfact = gmass * gs**(ppar['gsdist_powex']+1)
+            gsfact = gsfact / gsfact.sum()
         else:
-            ngs = 1
             gsfact = [1.0]
-            
-            
+            ngs    = 1
+    elif ppar.has_key('mfrac'):
+        ngs    = len(ppar['mfrac'])
+        gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+    
     else:
-        ngs = ppar['ngs']
-        #
-        # WARNING!!!!!!
-        # At the moment I assume that the multiple dust population differ from each other only in 
-        # grain size but not in bulk density thus when I calculate the abundances / mass fractions 
-        # they are independent of the grains bulk density since abundances/mass fractions are normalized
-        # to the total mass. Thus I use 1g/cm^3 for all grain sizes.
-        # TODO: Add the possibility to handle multiple dust species with different bulk densities and 
-        # with multiple grain sizes.
-        #
-        gdens = zeros(ngs, dtype=float) + 1.0
-        gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
-        gmass = 4./3.*np.pi*gs**3. * gdens
-        gsfact = gmass * gs**(ppar['gsdist_powex']+1)
-        gsfact = gsfact / gsfact.sum()
+        ngs = 1
+        gsfact = [1.0]
+    
+    #if ppar.has_key('dustkappa_ext'):
+        #ngs  = len(ppar['dustkappa_ext'])
+        #if ppar.has_key('mfrac'):
+            #gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+        #else:
+            #ngs = 1
+            #gsfact = [1.0]
+            
+            
+    #else:
+        #ngs = ppar['ngs']
+        ##
+        ## WARNING!!!!!!
+        ## At the moment I assume that the multiple dust population differ from each other only in 
+        ## grain size but not in bulk density thus when I calculate the abundances / mass fractions 
+        ## they are independent of the grains bulk density since abundances/mass fractions are normalized
+        ## to the total mass. Thus I use 1g/cm^3 for all grain sizes.
+        ## TODO: Add the possibility to handle multiple dust species with different bulk densities and 
+        ## with multiple grain sizes.
+        ##
+        #gdens = zeros(ngs, dtype=float) + 1.0
+        #gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
+        #gmass = 4./3.*np.pi*gs**3. * gdens
+        #gsfact = gmass * gs**(ppar['gsdist_powex']+1)
+        #gsfact = gsfact / gsfact.sum()
 
     #if (ngs>1):
        
@@ -166,7 +207,7 @@ def get_dust_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, 
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
+def getGasDensity(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, grid=None, ppar=None):
     """
     Function to create the density distribution in a protoplanetary disk
     
@@ -220,13 +261,37 @@ def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, g
             # Calculate sigma from sig0, rdisk and plsig1
             if ppar.has_key('sig0'):
                 if ppar['sig0'] != 0.:
-                    dum    = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                    dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
+
+                    if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
+                        # Adding the smoothed inner rim
+                        sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                        dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+
+                        p    = -5.0
+                        dum  = (dum1**p + dum2**p)**(1./p)
+                    else:
+                        dum = dum1
+
                     dum = dum.swapaxes(0,1)
+
                     for iz in range(grid.nz):
                         sigma[:,:,iz] = dum
                 else:
-                    dum    = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                    dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                  
+                    if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
+                        # Adding the smoothed inner rim
+                        sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                        dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+
+                        p    = -5.0
+                        dum  = (dum1**p + dum2**p)**(1./p)
+                    else:
+                        dum = dum1
+
                     dum = dum.swapaxes(0,1)
+
                     for iz in range(grid.nz):
                         sigma[:,:,iz] = dum
 
@@ -257,10 +322,12 @@ def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, g
     if ppar.has_key('mdisk'):
         if ppar['mdisk']!=0.:
             # Calculate the volume of each grid cell
-            vol  = grid.get_cell_volume()
+            vol  = grid.getCellVolume()
             mass = (rho*vol).sum(0).sum(0).sum(0)
             rho  = rho * (ppar['mdisk']/mass)
 
+            if abs(ppar['ybound'][-1]-(pi/2.))<1e-8:
+                rho = rho*0.5
     if (ppar['gap_rout']>ppar['rin']):
         for igap in range(len(ppar['gap_rout'])):
             for ix in range(grid.nx):
@@ -270,7 +337,7 @@ def get_gas_density(rcyl=None, phi=None, z=None, z0=None, hp=None, sigma=None, g
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_gas_abundance(grid=None, ppar=None, ispec=''):
+def getGasAbundance(grid=None, ppar=None, ispec=''):
     """
     Function to create the conversion factor from volume density to number density of molecule ispec.
     The number density of a molecule is rhogas * abun 
@@ -286,14 +353,65 @@ def get_gas_abundance(grid=None, ppar=None, ispec=''):
         returns the abundance as a Numpy array
     """
 
-    gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
-    gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] 
+    # Read the dust density and temperature
+    try: 
+        data = readData(ddens=True, dtemp=True, binary=True)
+    except:
+        try: 
+            data = readData(ddens=True, dtemp=True, binary=False)
+        except:
+            print 'WARNING!!'
+            print 'No data could be read in binary or in formatted ascii format'
+            print '  '
+            return 0
+
+    # Calculate continuum optical depth 
+    data.getTau(axis='xy', wav=0.55)
+    
+
+    nspec = len(ppar['gasspec_mol_name'])
+    if ppar['gasspec_mol_name'].__contains__(ispec):
+
+        sid   = ppar['gasspec_mol_name'].index(ispec)
+        # Check where the radial and vertical optical depth is below unity
+        gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)  
+        
+        for spec in range(nspec):
+            gasabun[:,:,:] = ppar['gasspec_mol_abun'][sid]
+           
+
+        for iz in range(data.grid.nz):
+            for iy in range(data.grid.ny):
+                ii = (data.taux[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                gasabun[ii,iy,iz] = 1e-90
+
+                ii = (data.dusttemp[:,iy,iz,0]<ppar['gasspec_mol_freezeout_temp'][sid])
+                gasabun[ii,iy,iz] =  ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
+        
+        #for iz in range(data.grid.nz):
+            #for iy in range(data.grid.ny/2):
+
+                #ii = (data.tauy[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                #gasabun[ii,iy,iz] = 1e-90
+                #gasabun[ii,data.grid.ny-1-iy,iz] = 1e-90
+
+    else:
+        gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-10
+        print 'WARNING !!!'
+        print 'Molecule name "'+ispec+'" is not found in gasspec_mol_name'
+        print 'A default 1e-10 abundance will be used'
+        print ' ' 
+
+
+
+    #gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
+    #gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
 
     return gasabun
 # ============================================================================================================================
 #
 # ============================================================================================================================
-def get_velocity(rcyl=None, phi=None, z=None, z0=None, grid=None, ppar=None):
+def getVelocity(rcyl=None, phi=None, z=None, z0=None, grid=None, ppar=None):
     """
     Function to create the velocity field in a protoplanetary disk
     """

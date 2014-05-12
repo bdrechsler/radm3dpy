@@ -41,7 +41,7 @@ Protoplanetary disk model with surface density taken from the 2D hydrodynamic co
 
 """
 
-def get_desc():
+def getModelDesc():
     """
     Function to provide a brief description of the model
     """
@@ -49,7 +49,7 @@ def get_desc():
     return "Protoplanetary disk model. The surface density is taken from the output "+\
             "of the hydrodynamic code FARGO. Vertical structure is calculated analytically."
 
-def get_default_params():
+def getDefaultParams():
     """
     Function to provide default parameter values 
 
@@ -80,7 +80,7 @@ def get_default_params():
     return defpar
 
 # -----------------------------------------------------------------------------------------------
-def get_dust_density(grid=None, ppar=None):
+def getDustDensity(grid=None, ppar=None):
     """
     Function to generate a 3D volume density distribtion from the surface density output frames of FARGO
     
@@ -97,7 +97,7 @@ def get_dust_density(grid=None, ppar=None):
 
 
 # Get the gas surface density
-    rhogas = self.get_gas_density(grid=grid, ppar=ppar)
+    rhogas = self.getGasDensity(grid=grid, ppar=ppar)
     rho    = array(rhogas) * ppar['dusttogas']
 
 # Split up the dust density if we have a grain size distribution
@@ -138,7 +138,7 @@ def get_dust_density(grid=None, ppar=None):
     return rho
 
 # -----------------------------------------------------------------------------------------------
-def get_gas_density(grid=None, ppar=None):
+def getGasDensity(grid=None, ppar=None):
     """
     Function to generate a 3D volume density distribtion from the surface density output frames of FARGO
     
@@ -235,7 +235,7 @@ def get_gas_density(grid=None, ppar=None):
     return rho
 
 # -----------------------------------------------------------------------------------------------
-def get_velocity(grid=None, ppar=None):
+def getVelocity(grid=None, ppar=None):
     """
     Function to generate the gas velocity field input for RADMC3D from the output frames of FARGO
     
