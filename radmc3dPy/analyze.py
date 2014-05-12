@@ -2978,7 +2978,7 @@ class radmc3dPar():
         self.setPar(['gdens', '[3.6, 1.8]', ' Bulk density of the materials in g/cm^3', 'Dust opacity'])
         self.setPar(['gsmin', '0.1', ' Minimum grain size', 'Dust opacity'])
         self.setPar(['gsmax', '10.0', ' Maximum grain size', 'Dust opacity'])
-        self.setPar(['ngs', '3', ' Number of grain sizes', 'Dust opacity'])
+        self.setPar(['ngs', '1', ' Number of grain sizes', 'Dust opacity'])
         self.setPar(['gsdist_powex', '-3.5', ' Grain size distribution power exponent', 'Dust opacity'])
         self.setPar(['mixabun',       '[0.75, 0.25]', ' Mass fractions of the dust componetns to be mixed', 'Dust opacity'])
         self.setPar(['dustkappa_ext',"['silicate']", ' ', 'Dust opacity'])
@@ -3004,7 +3004,7 @@ class radmc3dPar():
         self.setPar(['istar_sphere', '0', '  1 - take into account the finite size of the star, 0 - take the star to be point-like', 'Code parameters'])
         self.setPar(['itempdecoup', '1', '  Enable for different dust components to have different temperatures', 'Code parameters'])
         self.setPar(['tgas_eq_tdust', '1', '  Take the dust temperature to identical to the gas temperature', 'Code parameters'])
-        self.setPar(['rto_style', '3', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary', 'Code parameters'])
+        self.setPar(['rto_style', '1', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary', 'Code parameters'])
         #
         # Model parameters
         #
@@ -3168,7 +3168,7 @@ def readOpac(ext=[''], idust=None):
 
 
     res = radmc3dDustOpac()
-    res.readopac(ext=ext, idust=idust)
+    res.readOpac(ext=ext, idust=idust)
     
     return res
 # --------------------------------------------------------------------------------------------------

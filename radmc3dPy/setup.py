@@ -210,6 +210,9 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 #   the keyword argument. If there is no such key in the ppar dictionary then add the keyword
 #   to the dictionary
 # --------------------------------------------------------------------------------------------
+    if binary:
+        modpar.setPar(['rto_style', '3', '', ''])
+
     if kwargs:
         for ikey in kwargs.keys():
             modpar.ppar[ikey] = kwargs[ikey]
@@ -414,9 +417,12 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
                                     file will be used instead of the dust temperature. 
 
     """
+    # Read the parameters from the problem_params.inp file 
+    modpar = readParams()
+
+    # Make a local copy of the ppar dictionary
+    ppar = modpar.ppar
     
-    dum = readParams()
-    ppar = dum.ppar
 
     if not ppar:
         print 'ERROR'
@@ -429,9 +435,12 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 #   the keyword argument. If there is no such key in the ppar dictionary then add the keyword
 #   to the dictionary
 # --------------------------------------------------------------------------------------------
+    if binary:
+        modpar.setPar(['rto_style', '3', '', ''])
+
     if kwargs:
-        for keys in kwargs.keys():
-            modpar.ppar[keys] = kwargs[keys]
+        for ikey in kwargs.keys():
+            modpar.ppar[ikey] = kwargs[ikey]
             
             if type(kwargs[ikey]) is float:
                 modpar.setPar([ikey, ("%.7e"%kwargs[ikey]), '', ''])
