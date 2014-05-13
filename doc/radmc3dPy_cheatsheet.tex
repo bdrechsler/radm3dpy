@@ -31,40 +31,40 @@
 
 
 \begin{center}
-{\huge\bf radmc3dPy v0.24}\\
+{\huge\bf radmc3dPy v0.25}\\
 \vspace{0.5cm}
 {\large Attila Juh\'asz}
 \end{center}
 
 \section*{module: setup}
 \begin{itemize}
-\item[] {\bf get\_model\_desc()} - Returns the brief description of the model
-\item[] {\bf get\_model\_names()} - Returns the list of available models
-\item[] {\bf problem\_setup\_dust()} - Creats a dust continuum model setup
-\item[] {\bf problem\_setup\_gas()} - Creates a gas model setup
+\item[] {\bf getModelDesc()} - Returns the brief description of the model
+\item[] {\bf getModelNames()} - Returns the list of available models
+\item[] {\bf problemSetupDust()} - Creats a dust continuum model setup
+\item[] {\bf problemSetupGas()} - Creates a gas model setup
 \end{itemize}
 
 \section*{module: analyze}
 \begin{itemize}
-\item[]{\bf read\_data()} - Reads variables (e.g. dust density, gas velocity, etc)
-\item[]{\bf read\_grid()} - Reads the spatial and frequency grid
-\item[]{\bf readopac()} - Reads the dust opacities
-\item[]{\bf readparams()} - Reads the parameter file (problem\_params.inp)
-\item[]{\bf write\_default\_parfile()} - Writes the default parameters for a model
-\item[]{\bf radmc3dData.get\_sigmadust()} - Calculates the dust surface density in g/cm$^2$
-\item[]{\bf radmc3dData.get\_sigmagas()} - Calculates the gas surface density in molecule/cm$^2$
-\item[]{\bf radmc3dData.get\_tau()} - Calculates the continuum optical depth 
-\item[]{\bf radmc3dData.write\_vtk()} - Writes variables to a VTK format for visualisation with e.g. Paraview 
+\item[]{\bf readData()} - Reads variables (e.g. dust density, gas velocity, etc)
+\item[]{\bf readGrid()} - Reads the spatial and frequency grid
+\item[]{\bf readOpac()} - Reads the dust opacities
+\item[]{\bf readParams()} - Reads the parameter file (problem\_params.inp)
+\item[]{\bf writeDefaultParfile()} - Writes the default parameters for a model
+\item[]{\bf radmc3dData.getSigmadust()} - Calculates the dust surface density in g/cm$^2$
+\item[]{\bf radmc3dData.getSigmagas()} - Calculates the gas surface density in molecule/cm$^2$
+\item[]{\bf radmc3dData.getTau()} - Calculates the continuum optical depth 
+\item[]{\bf radmc3dData.writeVTK()} - Writes variables to a VTK format for visualisation with e.g. Paraview 
 \end{itemize}
 
 \section*{module: image}
 \begin{itemize}
-\item[]{\bf makeimage()} - Calculates an image with RADMC-3D (both dust continuum and channel maps)
-\item[]{\bf plotimage()} - Plot the image / channel map
-\item[]{\bf readimage()} - Reads the image
-\item[]{\bf radmc3dImage.imconv()} - Convolve the image with a Gaussian beam 
-\item[]{\bf radmc3dImage.plot\_momentmap()} - Plots moment map for a 3d image cube
-\item[]{\bf radmc3dImage.writefits()} - Writes the image to a FITS file with CASA compatible header
+\item[]{\bf makeImage()} - Calculates an image with RADMC-3D (both dust continuum and channel maps)
+\item[]{\bf plotImage()} - Plot the image / channel map
+\item[]{\bf readImage()} - Reads the image
+\item[]{\bf radmc3dImage.imConv()} - Convolve the image with a Gaussian beam 
+\item[]{\bf radmc3dImage.plotMomentmap()} - Plots moment map for a 3d image cube
+\item[]{\bf radmc3dImage.writeFits()} - Writes the image to a FITS file with CASA compatible header
 \end{itemize}
 
 \newpage
@@ -113,37 +113,72 @@ First let us create a directory for our model. Then go to this directory and sta
 {\tt >>> import radmc3dPy}\\
 \item[2] Check which models are available:
 
-{\tt >>> radmc3dPy.setup.get\_model\_names()}\\
-\indent {\tt ['ppdisk']}\\
+{\tt >>> radmc3dPy.setup.getModelNames()}\\
+\indent {\tt ['lines\_nlte\_lvg\_1d\_1', 'ppdisk', 'simple\_1', 'spher1d\_1', 'spher2d\_1', \\'test\_scattering\_1']}\\
 \item[3] Create a parameter file with the default values
 
-{\tt >>> radmc3dPy.analyze.write\_default\_parfile('ppdisk')}\\
+{\tt >>> radmc3dPy.analyze.writeDefaultParfile('ppdisk')}\\
 
-Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
+
+To change the parameters of the model the two most straightforward possibilities are the following:
+
+a) Open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
+
+b) When in  Step\,4. the 'problemSetupDust()' method is called one can add keyword arguments with the parameter
+names, e.g.:
+
+{\tt>>>radmc3dPy.setup.problemSetupDust('ppdisk', mdisk='0.01*ms])}\\
+
+The 'problemSetupDust()' method does the following in this case: Reads the problem\_params.inp file. Then 
+overwrites the value of the mdisk parameter and uses that the new value afterwards. It also re-writes the problem\_params.inp
+file with the new values. 
+
+NOTE: If the value of the keyword argument is given as a string it will be written as a string unchanged to the 'problem\_params.inp' file
+but will be interpreted and converted to double/float/int within the setup script. I.e. if mdisk='0.01*ms' is given as a keyword argument
+in the call of problemSetupDust()  then in the problem\_params.inp file it will appear in the exact same way: mdisk='0.01*ms'. 
+However, if the keyword argument is given as mdisk=0.01*ms the problem\_params.inp will contain mdisk = 1.9900000e+31. 
+
+
 \item[4] Set up the model and create all necessary input files.
 
-{\tt>>>radmc3dPy.setup.problem\_setup\_dust('ppdisk')}\\
+
+{\tt>>>radmc3dPy.setup.problemSetupDust('ppdisk')}\\
+
+Then we need to copy the dust opacity file called 'dustkappa\_silicate.inp' from the python\_examples/datafiles directory
+within the distribution root directory to the current model directory. 
+
 \item[5] Then run RADMC-3D from the shell with the Monte-Carlo simulation to calculate the dust temperature.
 
 {\tt \$>radmc3d mctherm}\\
 
 Alternatively we can also make a system call from within Python, e.g.:
 
+{\tt>>>import os}\\
 {\tt>>>os.system('radmc3d mctherm')}
 \item[6] After the thermal Monte-Carlo run has finished we can make an image from within pyton. 
 
-{\tt \$>radmc3dPy.image.makeimage(npix=400, sizeau=200, wav=880., incl=45, posang=43.)}\\
+{\tt \$>radmc3dPy.image.makeImage(npix=400, sizeau=200, wav=880., incl=45, posang=43.)}\\
 \item[7] After RADMC-3D finished we can read the image and plot it. 
 
-{\tt>>>imag=radmc3dPy.image.readimage()}\\
-{\tt>>>radmc3dPy.image.plotimage(imag)}
+{\tt>>>imag=radmc3dPy.image.readImage()}\\
+{\tt>>>radmc3dPy.image.plotImage(imag, arcsec=True, dpc=140., log=True, maxlog=5)}
+
+Here 'arcsec=True' sets the image axes to arc second that also requires the knowledge of the distance, 
+which is set in parsec by the 'dpc=140.' keyword. The 'log=True', sets logarithmic stretch of the image.
+The 'maxlog=5' sets a clip of the displayed image by 10$^{-5}$ below its maximum value, i.e. the
+displayed image values will be between max(image) and max(image)*10$^{-5}$.
 
 \item[8] We can also convolve the image with an arbitrary elliptical gaussian Gaussian beam
 
-{\tt>>>conv\_imag = imag.imconv(fwhm=[0.05, 0.1], pa=40., dpc=140.)}
+{\tt>>>conv\_imag = imag.imConv(fwhm=[0.05, 0.1], pa=40., dpc=140.)}
 
 The fwhm of the Gaussian beam should be in arcsec,  the positing angle of the major axis of the beam ellipse
 should be in degrees, and the distance to the source in pc (dpc keyword) should be given. 
+
+\item[9] We can also write the image into a fits file:
+
+{\tt>>>imag.writeFits(fname='image.fits', dpc=140., coord='03h0m0s -29d0m0s')}
+
 
 
 \end{itemize}
@@ -214,28 +249,34 @@ should be in degrees, and the distance to the source in pc (dpc keyword) should 
 \subsection*{radmc3dPy commands}
 \begin{itemize}
 
-\item[1] Import \pymod.
+\item[1] Follow the instructions for the dust models from Step 1. to 5. 
+%\item[1] Import \pymod.
+%
+%{\tt >>> import radmc3dPy}\\
+%\item[2] Check which models are available:
+%
+%{\tt >>> radmc3dPy.setup.get\_model\_names()}\\
+%\indent {\tt ['ppdisk']}\\
+%\item[3] Create a parameter file with the default values
+%
+%{\tt >>> radmc3dPy.analyze.write\_default\_parfile('ppdisk')}\\
+%\item[4] Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
+%Create all necessary imput files.
+%
+%{\tt>>>radmc3dPy.setup.problem\_setup\_gas('ppdisk')}\\
+%\item[5] This time we can skip the thermal Monte-Carlo simulation and go directly to raytracing, calculating images
+%and spectra.
+\item[6] Create the necessary input files for the gas simulations:
 
-{\tt >>> import radmc3dPy}\\
-\item[2] Check which models are available:
+{\tt>>>radmc3dPy.setup.problemSetupGas('ppdisk')}\\
 
-{\tt >>> radmc3dPy.setup.get\_model\_names()}\\
-\indent {\tt ['ppdisk']}\\
-\item[3] Create a parameter file with the default values
-
-{\tt >>> radmc3dPy.analyze.write\_default\_parfile('ppdisk')}\\
-\item[4] Exit python and open the created 'problem\_params.inp' file with a text editor and change the parameters if needed. 
-Create all necessary imput files.
-
-{\tt>>>radmc3dPy.setup.problem\_setup\_gas('ppdisk')}\\
-\item[5] This time we can skip the thermal Monte-Carlo simulation and go directly to raytracing, calculating images
-and spectra.
+\item[7] Calculate a channel map at a single frequency/wavelength
 
 {\tt \$>radmc3d image npix 400 sizeau 200 incl 45. phi 0. posang 43. iline 3 vkms 1.0}\\
 \item[6] This command calculates a single channel map at 
 
-{\tt>>>imag=radmc3dPy.image.readimage()}\\
-{\tt>>>radmc3dPy.image.plotimage()}
+{\tt>>>imag=radmc3dPy.image.readImage()}\\
+{\tt>>>radmc3dPy.image.plotImage()}
 
 \end{itemize}
 

@@ -37,19 +37,11 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 try:
-    from scipy.interpolate import RectBivariateSpline as rbs
-    from scipy.interpolate import BivariateSpline as bvspline
-    from scipy.signal import fftconvolve 
-except:
-    print 'WARNING'
-    print ' Scipy.interpolate.BivariateSpline or Scipy.interpolate.RectBivariateSpline cannot be imported'
-
-try:
     import pyfits as pf
 except:
     try:
         from astropy.io import fits as pf
-    else:
+    except:
         print 'WARNING'
         print ' PyFits (or astropy.io.fits) cannot be imported'
         print ' The PyFits/astropy.io.fits module is needed to write RADMC-3D images to FITS format'
