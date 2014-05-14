@@ -36,7 +36,29 @@
 {\large Attila Juh\'asz}
 \end{center}
 
-\section*{module: setup}
+\pymod consists of three parts: 1) few core modules (analyze, image, natconst, setup) for creating input files and post-processing
+the output of RADMC-3D, 2) an ensemble of models to provide description for the physical variables in the model space and 
+3) an input parameter file. 
+
+\section{Core modules}
+\label{sec:core}
+
+\subsection{module: setup}
+\label{subsec:setup}
+
+This module is responsible for model setup (those who are familiar with the IDL package of the predecessor code radmc this
+module is similar to 'problem\_setup.pro'). The setup module contains two separate functions to set up a dust and a gas model
+possibly independently from each other problemSetupDust() and problemSetupGas(). It depends on the actual model whether 
+or not they are completely independent from each other. These functions have one mandatory  argument, the name of the model. Any
+additional keyword argument can be used to change/override the model parameters (as set in the input parameter file). The basic 
+steps of a model setup are the 
+following: 1) Read the input parameter file. 2) Check if any of the parameters were given as
+keyword argument for the setup function and if so set its value to the one given in the keyword argument. If such parameter
+override happens re-write the input parameter file with the actual parameter setup. 3) Create all the necessary input files.
+The setup module has also two convenience function to query the current set of available models and get a one line
+description of that. The most important functions in the setup module are the following:
+
+
 \begin{itemize}
 \item[] {\bf getModelDesc()} - Returns the brief description of the model
 \item[] {\bf getModelNames()} - Returns the list of available models
@@ -44,7 +66,23 @@
 \item[] {\bf problemSetupGas()} - Creates a gas model setup
 \end{itemize}
 
-\section*{module: analyze}
+\subsection{module: analyze}
+\label{subsec:analyze}
+
+This module is responsible for I/O and some basic analytical functionality. It contains five classes 
+(radmc3dData, radmc3dDustOpac, radmc3dGrid, radmc3dPar, radmc3dStars) and several functions. 
+The radmc3dData class is responsible for the reading and writing of the variables (density, temperature, 
+etc.), whatever radmc3dData can read it can also write it both in formatted ASCII or in C-style binary format. 
+It also contains functions to calculate continuum optical depths and surface density. The radmc3dDustopac class
+contains methods to  read/write the master opacity file (dustopac.inp), read dust opacities and also to calculate
+them. For the dust opacity calculation it uses the code 'makedust' distributed with RADMC-3D (opac/dust\_continuum/jena). 
+The code in opac/dust\_continuum/jena should be compiled and the directory should be added to the PATH environment
+variable such that it can be called/executed without the absolute path. The radmc3dGrid class has methods to create, read and 
+write spatial and wavelength grid and to calculate the grid cell volumes. The radmc3dPar is the model parameter class. 
+It can read and write the  model parameter file (problem\_params.inp). It has dictionaries to store the variables with the
+variable names as keys. 
+
+Important functions in the analyse module:
 \begin{itemize}
 \item[]{\bf readData()} - Reads variables (e.g. dust density, gas velocity, etc)
 \item[]{\bf readGrid()} - Reads the spatial and frequency grid
@@ -57,21 +95,70 @@
 \item[]{\bf radmc3dData.writeVTK()} - Writes variables to a VTK format for visualisation with e.g. Paraview 
 \end{itemize}
 
-\section*{module: image}
+\subsection{module: image}
+\label{subsec:image}
+
+The image module provides functionality to read/write images and do some simple manipulation of them. 
+The base class is the radmc3dImage class. It can read images both in formatted ASCII and in C-style binary format 
+and write images in FITS format. For the latter it uses the fits module of the astropy package, formerly known as 
+PyFits (radmc3dPy can use any of them). Images can be convolved with an arbitrary 2D Gaussian beam 
+using the imConv method of the radmc3dImage class. The images can be displayed with the plotImage() function, 
+that uses matplotlib to display the image. A coronographic mask can also be simulated with the cmask() function, 
+i.e. within a certain radius around the image center the pixel values will be set to zero.  Some convenience/interface 
+functions are also present (e.g. plotImage(), makeImage(), readImage(), etc.). 
+
 \begin{itemize}
 \item[]{\bf makeImage()} - Calculates an image with RADMC-3D (both dust continuum and channel maps)
 \item[]{\bf plotImage()} - Plot the image / channel map
-\item[]{\bf readImage()} - Reads the image
+\item[]{\bf readImage()} - Reads the image 
 \item[]{\bf radmc3dImage.imConv()} - Convolve the image with a Gaussian beam 
 \item[]{\bf radmc3dImage.plotMomentmap()} - Plots moment map for a 3d image cube
 \item[]{\bf radmc3dImage.writeFits()} - Writes the image to a FITS file with CASA compatible header
 \end{itemize}
 
+\section{Models}
+\label{sec:model}
+
+While the core modules contain functionality how to read and write the input files the model modules
+should contain the rules what the physical structure of the model is, i.e. the distribution of density, velocity, 
+turbulent velocity, etc. as a function of the spatial coordinates. Each model module must be named as
+'model\_NAME.py' where NAME stands for the name of the model (e.g. model\_ppdisk.py). The files
+themselves must be located either in the current working directory or in the radmc3dPy directory wherever
+it is installed. Models are always tried to be imported from the current working directory first. 
+Each model module can contain the following functions:
+\begin{itemize}
+\item[] getModelDesc() - contains a one sentence description of the model
+\item[] getDefaultParams() - contains the default parameters for this model
+\item[] getDustDensity() - calculates the dust density, and returns as a numpy array
+\item[] getDustTemperature() - if present it should return the dust temperature as a bumpy array 
+\item[] getGasAbundance() - returns the gas abundance 
+\item[] getGasDensity() - returns the gas density
+\item[] getGasTemperature() - returns the gas temperature
+\item[] getVelocity() - returns the velocity 
+\item[] getVTurb() - returns the microturbulent velocity
+\end{itemize}
+Each function that should return a variable gets the spatial grid and all model parameters as input  arguments
+and they should return numpy arrays containing the variable. 
+
+\section{Parameter file}
+\label{sec:parfile}
+The parameter file ('problem\_params.inp') contains all input parameters for the model in an plain text format. Its structure 
+resembles very closely the input parameter file of the predecessor code, radmc. Variables are grouped into blocks according to their
+meaning, e.g. radiation source parameters, grid parameters, dust opacity, etc. Each parameter in the file is given in the following
+format: 
+
+variableName = variableValue \# Comment
+
+The reader method of the radmc3dPar class will try to interpret each line according to this general recipe. 
+However, there is some freedom in this formalism. The variable value can be any expression, also broken into multiple lines. 
+The value expression of a variable can also include another variable defined anywhere {\it above} that line. 
+
 \newpage
-\section*{Dust continuum model} 
+\section*{Dust continuum model setup} 
 
 \begin{figure}[!hp]
 \begin{center}
+\scalebox{0.8}{
 \begin{tikzpicture}
 
 % Input nodes
@@ -98,7 +185,7 @@
 \path [line] (thermalmc) -- (contsed);
 \path [line] (thermalmc) -- (contimag);
 
-\end{tikzpicture}
+\end{tikzpicture}}
 \end{center}
 \caption{Structure of a dust continuum model. Inputs are marked with blue, intermediate calculation, data products are
 in red while green marks the output of the simulation.}
@@ -185,9 +272,13 @@ should be in degrees, and the distance to the source in pc (dpc keyword) should 
 
 
 \newpage
-\section*{Gas model} 
+\section*{Gas model setup} 
 
+\begin{figure}
+\begin{center}
+\scalebox{0.8}{
 \begin{tikzpicture}
+
 
 % Input nodes
 \node [input] (grid) {{\bf Spatial \& Frequency grid}\\amr\_grid.inp, \\wavelength\_micron.inp};
@@ -243,8 +334,11 @@ should be in degrees, and the distance to the source in pc (dpc keyword) should 
 \path [line] (thermalmc) -- (cmap);
 
 
-\end{tikzpicture}
-
+\end{tikzpicture}}
+\end{center}
+\caption{Structure of a dust + gas model. Dust inputs are marked with blue, gas inputs are marked with yellow, intermediate calculation, data products are
+in red while green marks the output of the simulation.}
+\end{figure}
 
 \subsection*{radmc3dPy commands}
 \begin{itemize}
