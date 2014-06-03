@@ -120,7 +120,7 @@ def initSpiralAmpOL02(rin=None, rout=None, dcomp=None, nr=None):
 
 
 
-def getSpiralAmpOL02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa=None, sp_sig=None, nfold=None, azim_shift=None, \
+def getSpiralAmpOL02(rc=None, phi=None, grid=None, init=None, eps=None, spa=None, sp_sig=None, nfold=None, azim_shift=None, \
                        location=None):
     """
     Function to calculate the spiral wake caused by a companion in a
@@ -181,10 +181,11 @@ def getSpiralAmpOL02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa=No
         nz     = grid.ny
         nphi   = grid.nz
     else:
-        nr     = rcyl.shape[0]
+        nr     = rc.shape[0]
         nphi   = phi.shape[0]
         nz     = 1 
-        z      = array([0.0], dtype=float64)
+        zz      = array([0.0], dtype=float64)
+        rcyl,z = np.meshgrid(rc, zz)
 
 # Set the default value for the radial extent of the spiral  fwhm = 4*pi*eps^2*r
     if not sp_sig:
@@ -218,6 +219,10 @@ def getSpiralAmpOL02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa=No
 
         azim_amp = azim_amp.T
         trcyl    = rcyl.T 
+
+
+       
+
 #
 # Now put evertying together 
 #
@@ -256,13 +261,13 @@ def getSpiralAmpOL02(rcyl=None, phi=None, grid=None, init=None, eps=None, spa=No
     if location==2:
         spiral_amp = spiral_amp_inner + spiral_amp_outer
 
-    fig = figure()
-    ax  = fig.add_subplot(111, polar=True)
-    pdat = np.squeeze(spiral_amp[:,:,nz/2.])
-    contour(grid.z, grid.x/au, pdat, 50)
-    show()
+    #fig = figure()
+    #ax  = fig.add_subplot(111, polar=True)
+    #pdat = np.squeeze(spiral_amp[:,:,nz/2.])
+    #contour(grid.z, grid.x/au, pdat, 50)
+    #show()
 
-    xx = raw_input('')
+    #xx = raw_input('')
     
     return spiral_amp
 

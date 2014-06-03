@@ -677,7 +677,7 @@ class radmc3dGrid():
 
         for i in range(self.nwav): self.wav[i] = float(rfile.readline())
 
-        self.freq = cc / self.wav
+        self.freq = cc / self.wav * 1e4
 
         rfile.close()
 
