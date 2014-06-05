@@ -134,7 +134,7 @@ class radmc3dGrid():
         dum        = wbound[ipart] * (wbound[ipart+1]/wbound[ipart])**(arange(nw[ipart], dtype=float64) / (nw[ipart]-1.))
         self.wav   = append(self.wav, dum)
         self.nwav  = self.wav.shape[0]
-        self.freq  = cc / self.wav
+        self.freq  = cc / self.wav * 1e4
         self.nfreq = self.nwav
 
 # --------------------------------------------------------------------------------------------------
@@ -544,8 +544,8 @@ class radmc3dGrid():
                     self.nz = self.nzi-1
                     self.z  = 0.5*(self.zi[0:self.nz] + self.zi[1:self.nz+1])
                 else:
-                    self.z = [0.]
-                    self.zi = [0., np.pi*2.]
+                    self.z = array([0.])
+                    self.zi = array([0., np.pi*2.])
                     self.nz = 1
                     self.nzi = 2
                 
@@ -1680,37 +1680,78 @@ class radmc3dData():
         self.sigmagas = dum / squeeze(surf)
 
 # --------------------------------------------------------------------------------------------------
-class radmc3dStars():
+class radmc3dRadSources():
     """
-    Class of the radiation sources (currently only stars)
+    Class of the radiation sources (currently discrete stars and continuous starlike source, the latter
+        only in spherical coordinates)
 
     ATTRIBUTES:
     -----------
-        mstar - List of stellar masses
-        tstar - List of stellar effective temperatures
-        rstar - List of stellar radii
-        lstar - List of stellar luminosities 
-        nstar - Number of stars
-        pstar - Locations (coordinates) of the stars
-        wav   - Wavelength for the stellar spectrum
-        freq  - Frequency for the stellar spectrum
-        fnu   - Stellar spectrum (flux@1pc)
-        nwav  - Number of wavelenghts in the stellar spectrum
-        nfreq - Number of frequencies in the stellar spectrum
-    """
-    def __init__(self, ppar=None):
 
-        self.mstar    = []  
-        self.tstar    = []  
-        self.rstar    = []  
-        self.lstar    = []  
-        self.nstar    = 0
-        self.pstar    = []
-        self.wav      = []
-        self.freq     = []
-        self.fnu      = []
-        self.nwav     = 0
-        self.nfreq    = 0
+        wav          - Wavelength for the stellar spectrum
+        freq         - Frequency for the stellar spectrum
+        nwav         - Number of wavelenghts in the stellar spectrum
+        nfreq        - Number of frequencies in the stellar spectrum
+
+        mstar        - List of stellar masses
+        tstar        - List of stellar effective temperatures
+        rstar        - List of stellar radii
+        lstar        - List of stellar luminosities 
+        nstar        - Number of stars
+        pstar        - Locations (coordinates) of the stars
+        fnustar      - Stellar spectrum (flux@1pc)
+
+        csdens       - Stellar density for continuous starlike source
+        csntemplate  - Number of stellar templates
+        cstemp       - Stellar template
+        cstemptype   - Stellar template type 1 - Blackbody given by the effective temperature 2 - Frequency dependent spectrum
+        cststar      - Stellar effective temperature
+        csmstar      - Stellar mass
+        csrstar      - Stellar radius
+
+        tacc         - Effective temperature of a viscous accretion disk as a function of cylindrical radius
+        accrate      - Accretion rate of the viscous accretion disk [g/s]
+        fnuaccdisk   - Spatially integrated frequency-dependent flux density of the accretion disk @ 1pc distance
+        tspot        - Temperature of the hot spot / boundary layer on the stellar surface
+        starsurffrac - Fraction of the stellar surface covered by the hot spot / boundary layer
+        fnustpot     - Frequency-dependent flux density of the hot spot / boundary layer @ 1pc distance
+
+    """
+    def __init__(self, ppar=None, grid=None):
+
+
+        # Spatial and frequency grid
+        self.grid     = grid
+
+        # Discrete stars
+
+        self.mstar     = []  
+        self.tstar     = []  
+        self.rstar     = []  
+        self.lstar     = []  
+        self.nstar     = 0
+        self.pstar     = []
+        self.fnustar   = []
+
+        # Continuous starlike source 
+        self.csdens    = []
+        self.csntemplate = 0
+        self.cstemp    = []
+        self.cstemptype = 1
+        self.cststar   = []
+        self.csmstar   = []
+        self.csrstar   = []
+
+        # Viscous accretion disk
+        self.incl_accretion = False
+        self.tacc     = []
+        self.accrate  = 0.
+        self.fnuaccdisk = []
+
+        # Hot spot / boundary layer - to model accretion in YSOs
+        self.tspot    = 0.
+        self.starsurffrac = 0.
+        self.fnuspot  = []
 
         if ppar:
             if type(ppar['mstar']).__name__=='list':
@@ -1727,11 +1768,13 @@ class radmc3dStars():
                 self.rstar = ppar['rstar']
             else:
                 self.rstar = [ppar['rstar']]
-
-            self.nstar = len(self.rstar)
+            
             for istar in range(self.nstar):
                 self.lstar.append(4.*pi*self.rstar[istar]**2. * ss* self.tstar[istar]**4.)
             self.pstar = ppar['pstar']
+
+            self.incl_accretion = ppar['incl_accretion']
+            self.accrate = ppar['accrate']
 
 # --------------------------------------------------------------------------------------------------
 
@@ -1749,20 +1792,8 @@ class radmc3dStars():
         pwav = []
    
         for istar in range(self.nstar):
-            ii = (self.fnu[:,istar]*self.freq).argmax()
-            pwav.append(self.wav[ii])
-
-            #nufnu = self.fnu[:,istar] * self.freq
-            #dpwav  = 0.0
-            #dflux = 0.0
-
-            #for iw in range(self.nwav):
-                #if nufnu[iw]>dflux:
-                    #dflux = nufnu[iw]
-                    #dpwav  = self.wav[iw]
-
-
-            #pwav.append(dpwav)
+            ii = (self.fnustar[:,istar]*self.grid.freq).argmax()
+            pwav.append(self.grid.wav[ii])
 
         return pwav
 
@@ -1797,8 +1828,12 @@ class radmc3dStars():
 
         dum = rfile.readline().split()
         self.nstar = int(dum[0])
-        self.nwav  = int(dum[1])
-        self.nfreq = self.nwav
+        self.grid  = radmc3dGrid()
+        self.grid.nwav  = int(dum[1])
+        self.grid.nfreq = self.grid.nwav
+        self.rstar = []
+        self.mstar = []
+        self.tstar = []
         for istar in range(self.nstar):
             dum = rfile.readline().split()
             self.rstar.append(float(dum[0]))
@@ -1807,59 +1842,76 @@ class radmc3dStars():
         
         dum = rfile.readline()
         wav = []
-        for ilam in range(self.nwav):
+        for ilam in range(self.grid.nwav):
             dum = rfile.readline()
             wav.append(float(dum))
 
-        self.wav = array(wav, dtype=float)
-        self.freq = cc/self.wav*1e4
+        self.grid.wav = array(wav, dtype=float)
+        self.grid.freq = cc/self.grid.wav*1e4
         dum = rfile.readline()
-        for istar in range(self.nstar):
-            dum = rfile.readline()
+        dum = rfile.readline()
+       
+         
+        # If we have only the stellar temperature
+        if float(dum)<0:
             self.tstar.append(-float(dum))
+            for istar in range(1,self.nstar):
+                self.tstar.append(-float(dum))
+            # 
+            # Now calculates the stellar spectrum
+            #
+            self.getStarSpectrum()
+        
+        # If we have the full frequency-dependent spectrum 
+        else:
+            self.fnustar = zeros([self.grid.nfreq, self.nstar], dtype=float)
+            self.fnustar[0,0] = float(dum)
+            for ifreq in range(1,self.grid.nfreq):
+                self.fnustar[ifreq, istar] = float(rfile.readline())
+            
+            for istar in range(1,self.nstar):
+                for ifreq in range(self.grid.nfreq):
+                    self.fnustar[ifreq, istar] = float(rfile.readline())
 
         rfile.close()
 
-        # 
-        # Now calculates the stellar spectrum
-        #
 
-        self.getStellarSpectrum()
 
 # --------------------------------------------------------------------------------------------------
-    def writeStarsinp(self, wav=None, freq=None, pstar=None, tstar=None):
+    def writeStarsinp(self, ppar=None, wav=None, freq=None):
         """
         Writes the stars.inp file
 
         INPUT:
         ------
+            ppar  - Dictionary containing all parameters of the model (only mandatory if accretion is switched on)
+
+        OPTIONS:
+        --------
             wav   - Wavelength grid for the stellar spectrum
             freq  - Frequency grid for the stellar spectrum (either freq or wav should be set)
-            pstar - List of the cartesian coordinates of the stars (each element of pstar should be a list of three elements
-                    with the [x,y,z] coordinate of the individual stars)
-            tstar - List containing the effective temperature of the stars
         """
 
         if freq!=None:
-            self.wav  = cc/array(freq)
-            self.freq = array(freq)
-            self.nwav = self.wav.shape[0]
-            self.nfreq = self.nwav
+            self.grid.wav  = cc/array(freq)*1e4
+            self.grid.freq = array(freq)
+            self.grid.nwav = self.grid.wav.shape[0]
+            self.grid.nfreq = self.grid.nwav
 
         if wav!=None:
-            self.wav = array(wav)
-            self.freq = cc/self.wav
-            self.nwav = self.wav.shape[0]
-            self.nfreq = self.nwav
-
+            self.grid.wav = array(wav)
+            self.grid.freq = cc/self.grid.wav*1e4
+            self.grid.nwav = self.grid.wav.shape[0]
+            self.grid.nfreq = self.grid.nwav
+        
         self.nstar = len(self.rstar)
-        self.pstar = pstar
+        #self.pstar = ppar['pstar']
+        
 
-        # if we don't have
         print 'Writing stars.inp'
         wfile = open('stars.inp', 'w')
         wfile.write('%d\n'%2)
-        wfile.write('%d %d\n'%(self.nstar,self.nwav))
+        wfile.write('%d %d\n'%(self.nstar,self.grid.nwav))
         
         if (self.nstar>1):
             for istar in range(self.nstar):
@@ -1870,15 +1922,35 @@ class radmc3dStars():
                 self.pstar[0],self.pstar[1],self.pstar[2]))
 
         wfile.write('%s\n'%' ')
-        for ilam in range(self.nwav):
-            wfile.write('%.9e\n'%self.wav[ilam])
+        for ilam in range(self.grid.nwav):
+            wfile.write('%.9e\n'%self.grid.wav[ilam])
         wfile.write('%s\n'%' ')
-        for istar in range(self.nstar):
-            wfile.write('%.9e\n'%(-self.tstar[istar]))
+
+        # If accretion is active write the sum of the spot and the star emission
+        # NOTE, for now the spot emission is only added to the first star in the list
+        if self.incl_accretion:
+            # Get the stellar spectrum
+            self.getStarSpectrum(tstar=self.tstar, rstar=self.rstar)
+            # Get the spot spectrum
+            self.getSpotSpectrum(ppar=ppar)
+            
+            # Write out the spectrum of the first star with the additional spot luminosity  
+            for ilam in range(self.grid.nwav):
+                wfile.write('%.9e\n'%(self.fnustar[ilam,0]+self.fnuspot[ilam]))
+            
+            # Now write the spectrum of all other discrete stars without the spot emission
+            for istar in range(1,self.nstar):
+                for ilam in range(self.grid.nwav):
+                    wfile.write('%.9e\n'%(self.fnustar[ilam,istar]))
+
+
+        else:
+            for istar in range(self.nstar):
+                wfile.write('%.9e\n'%(-self.tstar[istar]))
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def getStellarSpectrum(self, tstar=None, rstar=None, lstar=None, nu=None, wav=None):
+    def getStarSpectrum(self, tstar=None, rstar=None, lstar=None, ppar=None, grid=None):
         """
         Function to calculate a blackbody stellar spectrum
 
@@ -1887,28 +1959,25 @@ class radmc3dStars():
             tstar : Effective temperature of the star in [K]
             rstar : Radius of the star in [cm]
             lstar : Bolometric luminosity of the star [erg/s] (either rstar or lstar should be given)
-            nu    : frequency grid on which the spectrum should be calculated [Hz] 
-            wav   : wavelength grid on which the spectrum should be calculated [micron] 
+            
+            ppar - Dictionary containing all input parameters
+        
+        OPTIONS:
+        --------
+            grid - An instance of a radmc3dGrid class containing the spatial and wavelength grid
         """
 #
 # Check the input which parameters are set and which should be calculated
 #
 
-        if nu and wav:
-            print 'ERROR'
-            print ' Either nu or wav keyword should be set but not both!'
-            return 0 
-        elif wav!=None:
-            self.wav   = array(wav)
-            self.nwav  = self.wav.shape[0]
-            self.freq  = cc/self.wav * 1e4
-            self.nfreq = self.freq.shape[0]
-        elif nu!=None:
-            self.freq  = array(nu)
-            self.nfreq = self.freq.shape[0]
-            self.wav   = cc/self.freq*1e4
-            self.nwav  = self.wav.shape[0]
+        if grid!=None:
+            self.grid = grid
 
+        if ppar!=None:
+            if tstar==None:
+                tstar = ppar['tstar']
+            if rstar==None:
+                rstar = ppar['rstar']
 
         if tstar:
             if type(tstar).__name__!='list':
@@ -1941,9 +2010,636 @@ class radmc3dStars():
                     self.tstar = (self.lstar / (4.*pi*ss*self.rstar**2.))**0.25
 
 
-        self.fnu   = zeros([self.nwav, self.nstar], dtype=float64)
+        self.fnustar   = zeros([self.grid.nwav, len(self.tstar)], dtype=float64)
         for istar in range(len(self.tstar)):
-            self.fnu[:,istar]   = 2.*hh*self.freq**3./(exp(hh*self.freq/kk/self.tstar[istar])-1.0) * pi * self.rstar[istar]**2. / pc**2.
+            self.fnustar[:,istar]   = 2.*hh*self.grid.freq**3./cc**2/(exp(hh*self.grid.freq/kk/self.tstar[istar])-1.0) * pi * self.rstar[istar]**2. / pc**2.
+
+# --------------------------------------------------------------------------------------------------
+    def getAccdiskTemperature(self, ppar=None, grid=None):
+        """
+        Calculates the effective temperature as a function of radius for a viscously accreting disk
+
+        INPUT:
+        ------
+            ppar - Dictionary containing all input parameters
+                    keys should include:
+                    'mstar' - stellar mass
+                    'rstar' - stellar radius
+                    'accrate' - accretion rate
+
+                   NOTE, that for the calculation of the effective disk temperature only the first
+                    star is used if more than one values are given in mstar and rstar. 
+        OPTIONS:
+        --------
+            grid - An instance of a radmc3dGrid class containing the spatial and wavelength grid
+
+        """
+      
+        if grid!=None:
+            self.grid = grid
+
+        self.tacc = ((3.0 * gg * ppar['mstar'][0] * ppar['accrate']) / (8.0 * pi * self.grid.x**3 * ss) * \
+                    (1.0 - (ppar['rstar'][0]/self.grid.x)**0.5))**0.25
+
+# --------------------------------------------------------------------------------------------------
+    def getSpotSpectrum(self, ppar=None, grid=None):
+        """
+        Function to calculate a blackbody spectrum for a hotspot / boundary layer on the stellar surface
+
+        INPUT:
+        ------
+            ppar - Dictionary containing all input parameters
+                    keys include:
+                    'mstar' - stellar mass
+                    'rstar' - stellar radius
+                    'accrate' - accretion rate
+                    'starsurffrac' - fraction of the stellar surface covered by the spot/boundary layer
+
+                   NOTE, that for the calculation of the effective disk temperature only the first
+                    star is used if more than one values are given in mstar and rstar. 
+        OPTIONS:
+        --------
+            grid - An instance of a radmc3dGrid class containing the spatial and wavelength grid
+
+        """
+#
+# Check the input which parameters are set and which should be calculated
+#
+
+        if grid!=None:
+            self.grid = grid
+
+        # Calculate the total spot luminosity assuming boundary layer accretion, i.e.
+        # that half of the total accretion luminosity is released from the boundary layer
+
+        tot_acclum = 0.5 * gg * ppar['mstar'][0] * ppar['accrate'] / ppar['rstar'][0]
+        spotsurf   = 4.* pi * ppar['rstar'][0]**2 * ppar['starsurffrac']
+        self.starsurffrac = ppar['starsurffrac']
+        if spotsurf==0.:
+            self.tspot = 0.
+            
+            # Now calculate the spot spectrum (i.e. the flux density @ 1pc distance)
+            self.fnuspot = zeros(self.grid.nfreq, dtype=float)
+        else:
+            self.tspot = (tot_acclum / spotsurf / ss)**0.25
+
+            # Now calculate the spot spectrum (i.e. the flux density @ 1pc distance)
+            self.fnuspot = pi * ppar['rstar'][0]**2 * ppar['starsurffrac'] / pc**2 * \
+                            2. * hh * self.grid.freq**3/cc**2 / (exp(hh*self.grid.freq/kk/self.tspot)-1.0)
+# --------------------------------------------------------------------------------------------------
+    def getTotalLuminosities(self, readInput=True):
+        """
+        Calcultes the frequency integrated luminosities of all radiation sources
+        
+        INPUT:
+        ------
+            readInput - If true the input files of the radiation sources are read and the the total luminosities
+                        are calculated from them. If readInput is set to False, the luminosities are calculated
+                        by semi-analytic spectra.
+        
+        OUTPUT:
+        -------
+            Returns a dictionary with the following keys:
+                lnu_star    - Luminosity of the discrete stars
+                lnu_accdisk - Luminosity of the accretion disk
+                lnu_spot    - Luminosity of the hot spot / boundary layer on the stellar surface
+        """
+        
+
+        # If readIpnut
+        if readInput:
+            self.readStarsinp()
+
+            # Note the negative sign in dnu is there because the frequency array is ordered in wavelength not in frequency
+            dnu = -(self.grid.freq[1:] - self.grid.freq[:-1])
+
+            res = {}
+            # Calculate the stellar luminosity
+            res['lnu_star'] = zeros(self.nstar, dtype=float)
+
+            for istar in range(self.nstar):
+                res['lnu_star'][istar] = 0.5 * ((self.fnustar[1:,istar] + self.fnustar[:-1,istar]) * dnu).sum() * 4.*pi*pc**2
+
+            # Calculate the luminosity in the continuous stellar sources
+            csDensFound = False
+            csTempFound = False
+            if os.path.exists('stellarsrc_density.inp'):
+                self.readStellarsrcDensity(fname='stellarsrc_density.inp', binary=False)
+                csDensFound = True
+            if os.path.exists('stellarsrc_density.binp'):
+                self.readStellarsrcDensity(fname='stellarsrc_density.binp', binary=True)
+                csDensFound = True
+            if os.path.exists('stellarsrc_templates.inp'):
+                self.readStellarsrcTemplates()
+                csTempFound = True
+            if (csDensFound)&(csTempFound):
+                vol = self.grid.getCellVolume()
+                
+                factor = 4. * pi * pi / 4./ pi 
+                dnu = abs(self.grid.freq[1:] - self.grid.freq[:-1])
+                lum = 0. 
+                for itemp in range(self.csntemplate):
+                    for ix in range(self.grid.nx):
+                        for iy in range(self.grid.ny):
+                            for iz in range(self.grid.nz):
+                                if self.csdens[ix,iy,iz,itemp]>0.:
+                                    expterm = (hh*self.grid.freq/kk/(-self.cststar[ix])).clip(-600,600)
+                                    bb = 2.*hh*self.grid.freq**3/cc**2/(exp(expterm)-1.)
+                                    dum = bb * pi * vol[ix,iy,iz] * 4. * pi * self.csdens[ix,iy,iz,itemp]
+                                    lum = lum + ( (dum[1:] + dum[:-1])*0.5*dnu ).sum() 
+
+
+                res['lnu_accdisk'] = lum 
+
+            else:
+                res['lnu_spot'] = 0.
+                res['lnu_accdisk'] = 0.
+        else:
+            
+            # Note the negative sign in dnu is there because the frequency array is ordered in wavelength not in frequency
+            dnu = -(self.grid.freq[1:] - self.grid.freq[:-1])
+
+            res = {}
+            # Calculate the stellar luminosity
+            res['lnu_star'] = zeros(self.nstar, dtype=float)
+
+            for istar in range(self.nstar):
+                res['lnu_star'][istar] = 4.*pi*self.rstar[istar]**2*ss*self.tstar[istar]**4
+
+            if self.accrate==0.:
+                print 'Viscsous accretion is switched off'
+                res['lnu_spot'] = 0.
+                res['lnu_accdisk'] = 0.
+            if not self.incl_accretion:
+                print 'Viscsous accretion is switched off'
+                res['lnu_spot'] = 0.
+                res['lnu_accdisk'] = 0.
+            else:
+                # Calculate the spot luminosity
+                res['lnu_spot'] = 0.5 * gg * self.mstar[0] * self.accrate / self.rstar[0]#4.*pi*self.rstar[istar]**2*starsurffac*ss*self.tspot**4
+                # Calculate the accretion disk luminosity
+                res['lnu_accdisk'] = 0.5 * gg * self.mstar[0] * self.accrate / self.rstar[0]
+                #0.5 * ((self.fnuaccdisk[1:] + self.fnuaccdisk[:-1]) * dnu).sum() * 2. * pi *pc**2 
+
+
+        return res
+# --------------------------------------------------------------------------------------------------
+    def getAccdiskSpectra(self, ppar=None, grid=None, incl=0.):
+        """
+        Calculates the emergent spectra of an optically thick accretion disk at face-on orientation (incl=0deg)
+        
+        INPUT:
+        ------
+            ppar - Dictionary containing all input parameters
+                    keys include:
+                    'mstar' - stellar mass
+                    'rstar' - stellar radius
+                    'accrate' - accretion rate
+
+                   NOTE, that for the calculation of the effective disk temperature only the first
+                    star is used if more than one values are given in mstar and rstar. 
+
+            incl - Inclination angle in degrees at which the spectrum be calculated
+        OPTIONS:
+        --------
+            grid - An instance of a radmc3dGrid class containing the spatial and wavelength grid
+
+        """
+
+        if ppar['accrate']>0.:
+            self.getAccdiskTemperature(ppar=ppar, grid=grid)
+            fnuaccdisk = zeros([self.grid.nx, self.grid.nwav], dtype=float)
+            for ix in range(self.grid.nx):
+                dum = hh*self.grid.freq/kk/self.tacc[ix]
+                dum = dum.clip(-600., 600.)
+                bb = 2.*hh*self.grid.freq**3/cc**2 / (exp(float64(dum))-1.0)
+                fnuaccdisk[ix,:] =  bb * pi*(self.grid.xi[ix+1]**2 - self.grid.xi[ix]**2)  / pc**2 
+            self.fnuaccdisk = fnuaccdisk.sum(0) 
+        else:
+            self.fnuaccdisk = zeros([self.grid.nwav], dtype=float)
+
+# --------------------------------------------------------------------------------------------------
+    def getAccdiskStellarTemplates(self, ppar=None, grid=None):
+        """
+        Calculates the stellar template for continuous starlike sources for modeling a viscous accretion disk 
+        
+        INPUT:
+        ------
+            ppar - Dictionary containing all input parameters
+                    keys include:
+                    'mstar' - stellar mass
+                    'rstar' - stellar radius
+                    'accrate' - accretion rate
+
+                   NOTE, that for the calculation of the effective disk temperature only the first
+                    star is used if more than one values are given in mstar and rstar. 
+        OPTIONS:
+        --------
+            grid - An instance of a radmc3dGrid class containing the spatial and wavelength grid
+        """
+
+       
+        if self.incl_accretion:
+            self.getAccdiskTemperature(ppar=ppar, grid=grid)
+            self.cstemptype  = 1
+            self.cststar     = -self.tacc
+            self.csmstar     = self.cststar * 0. + 1.
+            self.csrstar     = self.cststar * 0. + 1.
+            self.csntemplate = self.grid.nx
+        else:
+
+            self.cstemptype  = 1
+            self.cststar     = zeros(self.grid.nx)
+            self.csmstar     = self.cststar * 0. 
+            self.csrstar     = self.cststar * 0. 
+            self.csntemplate = self.grid.nx
+# --------------------------------------------------------------------------------------------------
+    def getAccdiskStellarDensity(self, ppar=None, grid=None):
+        """
+        Calculates the stellar density for continuous starlike sources for modeling a viscous accretion disk 
+        
+        INPUT:
+        ------
+            ppar - Dictionary containing all input parameters
+                    keys include:
+                    'mstar' - stellar mass
+                    'rstar' - stellar radius
+                    'accrate' - accretion rate
+
+                   NOTE, that for the calculation of the effective disk temperature only the first
+                    star is used if more than one values are given in mstar and rstar. 
+        OPTIONS:
+        --------
+            grid - An instance of a radmc3dGrid class containing the spatial and wavelength grid
+        """
+
+        if grid!=None:
+            self.grid = grid
+
+        self.csdens = zeros([self.grid.nx, self.grid.ny, self.grid.nz, self.grid.nx], dtype=float)
+        vol         = self.grid.getCellVolume()
+
+        if self.incl_accretion:
+            if self.grid.crd_sys != 'sph':
+                print 'ERROR'
+                print ' Viscous accretion is currently available only in spherical coordinate system'
+                return False
+            else:
+                if abs(self.grid.yi[self.grid.ny]-pi)<1e-8:
+
+                    for ix in range(self.grid.nx):
+
+                        dA = 2.0 * (self.grid.xi[ix+1]**2 - self.grid.xi[ix]**2) * pi * (self.grid.zi[1:] - self.grid.zi[:-1]) / (2.*pi)
+                        dV = vol[ix,self.grid.ny/2-1,:] +  vol[ix,self.grid.ny/2,:] 
+                        self.csdens[ix,self.grid.ny/2-1,:,ix] = dA/dV/(4.*pi)
+                        self.csdens[ix,self.grid.ny/2,:,ix]   = dA/dV/(4.*pi)
+
+                elif abs(self.grid.yi[self.grid.ny]-pi/2.)<1e-8:
+                    for ix in range(self.grid.nx):
+                        dA = 2.0 * (self.grid.xi[ix+1]**2 - self.grid.xi[ix]**2) * pi * (self.grid.zi[1:] - self.grid.zi[:-1]) / (2.*pi)
+                        dV = vol[ix,self.grid.ny-1,:] * 2.
+                        self.csdens[ix,self.grid.ny-1,:,ix] = dA/dV/(4.*pi)
+    
+        return True
+
+# --------------------------------------------------------------------------------------------------
+    def readStellarsrcTemplates(self,fname='stellarsrc_templates.inp'):
+        """
+        Reads the stellar template of a continuous starlike source 
+
+        OPTIONS:
+        --------
+            fname - Name of the file from which the stellar templates will be read. If omitted the default
+                'stellarsrc_templates.inp' will be used.
+        """
+
+        rfile = -1
+        try :
+            rfile = open(fname, 'r')
+        except:
+            print 'Error!' 
+            print fname+' was not found!'
+        
+        if (rfile!=(-1)):
+            
+            self.grid = readGrid()
+            
+            hdr = fromfile(fname, count=3, sep="\n", dtype=int)
+            
+            if (self.grid.nwav!=hdr[2]):
+                print 'Error!'
+                print 'Number of grid points in wavelength_micron.inp is not equal to that in '+fname
+            else:
+                self.csntemplate = hdr[1] 
+                dum = ''
+
+                # Read the header
+                for i in range(3):
+                    dum = rfile.readline()
+
+                # Read the frequency grid
+                for i in range(hdr[2]):
+                    dummy = float(rfile.readline())
+                    if abs((cc/dummy*1e4 - self.grid.wav[i]) / self.grid.wav[i])>1e-4:
+                        print 'ERROR'
+                        print 'The wavelength grid in wavelength_micron.inp is different than that in '+fname
+                        print cc/dummy*1e4, self.grid.wav[i]
+
+                dum = rfile.readline()
+                if float(dum)>0:
+                    self.cstemp  = zeros([self.csntemplate,self.grid.nwav], dtype=float)
+                    self.cststar = []
+                    self.csrstar = []
+                    self.csmstar = []
+                    
+                    self.cstemp[0,0] = float(dum)
+                    for inu in range(1,self.grid.nwav):
+                        dum = rfile.readline()
+                        self.cstemp[0,inu] = float(dum)
+
+                    for itemp in range(1, self.csntemplate):
+                        for inu in range(self.grid.nwav):
+                            dum = rfile.readline()
+                            self.cstemp[itemp,inu] = float(dum)
+                    
+                else:
+                    self.cstemp  = []
+                    self.cststar = zeros(self.csntemplate, dtype=float)
+                    self.csrstar = zeros(self.csntemplate, dtype=float)
+                    self.csmstar = zeros(self.csntemplate, dtype=float)
+                    
+                    self.cststar[0] = float(dum)
+                    dum = rfile.readline()
+                    self.csrstar[0] = float(dum)
+                    dum = rfile.readline()
+                    self.csmstar[0] = float(dum)
+
+                    for i in range(1,self.csntemplate):
+                        dum = rfile.readline()
+                        self.cststar[i] = float(dum)
+                        dum = rfile.readline()
+                        self.csrstar[i] = float(dum)
+                        dum = rfile.readline()
+                        self.csmstar[i] = float(dum)
+
+
+
+                #data = fromfile(fname, count=-1, sep="\n", dtype=float64)
+                #print data[3:].shape
+                #print hdr[2]*self.grid.nz*self.grid.ny*self.grid.nx
+                #print self.grid.nx, self.grid.ny, self.grid.nz, hdr[2]
+                #exit()
+                #data = reshape(data[3:], [hdr[2],self.grid.nz,self.grid.ny,self.grid.nx])
+                ## We need to change the axis orders as Numpy always reads  in C-order while RADMC3D
+                ## uses Fortran-order
+                #data = swapaxes(data,0,3)
+                #data = swapaxes(data,1,2)
+        
+        else:
+            data = -1
+
+        if rfile!=(-1):
+            rfile.close()
+    
+
+
+# --------------------------------------------------------------------------------------------------
+    def writeStellarsrcTemplates(self,fname='stellarsrc_templates.inp'):
+        """
+        Writes the stellar template of a continuous starlike source 
+
+        OPTIONS:
+        --------
+            fname - Name of the file into which the stellar templates will be written. If omitted the default
+                'stellarsrc_templates.inp' will be used.
+        """
+
+        # First check if we'd need to write anything at al
+
+        if len(self.cststar)==0:
+            if len(self.cstemp)==0:
+                if os.path.exists('stellarsrc_templates.inp'):
+                    print 'The continuous starlike source seems to be inactive (zero input luminosity)'
+                    print ' still stellarsrc_templates.inp file is present in the current working directory.'
+                    dum = raw_input('Can it be deleted (yes/no)')
+                    if dum.strip().lower()[0]=='y':
+                        os.system('rm stellarsrc_templates.inp')
+                    return
+                return
+            else:
+                if abs(self.cstemp).max()==0.:
+                    if os.path.exists('stellarsrc_templates.inp'):
+                        print 'The continuous starlike source seems to be inactive (zero input luminosity)'
+                        print ' still stellarsrc_templates.inp file is present in the current working directory.'
+                        dum = raw_input('Can it be deleted (yes/no)')
+                        if dum.strip().lower()[0]=='y':
+                            os.system('rm stellarsrc_templates.inp')
+                        return
+                    return
+
+        else:
+            if abs(self.cststar).max()==0.:
+                if os.path.exists('stellarsrc_templates.inp'):
+                    print 'The continuous starlike source seems to be inactive (zero input luminosity)'
+                    print ' still stellarsrc_templates.inp file is present in the current working directory.'
+                    dum = raw_input('Can it be deleted (yes/no)')
+                    if dum.strip().lower()[0]=='y':
+                        os.system('rm stellarsrc_templates.inp')
+                    return
+                return
+
+        print 'Writing '+fname
+        wfile = open(fname, 'w')
+        # Format number
+        wfile.write("%d\n"%1)
+        # Nr of templates
+        wfile.write("%d\n"%self.csntemplate)
+        # Nr of wavelengths
+        wfile.write("%d\n"%self.grid.nwav)
+        # Write the wavelength grid (in micron!)
+        for ilam in range(self.grid.nwav):
+            wfile.write("%.9e\n"%self.grid.freq[ilam])
+
+        # Now write the templates
+        # Similar to the discrete stellar imput if the first number is negative it means that 
+        #  instead of a full frequency-dependent spectrum only the blackbody temperature is given.
+        #  Thus I'd only need to give the temperatures as negative numbers and radmc-3d will take care
+        #  of calculating the Planck-function. This will save some harddisk space.
+
+        if self.cstemptype==1:
+            for itemp in range(self.csntemplate):
+                # Effective temperature
+                if self.cststar[itemp]>0:
+                    wfile.write("%.9e\n"%(-self.cststar[itemp]))
+                else:
+                    wfile.write("%.9e\n"%self.cststar[itemp])
+                # "Stellar radius"
+                wfile.write("%.9e\n"%self.csrstar[itemp])
+                # "Stellar mass"
+                wfile.write("%.9e\n"%self.csmstar[itemp])
+        elif self.cstemptype==2:
+            for itemp in range(self.csntemplate):
+                for inu in range(self.grid.nwav):
+                    wfile.write("%.9e\n"%self.cstemp[itemp,inu])
+        else:
+            print 'ERROR'
+            print 'Unknown cstemptype for the continuous starlike source'
+            print self.cstemptype
+            wfile.close()
+            return False
+
+        wfile.close()
+
+# --------------------------------------------------------------------------------------------------
+    def readStellarsrcDensity(self, fname='', binary=False):
+        """
+        Reads the stellar density of a continuous starlike source 
+
+        OPTIONS:
+        --------
+            fname - Name of the file from which the stellar templates will be read. If omitted the default
+                'stellarsrc_templates.inp' will be used.
+
+            binary - If True the file should contain a C-style binary stream, if False the file should be 
+                    written as formatted ASCII
+        """
+        self.grid = readGrid()
+
+        if binary:
+            hdr = fromfile(fname, count=4, dtype=int)
+            
+            if hdr[2]!=(self.grid.nx*self.grid.ny*self.grid.nz):
+                print ' ERROR'
+                print ' Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                print npoints
+                print hdr[2]
+                return
+
+            if hdr[1]==8:
+                data = fromfile(fname, count=-1, dtype=float64)
+            elif hdr[1]==4:
+                data = fromfile(fname, count=-1, dtype=float)
+            else:
+                print 'ERROR'
+                print 'Unknown datatype in '+fname
+                return
+            
+            data = reshape(data[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+            data = swapaxes(data,0,3)
+            data = swapaxes(data,1,2)
+        else:
+            rfile = -1
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+            
+            if (rfile!=(-1)):
+
+                hdr = fromfile(fname, count=3, sep="\n", dtype=int)
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=hdr[1]):
+                    print 'Error!'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in '+fname
+                else:
+
+                    data = fromfile(fname, count=-1, sep="\n", dtype=float64)
+                    data = reshape(data[3:], [hdr[2],self.grid.nz,self.grid.ny,self.grid.nx])
+                    # We need to change the axis orders as Numpy always reads  in C-order while RADMC3D
+                    # uses Fortran-order
+                    data = swapaxes(data,0,3)
+                    data = swapaxes(data,1,2)
+            
+            else:
+                data = -1
+
+            if rfile!=(-1):
+                rfile.close()
+        
+        self.csdens = data
+# --------------------------------------------------------------------------------------------------
+    def writeStellarsrcDensity(self, fname='', binary=False):
+        """
+        Writes the stellar density of a continuous starlike source 
+
+        OPTIONS:
+        --------
+            fname - Name of the file into which the stellar templates will be written. If omitted the default
+                'stellarsrc_templates.inp' will be used.
+
+            binary - If True the output will be written in a C-style binary stream, if False the output will be 
+                    formatted ASCII
+        """
+        
+        # First check if we'd need to write anything at al 
+        # Both the stellar temperature and the stellar template spectrum arrays are empty 
+        # So the continuous starlike source needs to be deactivated 
+        # Let's check if there are any files, and if so ask them to be deleted
+        if len(self.cststar)==0:
+            if len(self.cstemp)==0:
+                if (os.path.exists('stellarsrc_density.inp'))|(os.path.exists('stellarsrc_density.binp')):
+                    print 'The continuous starlike source seems to be inactive (zero input luminosity)'
+                    print ' still stellarsrc_density.inp/stellarsrc_density.binp file is present in the current '
+                    print ' working directory.'
+                    dum = raw_input('Can it be deleted (yes/no)')
+                    if dum.strip().lower()[0]=='y':
+                        os.system('rm stellarsrc_density.inp')
+                        os.system('rm stellarsrc_density.binp')
+                    return
+                return
+            else:
+                if abs(self.cstemp).max()==0.:
+                    if (os.path.exists('stellarsrc_density.inp'))|(os.path.exists('stellarsrc_density.binp')):
+                        print 'The continuous starlike source seems to be inactive (zero input luminosity)'
+                        print ' still stellarsrc_density.inp/stellarsrc_density.binp file is present in the current '
+                        print ' working directory.'
+                        dum = raw_input('Can it be deleted (yes/no)')
+                        if dum.strip().lower()[0]=='y':
+                            os.system('rm stellarsrc_density.inp')
+                            os.system('rm stellarsrc_density.binp')
+                        return
+                    return
+
+        else:
+            if abs(self.cststar).max()==0.:
+                if (os.path.exists('stellarsrc_density.inp'))|(os.path.exists('stellarsrc_density.binp')):
+                    print 'The continuous starlike source seems to be inactive (zero input luminosity)'
+                    print ' still stellarsrc_density.inp/stellarsrc_density.binp file is present in the current '
+                    print ' working directory.'
+                    dum = raw_input('Can it be deleted (yes/no)')
+                    if dum.strip().lower()[0]=='y':
+                        os.system('rm stellarsrc_density.inp')
+                        os.system('rm stellarsrc_density.binp')
+                    return
+                return
+
+
+        if binary:
+            if fname.strip()=='':
+                fname = 'stellarsrc_density.binp'
+            print 'Writing '+fname
+            wfile = open(fname, 'w')
+            hdr = array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz, self.csntemplate], dtype=int)
+            hdr.tofile(wfile)
+            data = array(self.csdens)
+            data = swapaxes(data,0,3)
+            data = swapaxes(data,1,2)
+            data.tofile(wfile)
+
+        else:
+            if fname.strip()=='':
+                wfile = open('stellarsrc_density.inp', 'w')
+            else:
+                wfile = open(fname, 'w')
+            hdr = array([1, self.grid.nx*self.grid.ny*self.grid.nz, self.csntemplate], dtype=int)
+            hdr.tofile(wfile, sep=" ", format="%d\n")
+            data = array(self.csdens)
+            data = swapaxes(data,0,3)
+            data = swapaxes(data,1,2)
+            data.tofile(wfile, sep=" ", format="%.9e\n")
+        
+        wfile.close()
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 class radmc3dDustOpac():
@@ -3024,7 +3720,8 @@ class radmc3dPar():
             modpar = mdl.getDefaultParams()
             for i in range(len(modpar)):
                 dum = modpar[i]
-                dum.append('Model '+model)
+                if len(dum)==3:
+                    dum.append('Model '+model)
                 self.setPar(dum)
         
 # --------------------------------------------------------------------------------------------------

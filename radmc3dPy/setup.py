@@ -252,7 +252,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     
     # Wavelength grid
     grid.makeWavelengthGrid(ppar=ppar)
-
     # Spatial grid
     grid.makeSpatialGrid(ppar=ppar)
 
@@ -267,12 +266,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
         opac=radmc3dDustOpac()
         # Calculate the opacities and write the master opacity file
         opac.makeOpac(ppar=ppar)
-# --------------------------------------------------------------------------------------------
-# Create the input radiation field (stars at this point) 
-# --------------------------------------------------------------------------------------------
-
-    stars = radmc3dStars(ppar=ppar)
-    stars.getStellarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
 
 # --------------------------------------------------------------------------------------------
 # Try to get the specified model
@@ -288,11 +281,56 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
             print ' The model files should either be in the current working directory or'
             print ' in the radmc3d python module directory'
             return
+# --------------------------------------------------------------------------------------------
+# Create the input radiation field (stars at this point) 
+# --------------------------------------------------------------------------------------------
 
-    data = radmc3dData(grid)
+    radSources = radmc3dRadSources(ppar=ppar, grid=grid)
+    radSources.getStarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'])
+
+
+    # Check if the model has functions to set up continuous starlike sources 
+    if ppar.has_key('incl_accretion'):
+        stellarsrcEnabled = ppar['incl_accretion']
+    else:
+        stellarsrcEnabled = False
+    if dir(mdl).__contains__('getStellarsrcDensity'):
+        if callable(getattr(mdl, 'getStellarsrcDensity')):
+            if dir(mdl).__contains__('getStellarsrcTemplates'):
+                if callable(getattr(mdl, 'getStellarsrcTemplates')):
+                    stellarsrcEnabled = True
+                else: 
+                    stellarsrcEnabled = False
+            else: 
+                stellarsrcEnabled = False
+        else: 
+            stellarsrcEnabled = False
+    else: 
+        stellarsrcEnabled = False
+   
+    if stellarsrcEnabled:
+        dum = mdl.getStellarsrcTemplates(grid=grid, ppar=ppar)
+        if dum[0,0]<=0.:
+            radSources.csntemplate = dum.shape[0]
+            radSources.cstemp = []
+            radSources.cstemptype = 1 
+            radSources.cststar = dum[:,0]
+            radSources.csrstar = dum[:,1]
+            radSources.csmstar = dum[:,2]
+        else:
+            radSources.csntemplate = dum.shape[0]
+            radSources.cstemp = dum
+            radSources.cstemptype = 2 
+            radSources.cststar = []
+            radSources.csrstar = []
+            radSources.csmstar = []
+
+        radSources.csdens = mdl.getStellarsrcDensity(grid=grid, ppar=ppar)
+
 # --------------------------------------------------------------------------------------------
 # Create the dust density distribution 
 # --------------------------------------------------------------------------------------------
+    data = radmc3dData(grid)
     if dir(mdl).__contains__('getDustDensity'):
         if callable(getattr(mdl, 'getDustDensity')):
             data.rhodust = mdl.getDustDensity(grid=grid, ppar=ppar)
@@ -333,7 +371,31 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     #Spatial grid
     grid.writeSpatialGrid()
     #Input radiation field
-    stars.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
+    radSources.writeStarsinp(ppar=ppar)
+    #radSources.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'], \
+            #rstar=ppar['rstar'], incl_spot=ppar['incl_accretion'])
+    # Continuous starlike sources
+    if stellarsrcEnabled:
+        radSources.writeStellarsrcTemplates()
+        radSources.writeStellarsrcDensity(binary=binary)
+
+    radSources.getAccdiskSpectra(ppar=ppar, grid=grid)
+    radSources.getSpotSpectrum(ppar=ppar, grid=grid)
+    radSources.getStarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'])
+    #totlum = radSources.getTotalLuminosities()
+    print '-------------------------------------------------------------'
+    print 'Luminosities of radiation sources in the model :'
+    
+    totlum = radSources.getTotalLuminosities(readInput=True)
+    print 'As calculated from the input files :'
+    print 'Stars : '
+    print ("  Star #%d + hotspot        : %.6e"%(0, totlum['lnu_star'][0]))
+    for istar in range(1,radSources.nstar):
+        print ("  Star #%d               : %.6e"%(istar, totlum['lnu_star'][istar]))
+    print ("Continuous starlike source : %.6e"%totlum['lnu_accdisk'])
+    print ' '
+    print '-------------------------------------------------------------'
+
     #Dust density distribution
     data.writeDustDens(binary=binary)
     #Dust temperature distribution
@@ -345,10 +407,9 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # --------------------------------------------------------------------------------------------
 # Calculate optical depth for diagnostics purposes
 # --------------------------------------------------------------------------------------------
-    
-    stars = radmc3dStars()
-    stars.readStarsinp()
-    pwav = stars.findPeakStarspec()[0]
+    #radSources = radmc3dRadSources(ppar=ppar, grid=grid)
+    #radSources.readStarsinp()
+    #pwav = radSources.findPeakStarspec()[0]
     #data.getTau(wav=pwav, usedkappa=False)
     #print 'Radial optical depth at '+("%.2f"%pwav)+'um : ', data.taux.max()
 
@@ -471,6 +532,22 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
         ppar = modpar.ppar
             
             
+# --------------------------------------------------------------------------------------------
+# Try to get the specified model
+# --------------------------------------------------------------------------------------------
+    try:
+        import os
+        imp_path = os.getcwd()
+        mdl = __import__('model_'+model)
+    except:
+        try:
+            mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
+        except:
+            print 'ERROR'
+            print ' model_'+model+'.py could not be imported'
+            print ' The model files should either be in the current working directory or'
+            print ' in the radmc3d python module directory'
+            return 
 
 # --------------------------------------------------------------------------------------------
 # If the current working directory is empty (i.e. no dust setup is present) then
@@ -494,8 +571,47 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # Create the input radiation field (stars at this point) 
 # --------------------------------------------------------------------------------------------
 
-        stars = radmc3dStars(ppar=ppar)
-        stars.getStellarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'], wav=grid.wav)
+        radSources = radmc3dRadSources(ppar=ppar, grid=grid)
+        radSources.getStarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'])
+        
+        # Check if the model has functions to set up continuous starlike sources
+        if ppar.has_key('incl_accretion'):
+            stellarsrcEnabled = ppar['incl_accretion']
+        else:
+            stellarsrcEnabled = False
+        if dir(mdl).__contains__('getStellarsrcDensity'):
+            if callable(getattr(mdl, 'getStellarsrcDensity')):
+                if dir(mdl).__contains__('getStellarsrcTemplates'):
+                    if callable(getattr(mdl, 'getStellarsrcTemplates')):
+                        stellarsrcEnabled = True
+                    else: 
+                        stellarsrcEnabled = False
+                else: 
+                    stellarsrcEnabled = False
+            else: 
+                stellarsrcEnabled = False
+        else: 
+            stellarsrcEnabled = False
+
+        if stellarsrcEnabled:
+            dum = mdl.getStellarsrcTemplates(grid=grid, ppar=ppar)
+            if dum[0,0]<0.:
+                radSources.csntemplate = dum.shape[0]
+                radSources.cstemp = []
+                radSources.cstemptype = 1 
+                radSources.cststar = dum[:,0]
+                radSources.csrstar = dum[:,1]
+                radSources.csmstar = dum[:,2]
+            else:
+                radSources.csntemplate = dum.shape[0]
+                radSources.cstemp = dum
+                radSources.cstemptype = 2 
+                radSources.cststar = []
+                radSources.csrstar = []
+                radSources.csmstar = []
+
+            radSources.csdens = mdl.getStellarsrcDensity(grid=grid, ppar=ppar)
+
 
 # --------------------------------------------------------------------------------------------
 # Now write out everything 
@@ -506,7 +622,28 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
         #Spatial grid
         grid.writeSpatialGrid()
         #Input radiation field
-        stars.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'])
+        radSources.writeStarsinp(ppar=ppar)
+        #radSources.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'], \
+                #rstar=ppar['rstar'], incl_spot=ppar['incl_accretion'])
+        # Continuous starlike sources
+        if stellarsrcEnabled:
+            radSources.writeStellarsrcTemplates()
+            radSources.writeStellarsrcDensity(binary=binary)
+    
+        print '-------------------------------------------------------------'
+        print 'Luminosities of radiation sources in the model :'
+        
+        totlum = radSources.getTotalLuminosities(readInput=True)
+        print 'As calculated from the input files :'
+        print 'Stars : '
+        print ("  Star #%d + hotspot        : %.6e"%(0, totlum['lnu_star'][0]))
+        for istar in range(1,radSources.nstar):
+            print ("  Star #%d               : %.6e"%(istar, totlum['lnu_star'][istar]))
+        print ("Continuous starlike source : %.6e"%totlum['lnu_accdisk'])
+        print ' '
+        print '-------------------------------------------------------------'
+
+        
         #radmc3d.inp
         writeRadmc3dInp(ppar=ppar)
 # --------------------------------------------------------------------------------------------
@@ -515,28 +652,12 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # --------------------------------------------------------------------------------------------
     else:
         grid=readGrid()
-# --------------------------------------------------------------------------------------------
-# Try to get the specified model
-# --------------------------------------------------------------------------------------------
-    try:
-        import os
-        imp_path = os.getcwd()
-        mdl = __import__('model_'+model)
-    except:
-        try:
-            mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
-        except:
-            print 'ERROR'
-            print ' model_'+model+'.py could not be imported'
-            print ' The model files should either be in the current working directory or'
-            print ' in the radmc3d python module directory'
-            return 
 
-    # Create the data structure
-    data = radmc3dData(grid)
 # --------------------------------------------------------------------------------------------
 # Create the gas density distribution 
 # --------------------------------------------------------------------------------------------
+    # Create the data structure
+    data = radmc3dData(grid)
     # Calculate the gas density and velocity
     # NOTE: the density function in the model sub-modules should provide the gas volume density
     #       in g/cm^3 but RADMC3D needs the number density in 1/cm^3 so we should convert the
