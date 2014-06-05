@@ -2,6 +2,7 @@ include doc/*.pdf
 include radmc3dPy/*.py
 include python_examples/datafiles/*
 include python_examples/run_lines_nlte_lvg_1d_1/*
+include python_examples/run_ppdisk_acc/*
 include python_examples/run_ppdisk_dust+gas/*
 include python_examples/run_simple_1/*
 include python_examples/run_simple_1_binary/*
