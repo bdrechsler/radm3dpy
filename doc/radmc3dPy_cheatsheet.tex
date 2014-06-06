@@ -31,14 +31,13 @@
 
 
 \begin{center}
-{\huge\bf radmc3dPy v0.25}\\
+{\huge\bf radmc3dPy v0.26}\\
 \vspace{0.5cm}
 {\large Attila Juh\'asz}
 \end{center}
-
-\pymod consists of three parts: 1) few core modules (analyze, image, natconst, setup) for creating input files and post-processing
-the output of RADMC-3D, 2) an ensemble of models to provide description for the physical variables in the model space and 
-3) an input parameter file. 
+The \pymod package consist of four core modules (analyze, image, natconst, setup)  for creating input files and post-processing
+the output of RADMC-3D and an ensemble of models to provide description for the physical variables in the model space as well
+as a few example models. For a detailed description of all classes and methods see the reference manual (radmc3dPy\_refman.pdf).
 
 \section{Core modules}
 \label{sec:core}
@@ -46,33 +45,39 @@ the output of RADMC-3D, 2) an ensemble of models to provide description for the 
 \subsection{module: setup}
 \label{subsec:setup}
 
-This module is responsible for model setup (those who are familiar with the IDL package of the predecessor code radmc this
-module is similar to 'problem\_setup.pro'). The setup module contains two separate functions to set up a dust and a gas model
-possibly independently from each other problemSetupDust() and problemSetupGas(). It depends on the actual model whether 
-or not they are completely independent from each other. These functions have one mandatory  argument, the name of the model. Any
-additional keyword argument can be used to change/override the model parameters (as set in the input parameter file). The basic 
-steps of a model setup are the 
-following: 1) Read the input parameter file. 2) Check if any of the parameters were given as
-keyword argument for the setup function and if so set its value to the one given in the keyword argument. If such parameter
-override happens re-write the input parameter file with the actual parameter setup. 3) Create all the necessary input files.
-The setup module has also two convenience function to query the current set of available models and get a one line
-description of that. The most important functions in the setup module are the following:
+This module is responsible mainly for setting up the model, but it also contains some functions to get some information on the
+existing models. 
 
-
-\begin{itemize}
-\item[] {\bf getModelDesc()} - Returns the brief description of the model
-\item[] {\bf getModelNames()} - Returns the list of available models
-\item[] {\bf problemSetupDust()} - Creats a dust continuum model setup
-\item[] {\bf problemSetupGas()} - Creates a gas model setup
-\end{itemize}
+The setup module contains two separate functions to set up a dust and a gas model
+possibly independently from each other problemSetupDust() and problemSetupGas(). 
+It depends on the actual model whether  or not the are completely independent from each other.  Those who are familiar with the 
+IDL package of the predecessor code radmc this module is similar to 'problem\_setup.pro'. 
+These setup functions have one mandatory  argument, the name of the model. 
+The creation of the input files for radmc-3D is done in a very similar way than in the case of the predecessor code, radmc. 
+A master parameter file, called 'problem\_params.inp', contains all input parameters of the model (for the description of the file
+see Sec.\,\ref{sec:parfile}). At the beginning of all model setup this file is read. Then any additional keyword argument
+passed to problemSetupDust() / problemSetupGas() is used to override/change the model parameters as read from the file.
+If a change/override occurs the input parameter file will be re-written to reflect the parameter setup for which the actual model
+was run. This way of parameter handling might be convenient when a grid of model is run and one or more of the parameters
+needs to be changed from model-to-model. Then after the parameters are finally set all necessary input files are created. 
+%
+%The most important functions in the setup module are the following:
+%
+%
+%\begin{itemize}
+%\item[] {\bf getModelDesc()} - Returns the brief description of the model
+%\item[] {\bf getModelNames()} - Returns the list of available models
+%\item[] {\bf problemSetupDust()} - Creats a dust continuum model setup
+%\item[] {\bf problemSetupGas()} - Creates a gas model setup
+%\end{itemize}
 
 \subsection{module: analyze}
 \label{subsec:analyze}
 
 This module is responsible for I/O and some basic analytical functionality. It contains five classes 
-(radmc3dData, radmc3dDustOpac, radmc3dGrid, radmc3dPar, radmc3dStars) and several functions. 
+(radmc3dData, radmc3dDustOpac, radmc3dGrid, radmc3dPar, radmc3dRadSources) and several functions. 
 The radmc3dData class is responsible for the reading and writing of the variables (density, temperature, 
-etc.), whatever radmc3dData can read it can also write it both in formatted ASCII or in C-style binary format. 
+etc.), whatever radmc3dData can read it can also write it, both in formatted ASCII and in C-style binary format. 
 It also contains functions to calculate continuum optical depths and surface density. The radmc3dDustopac class
 contains methods to  read/write the master opacity file (dustopac.inp), read dust opacities and also to calculate
 them. For the dust opacity calculation it uses the code 'makedust' distributed with RADMC-3D (opac/dust\_continuum/jena). 

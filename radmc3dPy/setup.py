@@ -7,11 +7,11 @@ For help on the syntax or functionality of each function see the help of the ind
 
 FUNCTIONS:
 ----------
-    get_model_desc()     - Returns the brief description of a model (if the model file contains a get_desc() function)
-    get_model_names()    - Returns the list of available models 
-    get_template_model() - Copy the template model file from the library directory (radmc3dPy) to the current working directory
-    problem_setup_dust() - Function to set up a dust model
-    problem_setup_gas()  - Function to set up a line simulation
+    getModelDesc()     - Returns the brief description of a model (if the model file contains a get_desc() function)
+    getModelNames()    - Returns the list of available models 
+    getTemplateModel() - Copy the template model file from the library directory (radmc3dPy) to the current working directory
+    problemSetupDust() - Function to set up a dust model
+    problemSetupGas()  - Function to set up a line simulation
     writeLinesInp()    - Writes the lines.inp master command file for line simulations
     writeRadmc3dInp()  - Writes the radmc3d.inp master command file required for all RADMC3D runs
 
