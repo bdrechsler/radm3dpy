@@ -1,137 +1,111 @@
-"""
-PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013,2014
-
-This sub-module functions to set up a RADMC3D model for dust and/or line simulations
+"""This module contains functions to set up a RADMC-3D model for dust and/or line simulations.
 For help on the syntax or functionality of each function see the help of the individual functions
-
-FUNCTIONS:
-----------
-    getModelDesc()     - Returns the brief description of a model (if the model file contains a get_desc() function)
-    getModelNames()    - Returns the list of available models 
-    getTemplateModel() - Copy the template model file from the library directory (radmc3dPy) to the current working directory
-    problemSetupDust() - Function to set up a dust model
-    problemSetupGas()  - Function to set up a line simulation
-    writeLinesInp()    - Writes the lines.inp master command file for line simulations
-    writeRadmc3dInp()  - Writes the radmc3d.inp master command file required for all RADMC3D runs
-
 """
 
 try:
-    from numpy import *
+    import numpy as np
 except:
     print 'ERROR'
     print ' Numpy cannot be imported '
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
-
-from radmc3dPy.natconst import *
-try:
-    from matplotlib.pylab import *
-except:
-    print ' WARNING'
-    print ' matploblib.pylab cannot be imported ' 
-    print ' To used the visualization functionality of the python module of RADMC-3D you need to install matplotlib'
-    print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
-    print ' display images'
-
-from radmc3dPy.crd_trans import vrot
-from radmc3dPy.analyze import *
-from subprocess import Popen, PIPE
+import subprocess as sp
 import os, sys, copy
 
+from radmc3dPy.natconst import *
+import radmc3dPy.analyze as analyze
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def getTemplateModel():
-    """
-    Create a copy of the template model file in the current working directory. 
-    The PYTHONPATH environment variable is checked for the installation path of radmc3dPy and
-    the template file is copied from the first hit in the path list. 
-    """
+## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#def getTemplateModel():
+    #"""Create a copy of the template model file in the current working directory. 
+
+    #The PYTHONPATH environment variable is checked for the installation path of radmc3dPy and
+    #the template file is copied from the first hit in the path list. 
+    #"""
    
-    # Get the installation directory of the radmc3dPy package
-    import radmc3dPy
-    mod_path = radmc3dPy.__file__.strip()[:-12]
+    ## Get the installation directory of the radmc3dPy package
+    #import radmc3dPy
+    #mod_path = radmc3dPy.__file__.strip()[:-12]
 
-    # Copy the model template to the current working directory
+    ## Copy the model template to the current working directory
 
-    command = 'cp -v '+mod_path+'/model_template.py '+os.getcwd()
-    try:
-        os.system(command)
-    except Exception as ex:
-        print ex
+    #command = 'cp -v '+mod_path+'/template.py '+os.getcwd()
+    #try:
+        #os.system(command)
+    #except Exception as ex:
+        #print ex
 
-        return False
-    return True
+        #return False
+    #return True
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def getModelNames():
-    """
-    Returns the name of the available models
-    """
+## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#def getModelNames():
+    #"""Returns the name of the available models
 
-    mod_names = []
+    #"""
+
+    #mod_names = []
    
-    # Get the name of all model files in the module directory
-    import radmc3dPy
-    mod_path = radmc3dPy.__file__.strip()[:-12]
-    dum = Popen(['ls -1 '+mod_path+'/model_*.py'], shell=True, stdout=PIPE, stderr=PIPE).communicate()[0].split()
+    ## Get the name of all model files in the module directory
+    #import radmc3dPy
+    #mod_path = radmc3dPy.__file__.strip()[:-12]
+    #dum = sp.Popen(['ls -1 '+mod_path+'/model_*.py'], shell=True, stdout=sp.PIPE, stderr=sp.PIPE).communicate()[0].split()
 
-    for i in range(len(dum)):
-        id1 = dum[i].index('model_')+6
-        id2 = dum[i].index('.py')
-        modname = dum[i][id1:id2]
-        if modname!='template':
-            mod_names.append(modname)
+    #for i in range(len(dum)):
+        #id1 = dum[i].index('model_')+6
+        #id2 = dum[i].index('.py')
+        #modname = dum[i][id1:id2]
+        #if modname!='template':
+            #mod_names.append(modname)
 
-    # Get the name of all model files in the current working directory
-    if os.getcwd().strip()!=mod_path:
-        mod_path = os.getcwd()
-        dum = Popen(['ls -1 '+mod_path+'/model_*.py'], shell=True, stdout=PIPE, stderr=PIPE).communicate()[0].split()
+    ## Get the name of all model files in the current working directory
+    #if os.getcwd().strip()!=mod_path:
+        #mod_path = os.getcwd()
+        #dum = sp.Popen(['ls -1 '+mod_path+'/model_*.py'], shell=True, stdout=sp.PIPE, stderr=sp.PIPE).communicate()[0].split()
 
-        for i in range(len(dum)):
-            id1 = dum[i].index('model_')+6
-            id2 = dum[i].index('.py')
-            modname = dum[i][id1:id2]
-            if modname!='template':
-                mod_names.append(modname)
+        #for i in range(len(dum)):
+            #id1 = dum[i].index('model_')+6
+            #id2 = dum[i].index('.py')
+            #modname = dum[i][id1:id2]
+            #if modname!='template':
+                #mod_names.append(modname)
 
-    return mod_names
+    #return mod_names
     
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def getModelDesc(model=''):
-    """
-    Returns the brief description of the selected model
-    """
+## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#def getModelDesc(model=''):
+    #"""Returns the brief description of the selected model
 
-    if model.strip()=='':
-        print 'ERROR'
-        print 'No model name is given'
-        return
+    #"""
 
-    try:
-        mdl = __import__('model_'+model)
-    except:
-        try:
-            mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
-        except:
-            print 'ERROR'
-            print ' model_'+model+'.py could not be imported'
-            print ' The model files should either be in the current working directory or'
-            print ' in the radmc3d python module directory'
-            return -1
+    #if model.strip()=='':
+        #print 'ERROR'
+        #print 'No model name is given'
+        #return
+
+    #try:
+        #mdl = __import__('model_'+model)
+    #except:
+        #try:
+            #mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
+        #except:
+            #print 'ERROR'
+            #print ' model_'+model+'.py could not be imported'
+            #print ' The model files should either be in the current working directory or'
+            #print ' in the radmc3d python module directory'
+            #return -1
 
     
-    if callable(getattr(mdl, 'get_desc')):
-        return mdl.get_desc()
-    else:
-        print 'ERROR'
-        print 'model_'+model+'.py does not contain a get_desc() function.'
-        return
+    #if callable(getattr(mdl, 'getModelDesc')):
+        #return mdl.getModelDesc()
+    #else:
+        #print 'ERROR'
+        #print 'model_'+model+'.py does not contain a getModelDesc() function.'
+        #return
 
 
 
@@ -141,55 +115,61 @@ def getModelDesc(model=''):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     """
-    Function to set up a dust model for RADMC3D 
+    Function to set up a dust model for RADMC-3D 
     
-    INPUT:
-    ------
-        model : Name of the model that should be used to create the density structure.
-                The file should be in a directory from where it can directly be imported 
-                (i.e. the directory should be in the PYTHON_PATH environment variable or
-                it should be in the current working directory)
-                and the file name should be 'model_xxx.py', where xxx stands for the string
-                that should be specified in this variable
-        
-        binary : If True input files will be written in binary format, if False input files are
-                written as formatted ascii text. 
+    Parameters
+    ----------
+    model           : str
+                      Name of the model that should be used to create the density structure.
+                      The file should be in a directory from where it can directly be imported 
+                      (i.e. the directory should be in the PYTHON_PATH environment variable or
+                      it should be in the current working directory)
+                      and the file name should be 'model_xxx.py', where xxx stands for the string
+                      that should be specified in this variable
+    
+    binary          : bool, optional
+                      If True input files will be written in binary format, if False input files are
+                      written as formatted ascii text. 
 
-        writeDustTemp: If True a separate dust_temperature.inp/dust_tempearture.binp file will be
-                written under the condition that the model contains a function getDustTemperature() 
-    OPTIONS:
-    --------
-        Any varible name in problem_params.inp can be used as a keyword argument.
-        At first all variables are read from problem_params.in to a dictionary called ppar. Then 
-        if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary 
-        is searched for this key. If found the value belonging to that key in the ppar dictionary 
-        is changed to the value of the keyword argument. If no such key is found then the dictionary 
-        is simply extended by the keyword argument. Finally the problem_params.inp file is updated
-        with the new parameter values.
+    writeDustTemp   : bool, optional
+                      If True a separate dust_temperature.inp/dust_tempearture.binp file will be
+                      written under the condition that the model contains a function getDustTemperature() 
+
+    **kwargs        : 
+                    Any varible name in problem_params.inp can be used as a keyword argument.
+                    At first all variables are read from problem_params.in to a dictionary called ppar. Then 
+                    if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary 
+                    is searched for this key. If found the value belonging to that key in the ppar dictionary 
+                    is changed to the value of the keyword argument. If no such key is found then the dictionary 
+                    is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+                    with the new parameter values.
  
-       
-    FILES WRITTEN DURING THE SETUP:
-    -------------------------------
-        dustopac.inp          - dust opacity master file
-        wavelength_micron.inp - wavelength grid
-        amr_grid.inp          - spatial grid
-        stars.inp             - input radiation field
-        dust_density.inp      - dust density distribution
-        radmc3d.inp           - parameters for RADMC3D (e.g. Nr of photons to be used, scattering type, etc)
+      
+    Notes
+    -----
 
-    STEPS OF THE SETUP:
-    -------------------
-        1) Create the spatial and frequency grid
-        2) Create the master opacity file and calculate opacities with the Mie-code if necessary
-        3) Set up the input radiation field (generate stars.inp)
-        4) Calculate the dust density
-        5) If specified;  calculatest the dust temperature (e.g. for gas simulations, or if it is taken from an
-            external input (e.g. from another model))
-        6) Write all output files
+    Files written by problemSetupDust()
+        
+        * dustopac.inp             : Dust opacity master file.
+        
+        * wavelength_micron.inp    : Wavelength grid.
+        
+        * amr_grid.inp             : Spatial grid.
+        
+        * stars.inp                : Input radiation field (discrete stellar sources).
+        
+        * stellarsrc_density.inp   : Input radiation field (continuous stellar sources).
+        
+        * stellarsrc_templates.inp : Input radiation field (continuous stellar sources).
+        
+        * dust_density.inp         : Dust density distribution.
+        
+        * radmc3d.inp              : Parameters for RADMC-3D (e.g. Nr of photons to be used, scattering type, etc).
+
     """
   
     # Read the parameters from the problem_params.inp file 
-    modpar = readParams()
+    modpar = analyze.readParams()
 
     # Make a local copy of the ppar dictionary
     ppar = modpar.ppar
@@ -248,7 +228,7 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # --------------------------------------------------------------------------------------------
 # Create the grid
 # --------------------------------------------------------------------------------------------
-    grid = radmc3dGrid()
+    grid = analyze.radmc3dGrid()
     
     # Wavelength grid
     grid.makeWavelengthGrid(ppar=ppar)
@@ -259,11 +239,11 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # Dust opacity
 # --------------------------------------------------------------------------------------------
     if ppar.has_key('dustkappa_ext'):
-        opac=radmc3dDustOpac()
+        opac=analyze.radmc3dDustOpac()
         #Master dust opacity file
         opac.writeMasterOpac(ext=ppar['dustkappa_ext'], scattering_mode_max=ppar['scattering_mode_max'])
     else:
-        opac=radmc3dDustOpac()
+        opac=analyze.radmc3dDustOpac()
         # Calculate the opacities and write the master opacity file
         opac.makeOpac(ppar=ppar)
 
@@ -271,13 +251,13 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # Try to get the specified model
 # --------------------------------------------------------------------------------------------
     try:
-        mdl = __import__('model_'+model)
+        mdl = __import__(model)
     except:
         try:
-            mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
+            mdl  = __import__('radmc3dPy.models.'+model, fromlist=['']) 
         except:
             print 'ERROR'
-            print ' model_'+model+'.py could not be imported'
+            print ' '+model+'.py could not be imported'
             print ' The model files should either be in the current working directory or'
             print ' in the radmc3d python module directory'
             return
@@ -285,7 +265,7 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # Create the input radiation field (stars at this point) 
 # --------------------------------------------------------------------------------------------
 
-    radSources = radmc3dRadSources(ppar=ppar, grid=grid)
+    radSources = analyze.radmc3dRadSources(ppar=ppar, grid=grid)
     radSources.getStarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'])
 
 
@@ -330,18 +310,18 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # --------------------------------------------------------------------------------------------
 # Create the dust density distribution 
 # --------------------------------------------------------------------------------------------
-    data = radmc3dData(grid)
+    data = analyze.radmc3dData(grid)
     if dir(mdl).__contains__('getDustDensity'):
         if callable(getattr(mdl, 'getDustDensity')):
             data.rhodust = mdl.getDustDensity(grid=grid, ppar=ppar)
         else:
             print 'WARNING'
-            print 'model_'+model+'.py does not contain a getDustDensity() function, therefore, '
+            print ' '+model+'.py does not contain a getDustDensity() function, therefore, '
             print ' dust_density.inp cannot be written'
             return 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a getDustDensity() function, therefore, '
+        print ' '+model+'.py does not contain a getDustDensity() function, therefore, '
         print ' dust_density.inp cannot be written'
         return 
 # --------------------------------------------------------------------------------------------
@@ -353,12 +333,12 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
                 data.dusttemp = mdl.getDustTemperature(grid=grid, ppar=ppar)
             else:
                 print 'WARNING'
-                print 'model_'+model+'.py does not contain a getDustTemperature() function, therefore, '
+                print ' '+model+'.py does not contain a getDustTemperature() function, therefore, '
                 print ' dust_temperature.dat cannot be written'
                 return 
         else:
             print 'WARNING'
-            print 'model_'+model+'.py does not contain a getDustTemperature() function, therefore, '
+            print ' '+model+'.py does not contain a getDustTemperature() function, therefore, '
             print ' dust_temperature.dat cannot be written'
             return 
     #data.rhodust = mdl.get_temperature(grid=grid, ppar=ppar) * ppar['dusttogas']
@@ -379,9 +359,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
         radSources.writeStellarsrcTemplates()
         radSources.writeStellarsrcDensity(binary=binary)
 
-    radSources.getAccdiskSpectra(ppar=ppar, grid=grid)
-    radSources.getSpotSpectrum(ppar=ppar, grid=grid)
-    radSources.getStarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'])
     #totlum = radSources.getTotalLuminosities()
     print '-------------------------------------------------------------'
     print 'Luminosities of radiation sources in the model :'
@@ -417,69 +394,76 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False, **kwargs):
     """
-    Function to set up a gas model for RADMC3D 
+    Function to set up a gas model for RADMC-3D 
     
-    INPUT:
-    ------
-        model : Name of the model that should be used to create the density structure
-                the file should be in a directory from where it can directly be imported 
-                (i.e. the directory should be in the PYTHON_PATH environment variable, or
-                it should be the current working directory)
-                and the file name should be 'model_xxx.py', where xxx stands for the string
-                that should be specified in this variable
-    
-        fullsetup : if False only the files related to the gas simulation is written out
+    Parameters
+    ----------
+
+    model         : str
+                    Name of the model that should be used to create the density structure
+                    the file should be in a directory from where it can directly be imported 
+                    (i.e. the directory should be in the PYTHON_PATH environment variable, or
+                    it should be the current working directory)
+                    and the file name should be 'MODELNAME.py', where MODELNAME stands for the string
+                    that should be specified in this variable
+
+    fullsetup     : bool, optional
+                    If False only the files related to the gas simulation is written out
                     (i.e. no grid, stellar parameter file and radmc3d master command file is written)
-                    if True the spatial and wavelength grid as well as the input radiation field
+                    assuming that these files have already been created for a previous continuum simulation.
+                    If True the spatial and wavelength grid as well as the input radiation field
                     and the radmc3d master command file will be (over)written. 
 
-        binary : If True input files will be written in binary format, if False input files are
-                written as formatted ascii text. 
+    binary        : bool, optional
+                    If True input files will be written in binary format, if False input files are
+                    written as formatted ascii text. 
 
-        writeGasTemp: If True a separate gas_temperature.inp/gas_tempearture.binp file will be
-                written under the condition that the model contains a function get_gas_temperature() 
-
-    OPTIONS:
-    --------
-        Any varible name in problem_params.inp can be used as a keyword argument.
-        At first all variables are read from problem_params.in to a dictionary called ppar. Then 
-        if there is any keyword argument set in the call of problem_setup_gas the ppar dictionary 
-        is searched for such key. If found the value belonging to that key in the ppar dictionary 
-        is changed to the value of the keyword argument. If no such key is found then the dictionary 
-        is simply extended by the keyword argument. Finally the problem_params.inp file is updated
-        with the new parameter values.
+    writeGasTemp  : bool, optional
+                    If True a separate gas_temperature.inp/gas_tempearture.binp file will be
+                    written under the condition that the model contains a function get_gas_temperature() 
+    
+    **kwargs      :
+                    Any varible name in problem_params.inp can be used as a keyword argument.
+                    At first all variables are read from problem_params.in to a dictionary called ppar. Then 
+                    if there is any keyword argument set in the call of problem_setup_gas the ppar dictionary 
+                    is searched for such key. If found the value belonging to that key in the ppar dictionary 
+                    is changed to the value of the keyword argument. If no such key is found then the dictionary 
+                    is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+                    with the new parameter values.
 
        
-    FILES WRITTEN DURING THE SETUP:
-    -------------------------------
-        fullsetup = True
-            amr_grid.inp          - spatial grid
-            wavelength_micron.inp - wavelength grid
-            stars.inp             - input radiation field 
-            radmc3d.inp           - parameters for RADMC3D (e.g. Nr of photons to be used, scattering type, etc)
-            lines.inp             -  line mode master command file
-            numberdens_xxx.inp    - number density of molecule/atomic species 'xxx'
-            gas_velocity.inp      - Gas velocity
-            microturbulence.inp   - The standard deviation of the Gaussian line profile caused by turbulent 
-                                    broadening (doublecheck if it is really the standard deviation or a factor
-                                    of sqrt(2) less than that!)
-            gas_temperature.inp   - Gas temperature (which may be different from the dust temperature). If
-                                    tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
-                                    file will be used instead of the dust temperature. 
-        fullsetup = False
-            lines.inp             -  line mode master command file
-            numberdens_xxx.inp    - number density of molecule/atomic species 'xxx'
-            gas_velocity.inp      - Gas velocity
-            microturbulence.inp   - The standard deviation of the Gaussian line profile caused by turbulent 
-                                    broadening (doublecheck if it is really the standard deviation or a factor
-                                    of sqrt(2) less than that!)
-            gas_temperature.inp   - Gas temperature (which may be different from the dust temperature). If
-                                    tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
-                                    file will be used instead of the dust temperature. 
+    Notes
+    -----
+       
+    Files written by problemSetupGas()
+        
+        
+        * lines.inp             : Line mode master command file.
+        
+        * numberdens_xxx.inp    : Number density of molecule/atomic species 'xxx'
+        
+        * gas_velocity.inp      : Gas velocity
+        
+        * microturbulence.inp   : The standard deviation of the Gaussian line profile caused by turbulent 
+                                broadening.
+        
+        * gas_temperature.inp   : Gas temperature (which may be different from the dust temperature). If
+                                tgas_eq_tdust is set to zero in radmc3d.inp the gas temperature in this
+                                file will be used instead of the dust temperature. 
 
+        If fullsetup is set to True the following additional files will be created
+
+        * amr_grid.inp          : Spatial grid.
+        
+        * wavelength_micron.inp : Wavelength grid.
+        
+        * stars.inp             : Input radiation field.
+        
+        * radmc3d.inp           : Parameters for RADMC-3D (e.g. Nr of photons to be used, scattering type, etc).
+        
     """
     # Read the parameters from the problem_params.inp file 
-    modpar = readParams()
+    modpar = analyze.readParams()
 
     # Make a local copy of the ppar dictionary
     ppar = modpar.ppar
@@ -538,13 +522,13 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
     try:
         import os
         imp_path = os.getcwd()
-        mdl = __import__('model_'+model)
+        mdl = __import__(model)
     except:
         try:
-            mdl  = __import__('radmc3dPy.model_'+model, fromlist=['']) 
+            mdl  = __import__('radmc3dPy.models.'+model, fromlist=['']) 
         except:
             print 'ERROR'
-            print ' model_'+model+'.py could not be imported'
+            print ' '+model+'.py could not be imported'
             print ' The model files should either be in the current working directory or'
             print ' in the radmc3d python module directory'
             return 
@@ -559,7 +543,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # --------------------------------------------------------------------------------------------
 # Create the grid
 # --------------------------------------------------------------------------------------------
-        grid = radmc3dGrid()
+        grid = analyze.radmc3dGrid()
     
         # Wavelength grid
         grid.makeWavelengthGrid(ppar=ppar)
@@ -571,7 +555,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # Create the input radiation field (stars at this point) 
 # --------------------------------------------------------------------------------------------
 
-        radSources = radmc3dRadSources(ppar=ppar, grid=grid)
+        radSources = analyze.radmc3dRadSources(ppar=ppar, grid=grid)
         radSources.getStarSpectrum(tstar=ppar['tstar'], rstar=ppar['rstar'])
         
         # Check if the model has functions to set up continuous starlike sources
@@ -623,8 +607,6 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
         grid.writeSpatialGrid()
         #Input radiation field
         radSources.writeStarsinp(ppar=ppar)
-        #radSources.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'], \
-                #rstar=ppar['rstar'], incl_spot=ppar['incl_accretion'])
         # Continuous starlike sources
         if stellarsrcEnabled:
             radSources.writeStellarsrcTemplates()
@@ -657,10 +639,10 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # Create the gas density distribution 
 # --------------------------------------------------------------------------------------------
     # Create the data structure
-    data = radmc3dData(grid)
+    data = analyze.radmc3dData(grid)
     # Calculate the gas density and velocity
     # NOTE: the density function in the model sub-modules should provide the gas volume density
-    #       in g/cm^3 but RADMC3D needs the number density in 1/cm^3 so we should convert the
+    #       in g/cm^3 but RADMC-3D needs the number density in 1/cm^3 so we should convert the
     #       output of the get_density() function to number density using ppar['gasspecMolAbun']
     #       which is the abundance of the gas species with respect to hydrogen divided by the
     #       mean molecular weight
@@ -669,7 +651,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
             data.rhogas = mdl.getGasDensity(grid=grid, ppar=ppar)
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a getGasDensity() function, therefore, '
+        print ' '+model+'.py does not contain a getGasDensity() function, therefore, '
         print ' numberdens_***.inp cannot be written'
         return 
        
@@ -697,7 +679,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a getGasAbundance() function, and no "gasspec_mol_abun" '
+        print ' '+model+'.py does not contain a getGasAbundance() function, and no "gasspec_mol_abun" '
         print ' parameter is found in the problem_setup.inp file. numberdens_***.inp cannot be written'
         return
 
@@ -711,7 +693,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
             data.writeGasVel(binary=binary) 
     else:
         print 'WARNING'
-        print 'model_'+model+'.py does not contain a getVelocity() function, therefore, '
+        print ' '+model+'.py does not contain a getVelocity() function, therefore, '
         print ' gas_velocity.inp cannot be written'
         return
     
@@ -727,7 +709,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
                 data.writeGasTemp(binary=binary) 
         else:
             print 'WARNING'
-            print 'model_'+model+'.py does not contain a getGasTemperature() function, therefore, '
+            print ' '+model+'.py does not contain a getGasTemperature() function, therefore, '
             print ' gas_temperature.inp cannot be written'
             return
 
@@ -740,7 +722,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
             # Write the turbulent velocity field
             data.writeVTurb(binary=binary) 
     else:
-        data.vturb = zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
+        data.vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
         data.vturb[:,:,:] = 0.
         data.writeVTurb(binary=binary)
 # --------------------------------------------------------------------------------------------
@@ -750,12 +732,12 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
     writeLinesInp(ppar=ppar)
 # --------------------------------------------------------------------------------------------------
 def writeRadmc3dInp(modpar=None):
-    """
-    Function to write the radmc3d.inp master command file for RADMC3D
+    """Writes the radmc3d.inp master command file for RADMC-3D
 
-    INPUT:
-    ------
-        ppar : dictionary containing all parameters of a RADMC3D run 
+    Parameters
+    ----------
+    ppar   : dictionary
+             Contains all parameters of a RADMC-3D run.
 
     """
 
@@ -779,12 +761,13 @@ def writeRadmc3dInp(modpar=None):
 
 # --------------------------------------------------------------------------------------------------
 def writeLinesInp(ppar=None):
-    """
-    Function to write the lines.inp master command file for line simulation in RADMC3D
+    """Writes the lines.inp master command file for line simulation in RADMC-3D
 
-    INPUT:
-    ------
-        ppar : dictionary containing all parameters of a RADMC3D run 
+    Parameters
+    ----------
+    
+    ppar   : dictionary,
+            Contains all parameters of a RADMC-3D run 
 
     """
 

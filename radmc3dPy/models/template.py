@@ -1,5 +1,9 @@
-"""
-This is a radmc3dPy model template 
+"""This is a radmc3dPy model template 
+
+This template is an empty model, i.e. all model functions return zeros in the appropriate arrays and dimensions. 
+The purpose of this model is to illustrate the names and syntax of the model functions. Hence, this file can
+be a starting point for implementing new models in the library. 
+
 A radmc3dPy model file can contain any / all of the functions below
 
     getDefaultParams()
@@ -17,7 +21,7 @@ If a model does not provide a variable or the variable should be calculated by R
 (e.g. dust temperature) the corresponding function (e.g. get_dust_temperature) should be removed from
 or commented out in the model file. 
 
-NOTE: When using this template it is strongly advised to renme the template model (to e.g. model_mydisk.py)
+NOTE: When using this template it is strongly advised to rename the template model (to e.g. mydisk.py)
 as the get_model_names() function in the setup module removes the name 'template' from the list of available
 models. 
 
@@ -52,8 +56,6 @@ def getDefaultParams():
     """
     Function to provide default parameter values 
 
-    OUTPUT:
-    -------
 
     Returns a list whose elements are also lists with three elements:
     1) parameter name, 2) parameter value, 3) parameter description
@@ -81,14 +83,17 @@ def getGasTemperature(grid=None, ppar=None):
     """
     Function to calcualte/set the gas temperature
     
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
+    Parameters
+    ----------
+    grid : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
     
-    OUTPUT:
+    ppar : dictionary
+            Dictionary containing all parameters of the model 
+    
+    Returns
     -------
-        returns the gas temperature in K
+    Returns the gas temperature in K
     """
 
 
@@ -101,14 +106,17 @@ def getDustTemperature(grid=None, ppar=None):
     """
     Function to calcualte/set the dust temperature
     
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
+    Parameters
+    ----------
+    grid : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
     
-    OUTPUT:
+    ppar : dictionary
+            Dictionary containing all parameters of the model 
+    
+    Returns
     -------
-        returns the dust temperature in K
+    Returns the dust temperature in K
     """
 
 
@@ -122,15 +130,20 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
     Function to create the conversion factor from volume density to number density of molecule ispec.
     The number density of a molecule is rhogas * abun 
    
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
-        ispec - The name of the gas species whose abundance should be calculated
+    Parameters
+    ----------
+    grid  : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
 
-    OUTPUT:
+    ppar  : dictionary
+            Dictionary containing all parameters of the model 
+
+    ispec : str
+            The name of the gas species whose abundance should be calculated
+
+    Returns
     -------
-        returns the abundance as a Numpy array
+    Returns the abundance as an ndarray
     """
    
     gasabun = -1
@@ -155,14 +168,17 @@ def getGasDensity(grid=None, ppar=None):
     """
     Function to create the total gas density distribution 
     
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
+    Parameters
+    ----------
+    grid : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
     
-    OUTPUT:
+    ppar : dictionary
+            Dictionary containing all parameters of the model 
+    
+    Returns
     -------
-        returns the volume density in g/cm^3
+    Returns the gas volume density in g/cm^3
     """
     
     rhogas = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-20
@@ -176,14 +192,17 @@ def getDustDensity(grid=None, ppar=None):
     """
     Function to create the dust density distribution 
     
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
+    Parameters
+    ----------
+    grid : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
     
-    OUTPUT:
+    ppar : dictionary
+            Dictionary containing all parameters of the model 
+    
+    Returns
     -------
-        returns the volume density in g/cm^3
+    Returns the dust volume density in g/cm^3
     """
 
     rhogas  = get_gas_density(grid=grid, ppar=ppar)
@@ -198,14 +217,17 @@ def getVTurb(grid=None, ppar=None):
     """
     Function to create the turbulent velocity field
     
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
+    Parameters
+    ----------
+    grid : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
     
-    OUTPUT:
+    ppar : dictionary
+            Dictionary containing all parameters of the model 
+    
+    Returns
     -------
-        returns the turbulent velocity in cm/s
+    Returns the turbulent velocity in cm/s
     """
 
     vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + ppar['gasspec_vturb']
@@ -218,14 +240,17 @@ def getVelocity(grid=None, ppar=None):
     """
     Function to create the turbulent velocity field
     
-    INPUT:
-    ------
-        grid - An instance of the radmc3dGrid class containing the spatial and wavelength grid
-        ppar - Dictionary containing all parameters of the model 
+    Parameters
+    ----------
+    grid : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
     
-    OUTPUT:
+    ppar : dictionary
+            Dictionary containing all parameters of the model 
+    
+    Returns
     -------
-        returns the turbulent velocity in cm/s
+    Returns the turbulent velocity in cm/s
     """
 
     vel = np.zeros([grid.nx, grid.ny, grid.nz, 3], dtype=np.float64)

@@ -7,6 +7,7 @@ import setup
 import image
 import crd_trans
 import natconst
+import models
 
-__version__ = "0.25"
-__all__ = ["analyze", "setup", "image", "crd_trans", "natconst"]
+__version__ = "0.26"
+__all__ = ["analyze", "setup", "image", "crd_trans", "natconst", "models"]

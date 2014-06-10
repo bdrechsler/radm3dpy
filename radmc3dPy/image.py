@@ -1,28 +1,9 @@
-"""
-PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013,2014
-
-This sub-module contains classes/functions to create and read images with radmc3d and to calculate
+"""This module contains classes/functions to create and read images with RADMC-3D and to calculate
 interferometric visibilities and write fits files
 For help on the syntax or functionality of each function see the help of the individual functions
-
-CLASSES:
---------
-    radmc3dImage - RADMC3D image class
-    radmc3dVisibility - Class of interferometric visibilities
-
-FUNCTIONS:
-----------
-
-    getPSF() - Calculates a Gaussian PSF/beam
-    getVisibility() - Calculates interferometric visiblities
-    makeImage() - Runs RADMC3D to calculate images/channel maps
-    plotImage() - Plots the image
-    readImage() - Reads RADMC3D image(s)
-
 """
 try:
-    from matplotlib.pylab import *
+    import matplotlib.pylab as plb
 except:
     print ' WARNING'
     print ' matploblib.pylab cannot be imported ' 
@@ -30,7 +11,7 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 try:
-    from numpy import *
+    import numpy as np
 except:
     print 'ERROR'
     print ' Numpy cannot be imported '
@@ -47,7 +28,7 @@ except:
         print ' The PyFits/astropy.io.fits module is needed to write RADMC-3D images to FITS format'
         print ' Without PyFits no fits file can be written'
 
-from copy import deepcopy
+import copy
 import subprocess as sp
 import sys, os
 
@@ -55,22 +36,49 @@ import sys, os
 # **************************************************************************************************
 class radmc3dImage():
     """
-    RADMC3D image class
+    RADMC-3D image class
 
-    ATTRIBUTES:
-    -----------
-        image       - The image as calculated by radmc3d (the values are intensities in erg/s/cm^2/Hz/ster)
-        imageJyppix - The image with pixel units of Jy/pixel
-        x           - x coordinate of the image [cm]
-        y           - y coordinate of the image [cm]
-        nx          - Number of pixels in the horizontal direction
-        ny          - Number of pixels in the vertical direction
-        sizepix_x   - Pixel size in the horizontal direction [cm]
-        sizepix_y   - Pixel size in the vertical direction [cm]
-        nfreq       - Number of frequencies in the image cube
-        freq        - Frequency grid in the image cube
-        nwav        - Number of wavelengths in the image cube (same as nfreq)
-        wav         - Wavelength grid in the image cube
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+
+    image       : ndarray
+                  The image as calculated by radmc3d (the values are intensities in erg/s/cm^2/Hz/ster)
+    
+    imageJyppix : ndarray
+                  The image with pixel units of Jy/pixel
+    
+    x           : ndarray
+                  x coordinate of the image [cm]
+    
+    y           : ndarray
+                  y coordinate of the image [cm]
+    
+    nx          : int
+                  Number of pixels in the horizontal direction
+    
+    ny          : int   
+                  Number of pixels in the vertical direction
+    
+    sizepix_x   : float
+                  Pixel size in the horizontal direction [cm]
+    
+    sizepix_y   : float
+                  Pixel size in the vertical direction [cm]
+    
+    nfreq       : int
+                  Number of frequencies in the image cube
+    
+    freq        : ndarray
+                  Frequency grid in the image cube
+    
+    nwav        : int
+                  Number of wavelengths in the image cube (same as nfreq)
+    
+    wav         : ndarray
+                  Wavelength grid in the image cube
 
     """
     def __init__(self):
@@ -93,55 +101,59 @@ class radmc3dImage():
         self.dpc         = 0
 # --------------------------------------------------------------------------------------------------
     def getClosurePhase(self, bl=None, pa=None, dpc=None):
-        """
-        Function to calculate clusure phases for a given model image for any arbitrary baseline triplet
+        """Calculates clusure phases for a given model image for any arbitrary baseline triplet.
 
-        INPUT:
+        Parameters
+        ----------
+        
+        bl  : list/ndarray
+              A list or ndrray containing the length of projected baselines in meter.
+        
+        pa  : list/ndarray
+              A list or Numpy array containing the position angles of projected baselines in degree.
+        
+        dpc : distance of the source in parsec
+
+        NOTE, bl and pa should either be an array with dimension [N,3] or if they are lists each element of
+            the list should be a list of length 3, since closure phases are calculated only for closed triangles
+
+        Return
         ------
-            bl       - a list or Numpy array containing the length of projected baselines in meter(!)
-            pa       - a list or Numpy array containing the position angles of projected baselines in degree(!)
-            dpc      - distance of the source in parsec
-
-            NOTE, bl and pa should either be an array with dimension [N,3] or if they are lists each element of
-                the list should be a list of length 3, since closure phases are calculated only for closed triangles
-
-        OUTPUT:
-        -------
-            returns a dictionary with the following keys:
+        Returns a dictionary with the following keys:
                 
-                bl     - projected baseline in meter
-                pa     - position angle of the projected baseline in degree
-                nbl    - number of baselines
-                u      - spatial frequency along the x axis of the image
-                v      - spatial frequency along the v axis of the image
-                vis    - complex visibility at points (u,v)
-                amp    - correlation amplitude 
-                phase  - Fourier phase
-                cp     - closure phase
-                wav    - wavelength 
-                nwav   - number of wavelengths
+            *bl     : projected baseline in meter
+            *pa     : position angle of the projected baseline in degree
+            *nbl    : number of baselines
+            *u      : spatial frequency along the x axis of the image
+            *v      : spatial frequency along the v axis of the image
+            *vis    : complex visibility at points (u,v)
+            *amp    : correlation amplitude 
+            *phase  : Fourier phase
+            *cp     : closure phase
+            *wav    : wavelength 
+            *nwav   : number of wavelengths
 
         """
 
         res = {}
-        res['bl']    = array(bl, dtype=float)
-        res['pa']    = array(pa, dtype=float)
+        res['bl']    = np.array(bl, dtype=float)
+        res['pa']    = np.array(pa, dtype=float)
         res['ntri']  = res['bl'].shape[0]
         res['nbl']   = 3
         res['nwav']  = self.nwav
         res['wav']   = self.wav
 
         res['ntri']  = res['bl'].shape[0]
-        res['u']     = zeros([res['ntri'], 3, res['nwav']], dtype=float)
-        res['v']     = zeros([res['ntri'], 3, res['nwav']], dtype=float)
-        res['vis']   = zeros([res['ntri'], 3, res['nwav']], dtype=complex64)
-        res['amp']   = zeros([res['ntri'], 3, res['nwav']], dtype=float)
-        res['phase'] = zeros([res['ntri'], 3, res['nwav']], dtype=float)
-        res['cp']    = zeros([res['ntri'], res['nwav']], dtype=float)
+        res['u']     = np.zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['v']     = np.zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['vis']   = np.zeros([res['ntri'], 3, res['nwav']], dtype=np.complex64)
+        res['amp']   = np.zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['phase'] = np.zeros([res['ntri'], 3, res['nwav']], dtype=float)
+        res['cp']    = np.zeros([res['ntri'], res['nwav']], dtype=float)
         
         
-        l   = self.x / 1.496e13 / dpc / 3600. / 180.*pi 
-        m   = self.y / 1.496e13 / dpc / 3600. / 180.*pi 
+        l   = self.x / 1.496e13 / dpc / 3600. / 180.*np.pi 
+        m   = self.y / 1.496e13 / dpc / 3600. / 180.*np.pi 
         dl  = l[1]-l[0]
         dm  = m[1]-m[0]
         
@@ -164,47 +176,50 @@ class radmc3dImage():
 
 # --------------------------------------------------------------------------------------------------
     def getVisibility(self, bl=None, pa=None, dpc=None):
-        """
-        Function to calculate visibilities for a given set of projected baselines and position angles
-        with the Discrete Fourier Transform
+        """Calculates visibilities for a given set of projected baselines and position angles
+        with Discrete Fourier Transform.
 
-        INPUT:
+        Parameters
+        ----------
+        
+        bl  : list/ndarray
+              A list or ndrray containing the length of projected baselines in meter.
+        
+        pa  : list/ndarray
+              A list or Numpy array containing the position angles of projected baselines in degree.
+        
+        dpc : distance of the source in parsec
+
+        Return
         ------
-            bl       - a list or Numpy array containing the length of projected baselines in meter(!)
-            pa       - a list or Numpy array containing the position angles of projected baselines in degree(!)
-            dpc      - distance of the source in parsec
-
-        OUTPUT:
-        -------
-            returns a dictionary with the following keys:
+        Returns a dictionary with the following keys:
                 
-                bl     - projected baseline in meter
-                pa     - position angle of the projected baseline in degree
-                nbl    - number of baselines
-                u      - spatial frequency along the x axis of the image
-                v      - spatial frequency along the v axis of the image
-                vis    - complex visibility at points (u,v)
-                amp    - correlation amplitude 
-                phase  - phase
-                wav    - wavelength 
-                nwav   - number of wavelengths
-
+            *bl     : projected baseline in meter
+            *pa     : position angle of the projected baseline in degree
+            *nbl    : number of baselines
+            *u      : spatial frequency along the x axis of the image
+            *v      : spatial frequency along the v axis of the image
+            *vis    : complex visibility at points (u,v)
+            *amp    : correlation amplitude 
+            *phase  : Fourier phase
+            *wav    : wavelength 
+            *nwav   : number of wavelengths
         """
 
         res   = {}
-        res['bl']    = array(bl, dtype=float)
-        res['pa']    = array(pa, dtype=float)
+        res['bl']    = np.array(bl, dtype=float)
+        res['pa']    = np.array(pa, dtype=float)
         res['nbl']   = res['bl'].shape[0]
         
-        res['wav']   = array(self.wav)
+        res['wav']   = np.array(self.wav)
         res['nwav']  = self.nwav
 
-        res['u']     = zeros([res['nbl'], self.nwav], dtype=float)
-        res['v']     = zeros([res['nbl'], self.nwav], dtype=float)
+        res['u']     = np.zeros([res['nbl'], self.nwav], dtype=float)
+        res['v']     = np.zeros([res['nbl'], self.nwav], dtype=float)
 
-        res['vis']   = zeros([res['nbl'], self.nwav], dtype=complex64)
-        res['amp']   = zeros([res['nbl'], self.nwav], dtype=float64)
-        res['phase'] = zeros([res['nbl'], self.nwav], dtype=float64)
+        res['vis']   = np.zeros([res['nbl'], self.nwav], dtype=np.complex64)
+        res['amp']   = np.zeros([res['nbl'], self.nwav], dtype=np.float64)
+        res['phase'] = np.zeros([res['nbl'], self.nwav], dtype=np.float64)
 
 
         l   = self.x / 1.496e13 / dpc / 3600. / 180.*pi 
@@ -215,8 +230,8 @@ class radmc3dImage():
         for iwav in range(res['nwav']):
         
             # Calculate spatial frequencies 
-            res['u'][:,iwav] = res['bl'] * cos(res['pa']) * 1e6 / self.wav[iwav]
-            res['v'][:,iwav] = res['bl'] * sin(res['pa']) * 1e6 / self.wav[iwav]
+            res['u'][:,iwav] = res['bl'] * np.cos(res['pa']) * 1e6 / self.wav[iwav]
+            res['v'][:,iwav] = res['bl'] * np.sin(res['pa']) * 1e6 / self.wav[iwav]
 
 
             for ibl in range(res['nbl']):
@@ -227,16 +242,16 @@ class radmc3dImage():
                 
 
                 for il in range(len(l)):
-                    phase = 2.*pi * (res['u'][ibl,iwav]*l[il] + res['v'][ibl,iwav]*m)
-                    cterm = cos(phase)
-                    sterm = -sin(phase)
+                    phase = 2.*np.pi * (res['u'][ibl,iwav]*l[il] + res['v'][ibl,iwav]*m)
+                    cterm = np.cos(phase)
+                    sterm = -np.sin(phase)
                     dum   = dum + (self.image[il,:,iwav]*(cterm + imu*sterm)).sum()*dl*dm
               
                 res['vis'][ibl, iwav]     = dum
-                res['amp'][ibl, iwav]     = sqrt(abs(dum * conj(dum)))
-                res['phase'][ibl, iwav]   = arccos(real(dum)/res['amp'][ibl, iwav])
+                res['amp'][ibl, iwav]     = np.sqrt(abs(dum * conj(dum)))
+                res['phase'][ibl, iwav]   = np.arccos(np.real(dum)/res['amp'][ibl, iwav])
                 if imag(dum)<0.:
-                    res['phase'][ibl, iwav] = 2.*pi - res['phase'][ibl, iwav]
+                    res['phase'][ibl, iwav] = 2.*np.pi - res['phase'][ibl, iwav]
                      
                 print 'Calculating baseline # : ', ibl, ' wavelength # : ', iwav 
 
@@ -244,20 +259,35 @@ class radmc3dImage():
 # --------------------------------------------------------------------------------------------------
     def writeFits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0, 
             casa=False, nu0=0., wav0=0., stokes='I', fitsheadkeys=[]):
-        """
-        Function to write out a RADMC3D image data in fits format (CASA compatible)
+        """Writes out a RADMC-3D image data in fits format. 
   
-        INPUT:
-        ------
-         fname        : File name of the radmc3d output image (if omitted 'image.fits' is used)
-         coord        : Image center coordinates
-         bandwidthmhz : Bandwidth of the image in MHz (equivalent of the CDELT keyword in the fits header)
-         casa         : If set to True a CASA compatible four dimensional image cube will be written
-         nu0          : Rest frequency of the line (for channel maps)
-         wav0         : Rest wavelength of the line (for channel maps)
-         stokes       : Stokes parameter to be written if the image contains Stokes IQUV (possible 
-                        choices: 'I', 'Q', 'U', 'V', 'PI' -Latter being the polarized intensity)
-         fitsheadkeys : Dictionary containing all (extra) keywords to be added to the fits header. If 
+        Parameters
+        ----------
+        
+        fname        : str
+                        File name of the radmc3d output image (if omitted 'image.fits' is used)
+        
+        coord        : str
+                        Image center coordinates
+        
+        bandwidthmhz : float
+                        Bandwidth of the image in MHz (equivalent of the CDELT keyword in the fits header)
+        
+        casa         : bool 
+                        If set to True a CASA compatible four dimensional image cube will be written
+        
+        nu0          : float
+                        Rest frequency of the line (for channel maps)
+        
+        wav0         : float
+                        Rest wavelength of the line (for channel maps)
+        
+        stokes       : {'I', 'Q', 'U', 'V', 'PI'}
+                        Stokes parameter to be written if the image contains Stokes IQUV (possible 
+                       choices: 'I', 'Q', 'U', 'V', 'PI' -Latter being the polarized intensity)
+        
+        fitsheadkeys : dictionary
+                        Dictionary containing all (extra) keywords to be added to the fits header. If 
                         the keyword is already in the fits header (e.g. CDELT1) it will be updated/changed
                         to the value in fitsheadkeys, if the keyword is not present the keyword is added to 
                         the fits header. 
@@ -324,8 +354,8 @@ class radmc3dImage():
         # Create the data to be written
         if casa:
             # Put the stokes axis to the 4th dimension
-            #data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
-            data = zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
+            #data = np.zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
+            data = np.zeros([1, self.nfreq, self.ny, self.nx], dtype=float)
             if self.nfreq==1:
                 data[0,0,:,:] = self.image[:,:] * conv
 
@@ -333,7 +363,7 @@ class radmc3dImage():
                 for inu in range(self.nfreq):
                     data[inu,0,:,:] = self.image[:,:,inu] * conv
         else:
-            data = zeros([self.nfreq, self.ny, self.nx], dtype=float)
+            data = np.zeros([self.nfreq, self.ny, self.nx], dtype=float)
             if self.stokes:
                 if stokes.strip().upper()!='PI':
                     if self.nfreq==1:
@@ -344,11 +374,11 @@ class radmc3dImage():
                             data[inu,:,:] = self.image[:,:,istokes,inu] * conv
                 else:
                     if self.nfreq==1:
-                        data[0,:,:] = sqrt(self.image[:,:,1]**2 + self.image[:,:,2]**2) * conv
+                        data[0,:,:] = np.sqrt(self.image[:,:,1]**2 + self.image[:,:,2]**2) * conv
 
                     else:
                         for inu in range(self.nfreq):
-                            data[inu,:,:] = sqrt(self.image[:,:,1,inu]**2 + self.image[:,:,2,inu]**2) * conv
+                            data[inu,:,:] = np.sqrt(self.image[:,:,1,inu]**2 + self.image[:,:,2,inu]**2) * conv
 
             else:
                 if self.nfreq==1:
@@ -451,20 +481,35 @@ class radmc3dImage():
             hdu.writeto(fname)
 # --------------------------------------------------------------------------------------------------
     def plotMomentMap(self, moment=0, nu0=0, wav0=0, dpc=1., au=False, arcsec=False, cmap=None, vclip=None):
-        """
-        Function to plot moment maps
+        """Plots moment maps
 
-        INPUT:
-        ------
-            moment : moment of the channel maps to be calculated 
-            nu0    : rest frequency of the line in Hz
-            wav0   : rest wavelength of the line in micron
-            dpc    : distance of the source in pc
-            au     : If true displays the image with AU as the spatial axis unit
-            arcsec : If true displays the image with arcsec as the spatial axis unit (dpc should also be set!)
-            cmap   : matplotlib colormap
-            vclip  : two element list / Numpy array containin the lower and upper limits for the values in the moment
-                      map to be displayed
+        Parameters
+        ----------
+
+        moment : int
+                 Moment of the channel maps to be calculated 
+        
+        nu0    : float
+                 Rest frequency of the line in Hz
+        
+        wav0   : float
+                 Rest wavelength of the line in micron
+        
+        dpc    : float
+                 Distance of the source in pc
+        
+        au     : bool
+                 If True displays the image with AU as the spatial axis unit
+        
+        arcsec : bool
+                 If True displays the image with arcsec as the spatial axis unit (dpc should also be set!)
+        
+        cmap   : matplotlib colormap
+                 Color map to be used to display the moment map
+        
+        vclip  : list/ndarray
+                 Two element list / Numpy array containin the lower and upper limits for the values in the moment
+                  map to be displayed
 
         """
 
@@ -530,25 +575,30 @@ class radmc3dImage():
                 return
             else:
                 mmap = mmap.clip(vclip[0], vclip[1])
-        implot = imshow(mmap, extent=ext, cmap=cmap)
-        cbar = colorbar(implot)
+        implot = plb.imshow(mmap, extent=ext, cmap=cmap)
+        cbar = plb.colorbar(implot)
         cbar.set_label(cb_label)
-        xlabel(xlab)
-        ylabel(ylab)
+        plb.xlabel(xlab)
+        plb.ylabel(ylab)
 # --------------------------------------------------------------------------------------------------
     def getMomentMap(self, moment=0, nu0=0, wav0=0):
-        """
-        Function to calculate moment maps
+        """Calculates moment maps.
 
-        INPUT:
-        ------
-            moment : moment of the channel maps to be calculated 
-            nu0    : rest frequency of the line in Hz
-            wav0   : rest wavelength of the line in micron
+        Parameters
+        ----------
+        
+        moment : int
+                 Moment of the channel maps to be calculated 
+        
+        nu0    : float
+                 Rest frequency of the line in Hz
+        
+        wav0   : float
+                 Rest wavelength of the line in micron
 
-        OUTPUT:
+        Returns
         -------
-            map : Numpy array with the same dimension as the individual channel maps
+        Ndarray with the same dimension as the individual channel maps
         """
 
         # I/O error handling
@@ -571,7 +621,7 @@ class radmc3dImage():
         v = 2.99792458e10*(nu0-self.freq)/nu0/1e5
 
 
-        vmap = zeros([self.nx, self.ny, self.nfreq], dtype=float64)
+        vmap = np.zeros([self.nx, self.ny, self.nfreq], dtype=np.float64)
         for ifreq in range(self.nfreq):
             vmap[:,:,ifreq] = v[ifreq]
 
@@ -585,13 +635,16 @@ class radmc3dImage():
 
 # --------------------------------------------------------------------------------------------------
     def readImage(self, fname=None, binary=False):
-        """
-        Function to read an image calculated by RADMC3D 
+        """Reads an image calculated by RADMC-3D 
      
-        INPUT:
-        ------
-         fname   : file name of the radmc3d output image (if omitted 'image.out' is used)
-         binary  : False - the image format is formatted ASCII if True - C-compliant binary
+        Parameters
+        ----------
+        
+        fname   : str, optional
+                 File name of the radmc3d output image (if omitted 'image.out' is used)
+        
+        binary  : bool
+                 False - the image format is formatted ASCII if True - C-compliant binary
         """
 # --------------------------------------------------------------------------------------------------
         pc   = 3.08572e18
@@ -601,13 +654,13 @@ class radmc3dImage():
                 fname = 'image.bout'
 
            
-            dum        = fromfile(fname, count=4, dtype=int)
+            dum        = np.fromfile(fname, count=4, dtype=int)
             iformat    = dum[0]
             self.nx    = dum[1]
             self.ny    = dum[2]
             self.nfreq = dum[3]
             self.nwav  = self.nfreq 
-            dum        = fromfile(fname, count=-1, dtype=float64)
+            dum        = np.fromfile(fname, count=-1, dtype=np.float64)
 
             self.sizepix_x = dum[4]
             self.sizepix_y = dum[5]
@@ -616,14 +669,14 @@ class radmc3dImage():
 
             if iformat==1:
                 self.stokes    = False
-                self.image     = reshape(dum[6+self.nfreq:], [self.nfreq, self.ny, self.nx])
-                self.image     = swapaxes(self.image,0,2)
-                self.image     = swapaxes(self.image,0,1)
+                self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, self.ny, self.nx])
+                self.image     = np.swapaxes(self.image,0,2)
+                self.image     = np.swapaxes(self.image,0,1)
             elif iformat==3:
                 self.stokes    = True
-                self.image     = reshape(dum[6+self.nfreq:], [self.nfreq, 4, self.ny, self.nx])
-                self.image     = swapaxes(self.image,0,2)
-                self.image     = swapaxes(self.image,1,3)
+                self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, 4, self.ny, self.nx])
+                self.image     = np.swapaxes(self.image,0,2)
+                self.image     = np.swapaxes(self.image,1,3)
 
         else:
 
@@ -668,7 +721,7 @@ class radmc3dImage():
             if iformat==1:
                 self.stokes = False
             
-                self.image = zeros([self.nx,self.ny,self.nwav], dtype=float64)
+                self.image = np.zeros([self.nx,self.ny,self.nwav], dtype=np.float64)
                 for iwav in range(self.nwav):
 # Blank line
                     dum = rfile.readline()
@@ -682,7 +735,7 @@ class radmc3dImage():
 # If we have the full stokes image
             elif iformat==3:
                 self.stokes = True
-                self.image = zeros([self.nx,self.ny,4,self.nwav], dtype=float64)
+                self.image = np.zeros([self.nx,self.ny,4,self.nwav], dtype=np.float64)
                 for iwav in range(self.nwav):
 # Blank line
                     dum = rfile.readline()
@@ -703,29 +756,30 @@ class radmc3dImage():
         conv  = self.sizepix_x * self.sizepix_y / pc**2. * 1e23 
         self.imageJyppix = self.image * conv
 
-        self.x = ((arange(self.nx, dtype=float64) + 0.5) - self.nx/2) * self.sizepix_x
-        self.y = ((arange(self.ny, dtype=float64) + 0.5) - self.ny/2) * self.sizepix_y
+        self.x = ((np.arange(self.nx, dtype=np.float64) + 0.5) - self.nx/2) * self.sizepix_x
+        self.y = ((np.arange(self.ny, dtype=np.float64) + 0.5) - self.ny/2) * self.sizepix_y
 
 # --------------------------------------------------------------------------------------------------
     def imConv(self, fwhm=None, pa=None, dpc=1.):
-        """
-        Function to convolve a radmc3d image with a two dimensional Gaussian psf 
+        """Convolves a RADMC-3D image with a two dimensional Gaussian psf.
     
-        INPUT:
-        ------
-              fwhm    : A list of two numbers; the FWHM of the two dimensional psf along the two principal axes
-                            The unit is assumed to be arcsec 
-              pa      : Position angle of the psf ellipse (counts from North counterclockwise)
-              dpc     : Distance of the source in pc
+        Parameters
+        ----------
+        
+        fwhm    : list
+                 A list of two numbers; the FWHM of the two dimensional psf along the two principal axes.
+                 The unit is assumed to be arcsec.
+        
+        pa      : float
+                 Position angle of the psf ellipse (counts from North counterclockwise).
+
+        dpc     : float
+                 Distance of the source in pc.
     
-        OUTPUT:
+        Returns
         -------
-              result  : same  
-              'cimage': The convolved image with the psf (unit is erg/s/cm/cm/Hz/ster)
-              'image' : The original unconvolved image (unit is erg/s/cm/cm/Hz/ster)
-              'psf'   : Two dimensional psf
-              'x'     : first coordinate axis of the psf/image
-              'y'     : second coordinate axis of the psf/image
+
+        Returns a radmc3dImage 
         """
 # --------------------------------------------------------------------------------------------------
 # Natural constants    
@@ -742,40 +796,40 @@ class radmc3dImage():
 # Calculate the Gaussian psf
         dum   = getPSF(nx=self.nx, ny=self.ny, fwhm=fwhm, pa=pa, pscale=[dx,dy])
         psf   = dum['psf'] 
-        f_psf = fft.fft2(psf)
+        f_psf = np.fft.fft2(psf)
 
         if self.stokes:
             if self.nfreq==1:
-                cimage = zeros([self.nx,self.ny,4], dtype=float64)
+                cimage = np.zeros([self.nx,self.ny,4], dtype=np.float64)
                 for istokes in range(4):
                     imag = self.image[:,:,istokes]
-                    f_imag  = fft.fft2(imag)
+                    f_imag  = np.fft.fft2(imag)
                     f_cimag = f_psf * f_imag
-                    cimage[:,:,istokes] = abs(fft.ifftshift(fft.ifft2(f_cimag)))
+                    cimage[:,:,istokes] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
             else:
-                cimage = zeros([self.nx,self.ny,4,self.nfreq], dtype=float64)
+                cimage = np.zeros([self.nx,self.ny,4,self.nfreq], dtype=float64)
                 for ifreq in range(nfreq):
                     for istokes in range(4):
                         imag = self.image[:,:,istokes,ifreq]
-                        f_imag  = fft.fft2(imag)
+                        f_imag  = np.fft.fft2(imag)
                         f_cimag = f_psf * f_imag
-                        cimage[:,:,istokes,ifreq] = abs(fft.ifftshift(fft.ifft2(f_cimag)))
+                        cimage[:,:,istokes,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
         else:
-            cimage = zeros([self.nx,self.ny,self.nfreq], dtype=float64)
+            cimage = np.zeros([self.nx,self.ny,self.nfreq], dtype=np.float64)
             for ifreq in range(nfreq):
                 imag = self.image[:,:,ifreq]
-                f_imag  = fft.fft2(imag)
+                f_imag  = np.fft.fft2(imag)
                 f_cimag = f_psf * f_imag
-                cimage[:,:,ifreq] = abs(fft.ifftshift(fft.ifft2(f_cimag)))
+                cimage[:,:,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
 
         #cimage = squeeze(cimage)
   
 # Return the convolved image (copy the image class and replace the image attribute to the convolved image)
 
-        res             = deepcopy(self)
-        conv            = res.sizepix_x * res.sizepix_y / (dpc*pc)**2./ (fwhm[0] * fwhm[1] * pi / (4.*log(2.)))
+        res             = copy.deepcopy(self)
+        conv            = res.sizepix_x * res.sizepix_y / (dpc*pc)**2./ (fwhm[0] * fwhm[1] * np.pi / (4.*np.log(2.)))
         res.image       = cimage * conv
         res.imageJyppix = res.image * 1e23
         res.psf         = psf
@@ -788,24 +842,35 @@ class radmc3dImage():
 
 # --------------------------------------------------------------------------------------------------
 def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
-    """
-    Function to generate a two dimensional Gaussian PSF
+    """Calculates a two dimensional Gaussian PSF.
     
-    INPUT:
-    ------
-          nx      : image size in the first dimension
-          ny      : image size in the second dimension
-          fwhm    : full width at half maximum of the psf in each dimension [fwhm_x, fwhm_y]
-          pa      : position angle of the gaussian if the gaussian is not symmetric
-          pscale  : pixelscale of the image, if set fwhm should be in the same unit, if not set unit of fwhm is pixels
+    Parameters
+    ----------
+    nx      : int
+              Image size in the first dimension
 
-    OUTPUT:
+    ny      : int
+              Image size in the second dimension
+
+    fwhm    : list
+              Full width at half maximum of the psf in each dimension [fwhm_x, fwhm_y]
+
+    pa      : float
+              Position angle of the gaussian if the gaussian is not symmetric
+
+    pscale  : float
+              Pixelscale of the image, if set fwhm should be in the same unit, if not set unit of fwhm is pixels
+
+    Returns
     -------
-          result  : dictionary containing the following keys
-          'psf'   : two dimensional numpy array containing the normalized psf
-          'x'     : first coordinate axis of the psf
-          'y'     : seonc coordinate axis of the psf
-          
+
+    Returns a dictionary with the following keys:
+        *psf : ndarray
+                The two dimensional psf
+        *x   : ndarray
+                The x-axis of the psf 
+        *y   : ndarray
+                The y-axis of the psf 
     """
 # --------------------------------------------------------------------------------------------------
 
@@ -816,28 +881,28 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
     else:
         dx,dy = 1., 1.
 
-    x = (arange(nx, dtype=float64) - nx/2) * dx
-    y = (arange(ny, dtype=float64) - ny/2) * dy
+    x = (np.arange(nx, dtype=np.float64) - nx/2) * dx
+    y = (np.arange(ny, dtype=np.float64) - ny/2) * dy
 
 # Calculate the standard deviation of the Gaussians
-    sigmax = fwhm[0] / (2.0 * sqrt(2.0 * log(2.)))
-    sigmay = fwhm[1] / (2.0 * sqrt(2.0 * log(2.)))
-    norm   = 1./(2. * pi * sigmax * sigmay)
+    sigmax = fwhm[0] / (2.0 * np.sqrt(2.0 * np.log(2.)))
+    sigmay = fwhm[1] / (2.0 * np.sqrt(2.0 * np.log(2.)))
+    norm   = 1./(2. * np.pi * sigmax * sigmay)
 
 
 # Pre-compute sin and cos angles
 
-    sin_pa = sin(pa/180.*pi - pi/2.)
-    cos_pa = cos(pa/180.*pi - pi/2.)
+    sin_pa = np.sin(pa/180.*np.pi - np.pi/2.)
+    cos_pa = np.cos(pa/180.*np.pi - np.pi/2.)
 
 # Define the psf
-    psf = zeros([nx,ny], dtype=float64)
+    psf = np.zeros([nx,ny], dtype=np.float64)
     for ix in range(nx):
         for iy in range(ny):
             xx = cos_pa * x[ix] - sin_pa * y[iy]
             yy = sin_pa * x[ix] + cos_pa * y[iy]
 
-            psf[ix,iy] = exp(-0.5*xx*xx/sigmax/sigmax - 0.5*yy*yy/sigmay/sigmay)
+            psf[ix,iy] = np.exp(-0.5*xx*xx/sigmax/sigmax - 0.5*yy*yy/sigmay/sigmay)
 
     
     # Normalize the PSF 
@@ -849,14 +914,16 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
 
 # --------------------------------------------------------------------------------------------------
 def readImage(fname=None, binary=False):
-    """
-    Function to read an image calculated by RADMC3D 
+    """Reads an image calculated by RADMC-3D.
+       This function is an interface to radmc3dImage.readImage().
      
-    INPUT:
-    ------
-        fname   : file name of the radmc3d output image (if omitted 'image.out' is used)
-        binary  : False - the image format is formatted ASCII if True - C-compliant binary
- 
+    Parameters
+    ----------
+        fname   : str, optional
+                 File name of the radmc3d output image (if omitted 'image.out' is used)
+        
+        binary  : bool
+                 False - the image format is formatted ASCII if True - C-compliant binary
     """
 
     dum = radmc3dImage()
@@ -864,35 +931,56 @@ def readImage(fname=None, binary=False):
     return dum
 
 # ***************************************************************************************************************
-def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=None, saturate=None, bunit=None, \
-        ifreq=0, cmask_rad=None, interpolation='nearest', cmap=cm.gist_gray, stokes='I', **kwargs):
-                  #ifreq=None, cmap=None, cmask_rad=None, interpolation='nearest'):
-    """
-    Function to plot a radmc3d image
+def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=None, saturate=None, bunit='norm', \
+        ifreq=0, cmask_rad=None, interpolation='nearest', cmap=plb.cm.gist_gray, stokes='I', **kwargs):
+    """Plots a radmc3d image.
     
-    SYNTAX:
+
+    Parameters
+    ----------
+    image         : radmc3dImage
+                    A radmc3dImage class returned by readimage   
+    
+    arcsec        : bool
+                    If True image axis will have the unit arcsec (NOTE: dpc keyword should also be set!)
+    
+    au            : bool
+                    If True image axis will have the unit AU
+    
+    log           : bool
+                    If True image scale will be logarithmic, otherwise linear
+    
+    dpc           : float
+                    Distance to the source in parsec (This keywords should be set if arcsec=True, or bunit!='norm')
+    
+    maxlog        : float
+                    Logarithm of the lowest pixel value to be plotted, lower pixel values will be clippde
+    
+    saturate      : float
+                    Highest pixel values to be plotted in terms of the peak value, higher pixel values will be clipped
+    
+    bunit         : {'norm', 'inu', 'snu'}
+                    Unit of the image, ('norm' - Inu/max(Inu), 'inu' - Inu, 'snu' - Jy/pixel), default is 'norm'
+    
+    ifreq         : int
+                    If the image file/array consists of multiple frequencies/wavelengths ifreq denotes the index
+                    of the frequency/wavelength in the image array to be plotted
+    
+    cmask_rad     : float
+                    Simulates coronographyic mask : sets the image values to zero within this radius of the image center
+                    The unit is the same as the image axis (au, arcsec, cm)
+                    NOTE: this works only on the plot, the image array is not changed (for that used the cmask() function)
+
+    cmap          : matplotlib color map
+    
+    interpolation : str
+                    interpolation keyword for imshow (e.g. 'nearest', 'bilinear', 'bicubic')
+    
+    Example
     -------
-          result = plotImage(image='image.out', arcsec=True, au=False, log=True, dpc=140, maxlog=-6., 
-                             saturate=0.1, bunit='Jy')
-
-    INPUT:
-    ------
-          image    : A radmc3dImage class returned by readimage   
-          arcsec   : If True image axis will have the unit arcsec (NOTE: dpc keyword should also be set!)
-          au       : If True image axis will have the unit AU
-          log      : If True image scale will be logarithmic, otherwise linear
-          dpc      : Distance to the source in parsec (This keywords should be set if arcsec=True, or bunit!=None)
-          maxlog   : Logarithm of the lowest pixel value to be plotted, lower pixel values will be clippde
-          saturate : Highest pixel values to be plotted in terms of the peak value, higher pixel values will be clipped
-          bunit    : Unit of the image, (None - Inu/max(Inu), 'inu' - Inu, fnu - Jy/pixel) 
-          ifreq    : If the image file/array consists of multiple frequencies/wavelengths ifreq denotes the index
-                     of the frequency/wavelength in the image array to be plotted
-          cmask_rad : Simulates coronographyic mask : sets the image values to zero within this radius of the image center
-                      The unit is the same as the image axis (au, arcsec, cm)
-                      NOTE: this works only on the plot, the image array is not changed (for that used the cmask() function)
-
-          cmap     : matplotlib color map
-          interpolation: interpolation keyword for imshow (e.g. 'nearest', 'bilinear', 'bicubic')
+    
+    result = plotImage(image='image.out', arcsec=True, au=False, log=True, dpc=140, maxlog=-6., 
+             saturate=0.1, bunit='Jy')
     """
 # ***************************************************************************************************************
 
@@ -901,7 +989,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
 # Check whether or not we need to mask the image
     
-    dum_image = deepcopy(image)
+    dum_image = copy.deepcopy(image)
     if dum_image.stokes:
         if stokes.strip().upper()=='I': 
             if dum_image.nwav==1:
@@ -929,9 +1017,9 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
         if stokes.strip().upper()=='PI':
             if dum_image.nwav==1:
-                dum_image.image = sqrt(image.image[:,:,1]**2 + image.image[:,:,2]**2)
+                dum_image.image = np.sqrt(image.image[:,:,1]**2 + image.image[:,:,2]**2)
             else:    
-                dum_image.image = sqrt(image.image[:,:,1,:]**2 + image.image[:,:,2,:]**2)
+                dum_image.image = np.sqrt(image.image[:,:,1,:]**2 + image.image[:,:,2,:]**2)
 
 
     if cmask_rad!=None:
@@ -941,7 +1029,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         
     if (ifreq==None):
         ifreq = 0
-    data = squeeze(dum_image.image[::-1,:,ifreq])
+    data = np.squeeze(dum_image.image[::-1,:,ifreq])
 
     #if (image.nfreq>1):
         #if (ifreq==None):
@@ -951,18 +1039,18 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         #data = dum_image.image[::-1,:] 
 
     norm  = data.max()
-    if (bunit==None):
+    if (bunit=='norm'):
         data = data/norm
 
     clipnorm = data.max()
 # Check if the data should be plotted on a log scale
     if log:
-        clipmin = log10(data[data>0.].min())
-        data = log10(data.clip(1e-90))
+        clipmin = np.log10(data[data>0.].min())
+        data = np.log10(data.clip(1e-90))
         
 # Clipping the data
         if (maxlog!=None):
-            clipmin = -maxlog + log10(clipnorm)
+            clipmin = -maxlog + np.log10(clipnorm)
     else:
         clipmin  = data.min()
 
@@ -970,7 +1058,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         if (saturate>1.): 
             saturate = 1.0
         if log:
-            clipmax = log10(saturate) + log10(clipnorm)
+            clipmax = np.log10(saturate) + np.log10(clipnorm)
         else:
             clipmax = clipnorm * saturate
     else:
@@ -980,7 +1068,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
 # Select the unit of the data
 
-    if (bunit==None):
+    if (bunit=='norm'):
         if log:
             cb_label = 'log(I'+r'$_\nu$'+'/max(I'+r'$_\nu$'+'))'
         else:
@@ -990,7 +1078,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
             cb_label = 'log(I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster])'
         else:
             cb_label = 'I'+r'$_\nu$'+' [erg/s/cm/cm/Hz/ster]'
-    elif (bunit=='fnu'):
+    elif (bunit=='snu'):
         if dpc==None:
             print 'ERROR'
             print ' If Jy/pixel is selected for the image unit the dpc keyword should also be set'
@@ -998,18 +1086,18 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         else:
             if log:
                 if len(image.fwhm)>0:
-                    data    = data + log10(1e23) 
-                    cb_label = 'log(F'+r'$_\nu$'+ '[Jy/beam])'
+                    data    = data + np.log10(1e23) 
+                    cb_label = 'log(S'+r'$_\nu$'+ '[Jy/beam])'
                 else:
-                    data    = data + log10(image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
-                    cb_label = 'log(F'+r'$_\nu$'+ '[Jy/pixel])'
+                    data    = data + np.log10(image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
+                    cb_label = 'log(S'+r'$_\nu$'+ '[Jy/pixel])'
             else:
                 if len(image.fwhm)>0:
                     data    = data * 1e23
-                    cb_label = 'F'+r'$_\nu$'+' [Jy/beam]'
+                    cb_label = 'S'+r'$_\nu$'+' [Jy/beam]'
                 else:
                     data    = data * (image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
-                    cb_label = 'F'+r'$_\nu$'+' [Jy/pixel]'
+                    cb_label = 'S'+r'$_\nu$'+' [Jy/pixel]'
 
 # Set the color bar boundaries
     if log:
@@ -1038,57 +1126,87 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
 
 # Now finally put everything together and plot the data
-    delaxes()
-    delaxes()
+    plb.delaxes()
+    plb.delaxes()
 
     #if (cmap==None): 
         #cmap = cm.gist_gray
 #    implot = imshow(data, extent=ext, cmap=cm.gist_gray)
-    implot = imshow(data, extent=ext, cmap=cmap, interpolation=interpolation, **kwargs)
-    xlabel(xlab)
-    ylabel(ylab)
-    title(r'$\lambda$='+("%.5f"%image.wav[ifreq])+r'$\mu$m')
-    cbar = colorbar(implot)
+    implot = plb.imshow(data, extent=ext, cmap=cmap, interpolation=interpolation, **kwargs)
+    plb.xlabel(xlab)
+    plb.ylabel(ylab)
+    plb.title(r'$\lambda$='+("%.5f"%image.wav[ifreq])+r'$\mu$m')
+    cbar = plb.colorbar(implot)
     cbar.set_label(cb_label)
-    show()
+    plb.show()
 # ***************************************************************************************************************
 
 def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None, pointau=None, \
                   fluxcons=True, nostar=False, noscat=False, \
                   widthkms=None, linenlam=None, vkms=None, iline=None,\
                   lambdarange=None, nlam=None):
-    """
-    Function to call RADMC3D to calculate a rectangular image
-    
-    SYNTAX:
-    -------
-           makeImage(npix=100, incl=60.0, wav=10.0, sizeau=300., phi=0., posang=15., 
-                     pointau=[0., 0.,0.], fluxcons=True, nostar=False, noscat=False)
+    """Calculates a rectangular image with RADMC-3D 
            
-    INPUT:
-    ------
-           npix        : number of pixels on the rectangular images
-           sizeau      : diameter of the image in au
-           incl        : inclination angle of the source
-           dpc         : distance of the source in parsec
-           phi         : azimuthal rotation angle of the source in the model space
-           posang      : position angle of the source in the image plane
-           pointau     : three elements list of the cartesian coordinates of the image center
-           widthkms    : width of the frequency axis of the channel maps
-           linenlam    : number of wavelengths to calculate images at
-           vkms        : a single velocity value at which a channel map should be calculated
-           iline       : line transition index
-           lambdarange : two element list with the wavelenght boundaries between which
-                         multiwavelength images should be calculated
-           nlam        : number of wavelengths to be calculated in lambdarange
+    Parameters
+    ----------
     
-    KEYWORDS:
-    ---------
-           fluxcons : this should not even be a keyword argument, it ensures flux conservation 
-           (adaptive subpixeling) in the rectangular images
-           nostar   : if True the calculated images will not contain stellar emission
-           noscat   : if True, scattered emission will be neglected in the source function, however, 
-                          extinction will contain scattering if kappa_scat is not zero.  
+    npix        : int
+                  Number of pixels on the rectangular images
+    
+    sizeau      : float
+                  Diameter of the image in au
+    
+    incl        : float
+                  Inclination angle of the source
+
+    wav         : float
+                  Wavelength of the image in micron
+    
+    phi         : float, optional
+                  Azimuthal rotation angle of the source in the model space
+    
+    posang      : float, optional
+                  Position angle of the source in the image plane
+    
+    pointau     : Float, optional
+                  Three elements list of the cartesian coordinates of the image center
+    
+    widthkms    : float, optional
+                  Width of the frequency axis of the channel maps
+    
+    linenlam    : int, optional
+                  Number of wavelengths to calculate images at
+    
+    vkms        : float, optional
+                  A single velocity value at which a channel map should be calculated
+    
+    iline       : int, optional
+                  Line transition index
+    
+    lambdarange : list, optional
+                  Two element list with the wavelenght boundaries between which
+                  multiwavelength images should be calculated
+    
+    nlam        : int, optional
+                  Number of wavelengths to be calculated in lambdarange
+    
+    fluxcons    : bool, optional
+                  This should not even be a keyword argument, it ensures flux conservation 
+                  (adaptive subpixeling) in the rectangular images
+    
+    nostar      : bool, optional
+                  If True the calculated images will not contain stellar emission
+    
+    noscat      : bool, optional
+                  If True, scattered emission will be neglected in the source function, however, 
+                   extinction will contain scattering if kappa_scat is not zero.  
+    
+    Example
+    -------
+
+    makeImage(npix=100, incl=60.0, wav=10.0, sizeau=300., phi=0., posang=15., 
+        pointau=[0., 0.,0.], fluxcons=True, nostar=False, noscat=False)
+
     """
 # **************************************************************************************************
 # 
@@ -1188,25 +1306,34 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
 # **************************************************************************************************
 
 def cmask(im=None, rad=0.0, au=False, arcsec=False, dpc=None):
-    """
-    Function to simulate a coronographic mask by
-    setting the image values to zero within circle of a given radius around the
-    image center
+    """Simulates a coronographic mask.
+        Sets the image values to zero within circle of a given radius around the
+        image center.
 
-    INPUT:
-    ------
-        im     : a radmc3dImage class
-        rad    : radius of the mask 
-        au     : if true the radius is taken to have a unit of AU
-        arcsec : if true the radius is taken to have a unit of arcsec (dpc
-                  should also be set)
-        dpc    : distance of the source (required if arcsec = True)
+    Parameters
+    ----------
+    im     : radmc3dImage
+            A radmc3dImage class containing the image
+    
+    rad    : float
+            The raadius of the mask 
+    
+    au     : bool
+            If true the radius is taken to have a unit of AU
+    
+    arcsec : bool
+            If true the radius is taken to have a unit of arcsec (dpc
+            should also be set)
+    
+    dpc    : float
+            Distance of the source (required if arcsec = True)
 
-        NOTE: if arcsec=False and au=False rad is taken to have a unit of pixel
+    NOTE: if arcsec=False and au=False rad is taken to have a unit of pixel
 
-    OUTPUT:
+    Returns
     -------
-        res    : a radmc3dImage class containing the masked image
+    
+    Returns a radmc3dImage class containing the masked image
     """
 
     if au:
@@ -1222,15 +1349,15 @@ def cmask(im=None, rad=0.0, au=False, arcsec=False, dpc=None):
         else:
             crad = rad* im.sizepix_x
 
-    res = deepcopy(im)
+    res = copy.deepcopy(im)
     if im.nfreq!=1:
         for ix in range(im.nx):
-            r = sqrt(im.y**2 + im.x[ix]**2)
+            r = np.sqrt(im.y**2 + im.x[ix]**2)
             ii = r<=crad
             res.image[ix,ii,:] = 0.0
     else:
         for ix in range(im.nx):
-            r = sqrt(im.y**2 + im.x[ix]**2)
+            r = np.sqrt(im.y**2 + im.x[ix]**2)
             ii = r<=crad
             res.image[ix,ii] = 0.0
 
