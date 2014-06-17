@@ -84,6 +84,7 @@ def getDefaultParams():
     ['gasspec_mol_dissoc_taulim', '[1.0]', 'Continuum optical depth limit below which all molecules dissociate'],
     ['gasspec_mol_freezeout_temp', '[19.0]', 'Freeze-out temperature of the molecules in Kelvin'],
     ['gasspec_mol_freezeout_dfact', '[1e-3]', 'Factor by which the molecular abundance should be decreased in the frezze-out zone'],
+    ['gasspec_vturb', '0.2e5', 'Microturbulent line width'],
     ['rin', '1.0*au', ' Inner radius of the disk'],
     ['rdisk', '100.0*au', ' Outer radius of the disk'],
     ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
@@ -93,8 +94,8 @@ def getDefaultParams():
     ['sig0', '0.0', ' Surface density at rdisk'],
     ['mdisk', '1e-4*ms', ' Mass of the disk (either sig0 or mdisk should be set to zero or commented out)'],
     ['bgdens', '1e-30', ' Background density (g/cm^3)'],
-    ['srim_rout', '2.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
-    ['srim_plsig', '2.0', 'Power exponent of the density reduction inside of srim_rout*rin'],
+    ['srim_rout', '0.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
+    ['srim_plsig', '0.0', 'Power exponent of the density reduction inside of srim_rout*rin'],
     ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
     ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
     ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
@@ -231,12 +232,15 @@ def getGasDensity(grid=None, ppar=None):
             dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
 
             if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
-                # Adding the smoothed inner rim
-                sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                if (ppar['srim_rout']!=0.):
+                    # Adding the smoothed inner rim
+                    sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                    dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
 
-                p    = -5.0
-                dum  = (dum1**p + dum2**p)**(1./p)
+                    p    = -5.0
+                    dum  = (dum1**p + dum2**p)**(1./p)
+                else:
+                    dum = dum1
             else:
                 dum = dum1
 
@@ -248,12 +252,15 @@ def getGasDensity(grid=None, ppar=None):
             dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
           
             if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
-                # Adding the smoothed inner rim
-                sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                if (ppar['srim_rout']!=0.):
+                    # Adding the smoothed inner rim
+                    sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                    dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
 
-                p    = -5.0
-                dum  = (dum1**p + dum2**p)**(1./p)
+                    p    = -5.0
+                    dum  = (dum1**p + dum2**p)**(1./p)
+                else:
+                    dum = dum1
             else:
                 dum = dum1
 

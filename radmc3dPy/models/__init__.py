@@ -1,5 +1,5 @@
 """
-This module contains models
+This module contains models and functions to manage the library/list of models
 """
 from _libfunc import *
 

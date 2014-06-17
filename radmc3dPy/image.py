@@ -38,9 +38,6 @@ class radmc3dImage():
     """
     RADMC-3D image class
 
-    Parameters
-    ----------
-
     Attributes
     ----------
 
@@ -114,25 +111,28 @@ class radmc3dImage():
         
         dpc : distance of the source in parsec
 
-        NOTE, bl and pa should either be an array with dimension [N,3] or if they are lists each element of
-            the list should be a list of length 3, since closure phases are calculated only for closed triangles
 
-        Return
-        ------
+        Returns
+        -------
         Returns a dictionary with the following keys:
                 
-            *bl     : projected baseline in meter
-            *pa     : position angle of the projected baseline in degree
-            *nbl    : number of baselines
-            *u      : spatial frequency along the x axis of the image
-            *v      : spatial frequency along the v axis of the image
-            *vis    : complex visibility at points (u,v)
-            *amp    : correlation amplitude 
-            *phase  : Fourier phase
-            *cp     : closure phase
-            *wav    : wavelength 
-            *nwav   : number of wavelengths
+            * bl     : projected baseline in meter
+            * pa     : position angle of the projected baseline in degree
+            * nbl    : number of baselines
+            * u      : spatial frequency along the x axis of the image
+            * v      : spatial frequency along the v axis of the image
+            * vis    : complex visibility at points (u,v)
+            * amp    : correlation amplitude 
+            * phase  : Fourier phase
+            * cp     : closure phase
+            * wav    : wavelength 
+            * nwav   : number of wavelengths
 
+        Notes
+        -----
+        
+        bl and pa should either be an array with dimension [N,3] or if they are lists each element of
+        the list should be a list of length 3, since closure phases are calculated only for closed triangles
         """
 
         res = {}
@@ -190,20 +190,20 @@ class radmc3dImage():
         
         dpc : distance of the source in parsec
 
-        Return
-        ------
+        Returns
+        -------
         Returns a dictionary with the following keys:
                 
-            *bl     : projected baseline in meter
-            *pa     : position angle of the projected baseline in degree
-            *nbl    : number of baselines
-            *u      : spatial frequency along the x axis of the image
-            *v      : spatial frequency along the v axis of the image
-            *vis    : complex visibility at points (u,v)
-            *amp    : correlation amplitude 
-            *phase  : Fourier phase
-            *wav    : wavelength 
-            *nwav   : number of wavelengths
+            * bl     : projected baseline in meter
+            * pa     : position angle of the projected baseline in degree
+            * nbl    : number of baselines
+            * u      : spatial frequency along the x axis of the image
+            * v      : spatial frequency along the v axis of the image
+            * vis    : complex visibility at points (u,v)
+            * amp    : correlation amplitude 
+            * phase  : Fourier phase
+            * wav    : wavelength 
+            * nwav   : number of wavelengths
         """
 
         res   = {}
@@ -283,7 +283,7 @@ class radmc3dImage():
                         Rest wavelength of the line (for channel maps)
         
         stokes       : {'I', 'Q', 'U', 'V', 'PI'}
-                        Stokes parameter to be written if the image contains Stokes IQUV (possible 
+                       Stokes parameter to be written if the image contains Stokes IQUV (possible 
                        choices: 'I', 'Q', 'U', 'V', 'PI' -Latter being the polarized intensity)
         
         fitsheadkeys : dictionary
@@ -465,9 +465,10 @@ class radmc3dImage():
         hdulist[0].header.update('LONPOLE', 180.0, '')
 
 
-        if len(fitsheadkeys.keys())>0:
-            for ikey in fitsheadkeys.keys():
-                hdulist[0].header.update(ikey, fitsheadkeys[ikey], '')
+        if fitsheadkeys:
+            if len(fitsheadkeys.keys())>0:
+                for ikey in fitsheadkeys.keys():
+                    hdulist[0].header.update(ikey, fitsheadkeys[ikey], '')
 
         if os.path.exists(fname):
             print fname+' already exists'
@@ -853,7 +854,7 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
               Image size in the second dimension
 
     fwhm    : list
-              Full width at half maximum of the psf in each dimension [fwhm_x, fwhm_y]
+              Full width at half maximum of the psf along the two axis 
 
     pa      : float
               Position angle of the gaussian if the gaussian is not symmetric
@@ -865,11 +866,12 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
     -------
 
     Returns a dictionary with the following keys:
-        *psf : ndarray
+
+        * psf : ndarray
                 The two dimensional psf
-        *x   : ndarray
+        * x   : ndarray
                 The x-axis of the psf 
-        *y   : ndarray
+        * y   : ndarray
                 The y-axis of the psf 
     """
 # --------------------------------------------------------------------------------------------------
@@ -1221,10 +1223,23 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
         print ' incl keyword is not set'
         return -1
     if (wav==None):
-        if (lambdarange==None)|(nlam==None):
-            print 'ERROR!'
-            print ' No wavelength is specified'
-            return -1
+        if (lambdarange==None)&(nlam==None):
+            if (vkms==None):
+                if (widthkms==None)&(linenlam==None):
+                    print 'ERROR!'
+                    print ' Neither wavelength nor velocity is specified at which the image should be calculated'
+                    return -1
+                else:
+                    if (iline==None):
+                        print 'ERROR'
+                        print 'widthkms, linenlam keywords are set indicating a line channel map, but the iline keyword is not specified'
+                        return -1
+            else:
+                if (iline==None):
+                    print 'ERROR'
+                    print 'vkms keyword is set indicating a line channel map, but the iline keyword is not specified'
+                    return -1
+
     else:
         if lambdarange!=None:
             print 'ERROR'
@@ -1249,8 +1264,13 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     
     if wav!=None:
         com = com + ' lambda ' + str(wav)
-    else:
+    elif (lambdarange!=None)&(nlam!=None):
         com = com + ' lambdarange ' + str(lambdarange[0]) + ' ' + str(lambdarange[1]) + ' nlam ' + str(int(nlam)) 
+    elif (vkms!=None):
+        com = com + ' vkms ' + str(vkms) 
+    elif ((widthkms!=None)&(linenlam!=None)):
+        com = com + ' widthkms ' + str(widthkms) + ' linenlam ' + str(linenlam)
+
 #
 # Now add additional optional keywords/arguments
 #
@@ -1274,23 +1294,7 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     if fluxcons:
         com = com + ' fluxcons'
 
-    if widthkms:
-        if vkms:
-            print ' ERROR '
-            print ' Either widthkms or vkms keyword should be set but not both'
-            return -1
-        com = com + ' widthkms '+("%.5e"%widthkms)
-
-    if vkms:
-        if widthkms:
-            print ' ERROR '
-            print ' Either widthkms or vkms keyword should be set but not both'
-            return -1
-        com = com + ' vkms '+("%.5e"%vkms)
-
-    if linenlam:
-        com = com + ' linenlam '+("%d"%linenlam)
-
+   
     if iline:
         com = com + ' iline '+("%d"%iline)
 

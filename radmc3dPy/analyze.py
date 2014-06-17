@@ -29,10 +29,6 @@ import radmc3dPy.crd_trans  as crd_trans
 class radmc3dGrid():
     """ Class for spatial and frequency grid used by RADMC-3D.
 
-
-    Parameters
-    ----------
-
     Attributes
     ----------
 
@@ -764,11 +760,9 @@ class radmc3dData():
         Reading and writing dust density/temperature, gas density/temperature/velocity,
         generating a legacy vtk file for visualization.
 
-    Parameters
-    ----------
     
-    Attribues
-    ---------
+    Attributes
+    ----------
     
     grid      : radmc3dGrid 
                 Instance of the radmc3dGrid class, contains the spatial and frequency grids
@@ -1820,8 +1814,6 @@ class radmc3dRadSources():
     """Class of the radiation sources.
     Currently discrete stars and continuous starlike source, the latter only in spherical coordinates.
 
-    Parameters
-    ----------
 
     Attributes
     ----------
@@ -1955,8 +1947,8 @@ class radmc3dRadSources():
                 self.lstar.append(4.*np.pi*self.rstar[istar]**2. * ss* self.tstar[istar]**4.)
             self.pstar = ppar['pstar']
 
-            if ppar.has_key('incl_accretion'):
-                self.incl_accretion = ppar['incl_accretion']
+            if ppar.has_key('incl_cont_stellarsrc'):
+                self.incl_accretion = ppar['incl_cont_stellarsrc']
             else:
                 self.incl_accretion = False
 
@@ -2867,8 +2859,6 @@ class radmc3dDustOpac():
     """
     Class to handle dust opacities.
 
-    Parameters
-    ----------
 
     Attributes
     ----------
@@ -3603,8 +3593,6 @@ class radmc3dDustOpac():
 class radmc3dPar():
     """Parameter class for a RADMC-3D model.
 
-    Parameters
-    ----------
     
     Attributes
     ----------
@@ -3924,10 +3912,12 @@ class radmc3dPar():
         #
         # Radiation sources
         #
+        self.setPar(['incl_disc_stellarsrc', 'True', '# Switches on (True) or off (False) discrete stellar sources)', 'Radiation sources'])
         self.setPar(['mstar', '[1.0*ms]', '# Mass of the star(s)', 'Radiation sources'])
         self.setPar(['rstar','[2.0*rs]', '# Radius of the star(s)', 'Radiation sources'])
         self.setPar(['tstar','[4000.0]', '# Effective temperature of the star(s) [K]', 'Radiation sources'])
         self.setPar(['pstar','[0.0, 0.0, 0.0]', '# Position of the star(s) (cartesian coordinates)', 'Radiation sources'])
+        self.setPar(['incl_cont_stellarsrc', 'False', '# Switches on (True) or off (False) continuous stellar sources )', 'Radiation sources'])
         #
         # Grid parameters
         #
@@ -3964,7 +3954,7 @@ class radmc3dPar():
         self.setPar(['gasspec_mol_dbase_type',"['leiden']", '  leiden or linelist', 'Gas line RT'])
         self.setPar(['gasspec_colpart_name', "['h2']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
         self.setPar(['gasspec_colpart_abun', '[1e0]', '  Abundance of the molecule', 'Gas line RT']) 
-        self.setPar(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
+        #self.setPar(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
         #self.setPar(['writeGasTemp', 'False', '  Whether or not to write a separate gas temperature file (gas_temperature.inp) if such function exists in the model', 'Gas line RT'])
         #
         # Code parameters
@@ -3978,6 +3968,7 @@ class radmc3dPar():
         self.setPar(['itempdecoup', '1', '  Enable for different dust components to have different temperatures', 'Code parameters'])
         self.setPar(['tgas_eq_tdust', '1', '  Take the dust temperature to identical to the gas temperature', 'Code parameters'])
         self.setPar(['rto_style', '1', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary', 'Code parameters'])
+        self.setPar(['modified_random_walk', '0', '  Switched on (1) and off (0) modified random walk', 'Code parameters'])
         #
         # Model parameters
         #
