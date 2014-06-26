@@ -536,7 +536,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 #   already existing grid files 
 # --------------------------------------------------------------------------------------------
     else:
-        grid=readGrid()
+        grid=analyze.readGrid()
 
 # --------------------------------------------------------------------------------------------
 # Create the gas density distribution 
