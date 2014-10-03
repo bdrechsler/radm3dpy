@@ -10,5 +10,5 @@ import crd_trans
 import natconst
 import models
 
-__version__ = "0.27"
+__version__ = "0.27.1"
 __all__ = ["analyze", "setup", "image", "crd_trans", "natconst", "models"]

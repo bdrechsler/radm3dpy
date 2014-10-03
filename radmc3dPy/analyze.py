@@ -1018,7 +1018,7 @@ class radmc3dData():
 
         if axis.find('x')>=0 : do_taux = True
         if axis.find('y')>=0 : do_tauy = True
-       
+      
         # Calculate the optical depth along the x-axis (r in spherical coordinates)
         if do_taux:
             taux = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=np.float64)

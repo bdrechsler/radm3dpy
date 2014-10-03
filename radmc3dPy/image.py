@@ -18,6 +18,13 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 try:
+    import scipy.special as spc
+except:
+    print 'WARNING'
+    print ' scipy.special cannot be imported '
+    print ' This module is required to be able to calculate Airy-PSFs. Now PSF calculation is limited to Gaussian.'
+
+try:
     import pyfits as pf
 except:
     try:
@@ -715,7 +722,7 @@ class radmc3dImage():
             self.wav = []
             for iwav in range(self.nwav):
                 self.wav.append(float(rfile.readline()))
-            self.wav = array(self.wav)
+            self.wav = np.array(self.wav)
             self.freq = 2.99792458e10 / self.wav * 1e4
       
 # If we have a normal total intensity image
@@ -729,6 +736,7 @@ class radmc3dImage():
                     for ix in range(self.nx):
                         for iy in range(self.ny):
                             self.image[ix,iy,iwav] = float(rfile.readline())
+                            #self.image[iy,ix,iwav] = float(rfile.readline())
                
                 #self.image = squeeze(self.image)
                 rfile.close()
@@ -761,22 +769,32 @@ class radmc3dImage():
         self.y = ((np.arange(self.ny, dtype=np.float64) + 0.5) - self.ny/2) * self.sizepix_y
 
 # --------------------------------------------------------------------------------------------------
-    def imConv(self, fwhm=None, pa=None, dpc=1.):
+    def imConv(self, dpc=1., psfType='gauss', fwhm=None, pa=None, tdiam_prim=8.2, tdiam_sec=0.94):
         """Convolves a RADMC-3D image with a two dimensional Gaussian psf.
     
         Parameters
         ----------
+        dpc         : float
+                      Distance of the source in pc.
         
-        fwhm    : list
-                 A list of two numbers; the FWHM of the two dimensional psf along the two principal axes.
-                 The unit is assumed to be arcsec.
+        psfType     : {'gauss', 'airy'}
+                      Shape of the PSF. If psfType='gauss', fwhm and pa should also be given. If psfType='airy', the 
+                      tdiam_prim, tdiam_sec and wav parameters should also be specified.
         
-        pa      : float
-                 Position angle of the psf ellipse (counts from North counterclockwise).
-
-        dpc     : float
-                 Distance of the source in pc.
+        fwhm        : list, optional
+                      A list of two numbers; the FWHM of the two dimensional psf along the two principal axes.
+                      The unit is assumed to be arcsec. (should be set only if psfType='gauss')
+        
+        pa          : float, optional
+                      Position angle of the psf ellipse (counts from North counterclockwise, should be set only if psfType='gauss')
     
+        tdiam_prim  : float, optional
+                      Diameter of the primary aperture of the telescope in meter. (should be set only if psfType='airy')
+
+        tdiam_sec   : float, optional
+                      Diameter of the secondary mirror (central obscuration), if there is any, in meter. If no secondary
+                      mirror/obscuration is present, this parameter should be set to zero. (should be set only if psfType='airy')
+
         Returns
         -------
 
@@ -795,40 +813,102 @@ class radmc3dImage():
     
     
 # Calculate the Gaussian psf
-        dum   = getPSF(nx=self.nx, ny=self.ny, fwhm=fwhm, pa=pa, pscale=[dx,dy])
-        psf   = dum['psf'] 
-        f_psf = np.fft.fft2(psf)
 
         if self.stokes:
             if self.nfreq==1:
-                cimage = np.zeros([self.nx,self.ny,4], dtype=np.float64)
+                # Generate the  psf
+                dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
+                        tdiam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[0])
+                psf   = dum['psf'] 
+                f_psf = np.fft.fft2(psf)
+
+
+                cimage = np.zeros([self.nx,self.ny,4,1], dtype=np.float64)
                 for istokes in range(4):
-                    imag = self.image[:,:,istokes]
+                    imag = self.image[:,:,istokes,0]
                     f_imag  = np.fft.fft2(imag)
                     f_cimag = f_psf * f_imag
-                    cimage[:,:,istokes] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                    cimage[:,:,istokes,0] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
             else:
-                cimage = np.zeros([self.nx,self.ny,4,self.nfreq], dtype=float64)
-                for ifreq in range(nfreq):
-                    for istokes in range(4):
-                        imag = self.image[:,:,istokes,ifreq]
-                        f_imag  = np.fft.fft2(imag)
-                        f_cimag = f_psf * f_imag
-                        cimage[:,:,istokes,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                # If we have a simple Gaussian PSF it will be wavelength independent so we can take it out from the
+                # frequency loop
+                if psfType.lower().strip()=='gauss':
+                    # Generate the wavelength independent gaussian psf
+                    dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
+                            diam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[0])
+                    psf   = dum['psf'] 
+                    f_psf = np.fft.fft2(psf)
+                    
+                    cimage = np.zeros([self.nx,self.ny,4,self.nfreq], dtype=float64)
+                    for ifreq in range(nfreq):
+                        for istokes in range(4):
+                            imag = self.image[:,:,istokes,ifreq]
+                            f_imag  = np.fft.fft2(imag)
+                            f_cimag = f_psf * f_imag
+                            cimage[:,:,istokes,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                
+                # If we have an Airy-PSF calculated from the aperture size(s) and wavelenght, the PSF will depend
+                # on the frequency so it has to be re-calculated for each wavelength
+                elif psfType.lower().strip()=='airy':
+                    cimage = np.zeros([self.nx,self.ny,4,self.nfreq], dtype=float64)
+                    for ifreq in range(nfreq):
+                        # Generate the wavelength-dependent airy-psf
+                        dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
+                                diam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[ifreq])
+                        psf   = dum['psf'] 
+                        f_psf = np.fft.fft2(psf)
+                    
+                        for istokes in range(4):
+                            imag = self.image[:,:,istokes,ifreq]
+                            f_imag  = np.fft.fft2(imag)
+                            f_cimag = f_psf * f_imag
+                            cimage[:,:,istokes,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+
 
         else:
-            cimage = np.zeros([self.nx,self.ny,self.nfreq], dtype=np.float64)
-            for ifreq in range(nfreq):
-                imag = self.image[:,:,ifreq]
-                f_imag  = np.fft.fft2(imag)
-                f_cimag = f_psf * f_imag
-                cimage[:,:,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+            # If we have a simple Gaussian PSF it will be wavelength independent so we can take it out from the
+            # frequency loop
+            if psfType.lower().strip()=='gauss':
+                # Generate the wavelength independent gaussian psf
+                dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
+                        diam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[0])
+                psf   = dum['psf'] 
+                f_psf = np.fft.fft2(psf)
+                
+                cimage = np.zeros([self.nx,self.ny,self.nfreq], dtype=np.float64)
+                for ifreq in range(nfreq):
+                    imag = self.image[:,:,ifreq]
+                    f_imag  = np.fft.fft2(imag)
+                    f_cimag = f_psf * f_imag
+                    cimage[:,:,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+            
+            # If we have an Airy-PSF calculated from the aperture size(s) and wavelenght, the PSF will depend
+            # on the frequency so it has to be re-calculated for each wavelength
+            elif psfType.lower().strip()=='airy':
+                cimage = np.zeros([self.nx,self.ny,self.nfreq], dtype=np.float64)
+                for ifreq in range(nfreq):
+                    # Generate the wavelength-dependent airy-psf
+                    dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
+                            diam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[ifreq])
+                    psf   = dum['psf'] 
+                    f_psf = np.fft.fft2(psf)
 
+
+                    imag = self.image[:,:,ifreq]
+                    f_imag  = np.fft.fft2(imag)
+                    f_cimag = f_psf * f_imag
+                    cimage[:,:,ifreq] = abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
         #cimage = squeeze(cimage)
-  
-# Return the convolved image (copy the image class and replace the image attribute to the convolved image)
+        # Calculate the fwhm of the Airy pattern by approximating it with a 1D Gaussian
+        if psfType.lower().strip()=='airy':
+            dum       = 0.44 * (self.wav*1e-6/tdiam_prim/np.pi*180.*3600.) * 2.*np.sqrt(2.*np.log(2.))
+            fwhm      = [dum, dum]
+            pa        = 0.
 
+
+  
+        # Return the convolved image (copy the image class and replace the image attribute to the convolved image)
         res             = copy.deepcopy(self)
         conv            = res.sizepix_x * res.sizepix_y / (dpc*pc)**2./ (fwhm[0] * fwhm[1] * np.pi / (4.*np.log(2.)))
         res.image       = cimage * conv
@@ -842,25 +922,41 @@ class radmc3dImage():
         return res
 
 # --------------------------------------------------------------------------------------------------
-def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
+def getPSF(nx=None, ny=None, psfType='gauss', pscale=None,  fwhm=None, pa=None, tdiam_prim=8.2, \
+        tdiam_sec=0.94, wav=None):
     """Calculates a two dimensional Gaussian PSF.
     
     Parameters
     ----------
-    nx      : int
-              Image size in the first dimension
+    nx          : int
+                  Image size in the first dimension
 
-    ny      : int
-              Image size in the second dimension
+    ny          : int
+                  Image size in the second dimension
 
-    fwhm    : list
-              Full width at half maximum of the psf along the two axis 
+    psfType     : {'gauss', 'airy'}
+                  Shape of the PSF. If psfType='gauss', fwhm and pa should also be given. If psfType='airy', the 
+                  tdiam_prim, tdiam_sec and wav parameters should also be specified.
+    
+    pscale      : float
+                  Pixelscale of the image, if set fwhm should be in the same unit, if not set unit of fwhm is pixels
 
-    pa      : float
-              Position angle of the gaussian if the gaussian is not symmetric
+    fwhm        : list, optional
+                  Full width at half maximum of the psf along the two axis (should be set only if psfType='gauss')
 
-    pscale  : float
-              Pixelscale of the image, if set fwhm should be in the same unit, if not set unit of fwhm is pixels
+    pa          : float, optional
+                  Position angle of the gaussian if the gaussian is not symmetric (should be set only if psfType='gauss')
+
+    tdiam_prim  : float, optional
+                  Diameter of the primary aperture of the telescope in meter. (should be set only if psfType='airy')
+
+    tdiam_sec   : float, optional
+                  Diameter of the secondary mirror (central obscuration), if there is any, in meter. If no secondary
+                  mirror/obscuration is present, this parameter should be set to zero. (should be set only if psfType='airy')
+
+    wav         : float, optional
+                  Wavelength of observation in micrometer (should be set only if psfType='airy')
+    
 
     Returns
     -------
@@ -886,29 +982,74 @@ def getPSF(nx=None, ny=None, fwhm=None, pa=None, pscale=None):
     x = (np.arange(nx, dtype=np.float64) - nx/2) * dx
     y = (np.arange(ny, dtype=np.float64) - ny/2) * dy
 
-# Calculate the standard deviation of the Gaussians
-    sigmax = fwhm[0] / (2.0 * np.sqrt(2.0 * np.log(2.)))
-    sigmay = fwhm[1] / (2.0 * np.sqrt(2.0 * np.log(2.)))
-    norm   = 1./(2. * np.pi * sigmax * sigmay)
+
+# Create the Gaussian PSF
+
+    if psfType.strip().lower()=='gauss':
+
+    # Calculate the standard deviation of the Gaussians
+        sigmax = fwhm[0] / (2.0 * np.sqrt(2.0 * np.log(2.)))
+        sigmay = fwhm[1] / (2.0 * np.sqrt(2.0 * np.log(2.)))
+        norm   = 1./(2. * np.pi * sigmax * sigmay)
 
 
-# Pre-compute sin and cos angles
+    # Pre-compute sin and cos angles
 
-    sin_pa = np.sin(pa/180.*np.pi - np.pi/2.)
-    cos_pa = np.cos(pa/180.*np.pi - np.pi/2.)
+        sin_pa = np.sin(pa/180.*np.pi - np.pi/2.)
+        cos_pa = np.cos(pa/180.*np.pi - np.pi/2.)
 
-# Define the psf
-    psf = np.zeros([nx,ny], dtype=np.float64)
-    for ix in range(nx):
-        for iy in range(ny):
-            xx = cos_pa * x[ix] - sin_pa * y[iy]
-            yy = sin_pa * x[ix] + cos_pa * y[iy]
+    # Define the psf
+        psf = np.zeros([nx,ny], dtype=np.float64)
+        cos_pa_x = cos_pa * x
+        cos_pa_y = cos_pa * y
+        sin_pa_x = sin_pa * x
+        sin_pa_y = sin_pa * y
+        for ix in range(nx):
+            for iy in range(ny):
+                #xx = cos_pa * x[ix] - sin_pa * y[iy]
+                #yy = sin_pa * x[ix] + cos_pa * y[iy]
+                xx = cos_pa_x[ix] - sin_pa_y[iy]
+                yy = sin_pa_x[ix] + cos_pa_y[iy]
 
-            psf[ix,iy] = np.exp(-0.5*xx*xx/sigmax/sigmax - 0.5*yy*yy/sigmay/sigmay)
+                psf[ix,iy] = np.exp(-0.5*xx*xx/sigmax/sigmax - 0.5*yy*yy/sigmay/sigmay)
 
-    
-    # Normalize the PSF 
-    psf = psf / norm 
+        
+        # Normalize the PSF 
+        psf = psf / norm 
+
+    elif (psfType.strip().lower()=='airy'):
+
+        # Check whether scipy was successfully imported
+        if not spc:
+            print 'ERROR'
+            print 'scipy.special was not imported'
+            print 'PSF calculation is limited to Gaussian'
+            return None
+
+        # Unit conversion
+        x_rad      = x / 3600./180.*np.pi
+        y_rad      = y / 3600./180.*np.pi
+        x2         = x_rad**2
+        y2         = y_rad**2
+        wav_m      = wav * 1e-6
+        psf        = np.zeros([nx,ny], dtype=np.float64)
+        if tdiam_sec==0.:
+            for ix in range(nx):
+                r   = np.sqrt(x2[ix] + y2)
+                u   = np.pi/wav_m * tdiam_prim * r
+                if u.__contains__(0.):
+                    ii = (u==0.)
+                    u[ii]=1e-5
+                psf[ix,:] = (2.0 * spc.j1(u) / u)**2
+        else:
+            for ix in range(nx):
+                r   = np.sqrt(x2[ix] + y2)
+                u   = np.pi/wav_m * tdiam_prim * r
+                eps = tdiam_sec / tdiam_prim
+                if u.__contains__(0.):
+                    ii = (u==0.)
+                    u[ii]=1e-5
+                psf[ix,:] = 1.0 / (1.0 - eps**2)**2 * ((2.0 * spc.j1(u)/u) - (eps**2 * 2.0 * spc.j1(eps*u) / (eps*u)) )**2
 
     res = {'psf':psf, 'x':x, 'y':y}
 

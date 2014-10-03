@@ -462,7 +462,7 @@ Display images
 
 Now we can read the image::
 
-    >>> im = image.readImage(binary=True)
+    >>> im = image.readImage()
 
 To display the images calculated by RADMC-3D we can use the :meth:`~radmc3dPy.image.plotImage` method ::
 
