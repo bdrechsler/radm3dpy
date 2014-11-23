@@ -2890,23 +2890,59 @@ class radmc3dDustOpac():
     idust   : lisintt
                 Each element of the list contains an integer with the index of the dust species in the dust density distribution array
 
+    scatmat : list
+                Each element is a boolean indicating whether the dust opacity table includes (True) the full scattering matrix or not (False)
+
+    nang    : list
+                Each element is a string, containing the number of scattering angles in the scattering matrix if its given
+
+    scatang : list
+                Each element is a numpy ndarray containing the scattering angles in the scattering matrix if its given
+
+    z11     : list
+                Each element is a numpy ndarray containing the (1,1) element of the scattering angles in the scattering matrix if its given
+
+    z12     : list
+                Each element is a numpy ndarray containing the (1,2) element of the scattering angles in the scattering matrix if its given
+
+    z22     : list
+                Each element is a numpy ndarray containing the (2,2) element of the scattering angles in the scattering matrix if its given
+    
+    z33     : list
+                Each element is a numpy ndarray containing the (3,3) element of the scattering angles in the scattering matrix if its given
+    
+    z34     : list
+                Each element is a numpy ndarray containing the (3,4) element of the scattering angles in the scattering matrix if its given
+    
+    z44     : list
+                Each element is a numpy ndarray containing the (4,4) element of the scattering angles in the scattering matrix if its given
+
     """
 # --------------------------------------------------------------------------------------------------
     def __init__(self):
 
-        self.wav     = []
-        self.freq    = []
-        self.nwav    = []
-        self.nfreq   = []
-        self.kabs    = []
-        self.ksca    = []
-        self.phase_g = []
-        self.ext     = []
-        self.idust   = []
-        self.therm   = []
-         
+        self.wav      = []
+        self.freq     = []
+        self.nwav     = []
+        self.nfreq    = []
+        self.kabs     = []
+        self.ksca     = []
+        self.phase_g  = []
+        self.ext      = []
+        self.idust    = []
+        self.therm    = []
+        self.scatmat  = []
+        self.z11      = [] 
+        self.z12      = [] 
+        self.z22      = [] 
+        self.z33      = [] 
+        self.z34      = [] 
+        self.z44      = [] 
+        self.scatang  = []
+        self.nang     = []
+
 # --------------------------------------------------------------------------------------------------
-    def  readOpac(self, ext=[''], idust=None):
+    def  readOpac(self, ext=[''], idust=None, scatmat=None):
         """Reads the dust opacity files.
 
         Parameters
@@ -2917,9 +2953,17 @@ class radmc3dDustOpac():
         
         idust: list
                 Indices of the dust species in the master opacity file (dustopac.inp') - starts at 0 
-        """
         
+        scatmat: list
+                If specified, its elements should be booleans indicating whether the opacity file 
+                contains also the full scattering matrix (True) or only dust opacities (False)
+        """
+       
+        # Check the input keywords and if single strings are given convert them to lists
+        # This assumes, though, that there is a single dust opacity file or dust species, though!!
         if (type(ext).__name__=='str'):  ext = [ext]
+        if (type(scatmat).__name__=='str'):  scatmat = [scatmat]
+        
         if idust!=None:
             if (type(idust).__name__=='int'):  idust = [idust]
 
@@ -2958,80 +3002,164 @@ class radmc3dDustOpac():
         
         # Now read all dust opacities
         for i in range(len(ext)):
-            try:
-                rfile = open('dustkappa_'+ext[i]+'.inp', 'r')
-            except:
-                print 'ERROR'
-                print ' No dustkappa_'+ext[i]+'.inp file was found'
-                return -1
+            if scatmat[i]:
+                try:
+                    rfile = open('dustkapscatmat_'+ext[i]+'.inp', 'r')
+                except:
+                    print 'ERROR'
+                    print ' No dustkapscatmat_'+ext[i]+'.inp file was found'
+                    return -1
 
-            self.ext.append(ext[i])
+                self.ext.append(ext[i])
+                
+                # Read the comment field
+                for j in range(6):
+                    dum = rfile.readline()
 
-            # Read the file format
-            iformat = int(rfile.readline())
-            if (iformat<1)|(iformat>3):
-                print 'ERROR'
-                print 'Unknown file format in the dust opacity file'
-                rfile.close()
-                return -1
+                # Read the file format
+                iformat = int(rfile.readline())
+                if iformat!=1:
+                    print 'ERROR'
+                    print 'Format number of the file dustkapscatmat_'+ext[i]+'.inp (iformat='+("%d"%iformat)+') is unkown'
+                    return [-1]
 
-
-            # Read the number of wavelengths in the file
-            dum = rfile.readline()
-            self.nwav.append(int(dum))
-            self.nfreq.append(int(dum))
-            self.idust.append(idust[i])
-            idu = len(self.nwav)-1
-
-            # If only the absorption coefficients are specified
-            if iformat==1:
-                wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                for ilam in range(self.nwav[idu]):
-                    dum = rfile.readline().split()
-                    wav[ilam] = dum[0] 
-                    kabs[ilam] = dum[1] 
-                self.wav.append(wav)
-                self.freq.append(cc/wav*1e4)
-                self.kabs.append(kabs)
-                self.ksca.append([-1])
-                self.phase_g.append([-1])
-            # If the absorption and scattering coefficients are specified
-            elif iformat==2:
-                wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                for ilam in range(self.nwav[idu]):
-                    dum = rfile.readline().split()
-                    wav[ilam] = dum[0] 
-                    kabs[ilam] = dum[1] 
-                    ksca[ilam] = dum[2] 
-                self.wav.append(wav)
-                self.freq.append(cc/wav*1e4)
-                self.kabs.append(kabs)
-                self.ksca.append(ksca)
-                self.phase_g.append([-1])
+                # Read the number of wavelengths in the file
+                dum = int(rfile.readline())
+                self.nwav.append(dum)
+                self.nfreq.append(dum)
+                self.idust.append(idust[i])
+                idu = len(self.nwav)-1
+                
+                # Read the scattering angular grid
+                self.nang.append(int(rfile.readline()))
+                wav     = np.zeros(self.nwav[idu], dtype = np.float64)
+                kabs    = np.zeros(self.nwav[idu], dtype = np.float64)
+                ksca    = np.zeros(self.nwav[idu], dtype = np.float64)
+                phase_g = np.zeros(self.nwav[idu], dtype = np.float64)
+                scatang = np.zeros(self.nang[idu], dtype=np.float64)
+                z11     = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64) 
+                z12     = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64) 
+                z22     = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64) 
+                z33     = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64) 
+                z34     = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64) 
+                z44     = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64) 
             
-            # If the absorption and scattering coefficients and also the scattering phase function are specified
-            elif iformat==3:
-                wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                phase_g = np.zeros(self.nwav[idu], dtype=np.float64)
+                print 'Reading the opacities..'
+                dum = rfile.readline()
                 for ilam in range(self.nwav[idu]):
-                    dum = rfile.readline().split()
-                    wav[ilam] = dum[0] 
-                    kabs[ilam] = dum[1] 
-                    ksca[ilam] = dum[2] 
-                    phase_g[ilam] = dum[3] 
+                    dum      = rfile.readline().split()
+                    wav[ilam]  = float(dum[0])
+                    kabs[ilam] = float(dum[1])
+                    ksca[ilam] = float(dum[2])
+                    phase_g[ilam] = float(dum[3])
+
+                print 'Reading the angular grid..'
+                dum = rfile.readline()
+                for iang in range(self.nang[idu]):
+                    dum        = rfile.readline()
+                    scatang[iang] = float(dum)
+
+                print 'Reading the scattering matrix..'
+                for ilam in range(self.nwav[idu]):
+                    dum = rfile.readline()
+                    for iang in range(self.nang[idu]):
+                        dum        = rfile.readline().split()
+                        z11[ilam,iang] = float(dum[0])
+                        z12[ilam,iang] = float(dum[1])
+                        z22[ilam,iang] = float(dum[2])
+                        z33[ilam,iang] = float(dum[3])
+                        z34[ilam,iang] = float(dum[4])
+                        z44[ilam,iang] = float(dum[5])
                 
                 self.wav.append(wav)
                 self.freq.append(cc/wav*1e4)
                 self.kabs.append(kabs)
                 self.ksca.append(ksca)
                 self.phase_g.append(phase_g)
-       
-            rfile.close()
+                self.scatang.append(scatang)
+                self.z11.append(z11)
+                self.z12.append(z12)
+                self.z22.append(z22)
+                self.z33.append(z33)
+                self.z34.append(z34)
+                self.z44.append(z44)
+               
+                rfile.close()
+            else:
+                try:
+                    rfile = open('dustkappa_'+ext[i]+'.inp', 'r')
+                except:
+                    print 'ERROR'
+                    print ' No dustkappa_'+ext[i]+'.inp file was found'
+                    return -1
+
+                self.ext.append(ext[i])
+
+                # Read the file format
+                iformat = int(rfile.readline())
+                if (iformat<1)|(iformat>3):
+                    print 'ERROR'
+                    print 'Unknown file format in the dust opacity file'
+                    rfile.close()
+                    return -1
+
+
+                # Read the number of wavelengths in the file
+                dum = rfile.readline()
+                self.nwav.append(int(dum))
+                self.nfreq.append(int(dum))
+                self.idust.append(idust[i])
+                idu = len(self.nwav)-1
+
+                # If only the absorption coefficients are specified
+                if iformat==1:
+                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
+                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
+                    for ilam in range(self.nwav[idu]):
+                        dum = rfile.readline().split()
+                        wav[ilam] = float(dum[0])
+                        kabs[ilam] = float(dum[1])
+                    self.wav.append(wav)
+                    self.freq.append(cc/wav*1e4)
+                    self.kabs.append(kabs)
+                    self.ksca.append([-1])
+                    self.phase_g.append([-1])
+                # If the absorption and scattering coefficients are specified
+                elif iformat==2:
+                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
+                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
+                    ksca = np.zeros(self.nwav[idu], dtype=np.float64)
+                    for ilam in range(self.nwav[idu]):
+                        dum = rfile.readline().split()
+                        wav[ilam] = float(dum[0])
+                        kabs[ilam] = float(dum[1])
+                        ksca[ilam] = float(dum[2]) 
+                    self.wav.append(wav)
+                    self.freq.append(cc/wav*1e4)
+                    self.kabs.append(kabs)
+                    self.ksca.append(ksca)
+                    self.phase_g.append([-1])
+                
+                # If the absorption and scattering coefficients and also the scattering phase function are specified
+                elif iformat==3:
+                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
+                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
+                    ksca = np.zeros(self.nwav[idu], dtype=np.float64)
+                    phase_g = np.zeros(self.nwav[idu], dtype=np.float64)
+                    for ilam in range(self.nwav[idu]):
+                        dum = rfile.readline().split()
+                        wav[ilam] = float(dum[0])
+                        kabs[ilam] = float(dum[1])
+                        ksca[ilam] = float(dum[2])
+                        phase_g[ilam] = float(dum[3]) 
+                    
+                    self.wav.append(wav)
+                    self.freq.append(cc/wav*1e4)
+                    self.kabs.append(kabs)
+                    self.ksca.append(ksca)
+                    self.phase_g.append(phase_g)
+           
+                rfile.close()
         return 0 
 #--------------------------------------------------------------------------------------------------------------------
     def makeOpac(self, ppar=None, wav=None):
@@ -3165,9 +3293,9 @@ class radmc3dDustOpac():
                 print ppar['lnk_fname'][0] + ' could not be read'
                 return
 
-            w = array(w, dtype=float)
-            n = array(n, dtype=float)
-            k = array(k, dtype=float)
+            w = np.array(w, dtype=float)
+            n = np.array(n, dtype=float)
+            k = np.array(k, dtype=float)
 
             if float(w[0])>float(w[w.shape[0]-1]):
                 w = w[::-1]
@@ -3443,8 +3571,15 @@ class radmc3dDustOpac():
 
         ext = []
         therm= []
+        scatmat = []
         for idust in range(ndust):
-            dum = rfile.readline()
+            # Check if we have dust opacities also for the full scattering matrix
+            dum = rfile.readline().split()
+            if int(dum[0])==1:
+                scatmat.append(False)
+            elif int(dum[0])==10:
+                scatmat.append(True)
+
             # Check if the dust grain is thermal or quantum heated
             dum = int(rfile.readline().split()[0])
             if dum==0:
@@ -3458,7 +3593,7 @@ class radmc3dDustOpac():
             dum = rfile.readline()
         rfile.close()
 
-        return {'ext':ext, 'therm':therm}
+        return {'ext':ext, 'therm':therm, 'scatmat':scatmat}
 # --------------------------------------------------------------------------------------------------
     def  writeMasterOpac(self, ext=None, therm=None, scattering_mode_max=1):
         """Writes the master opacity file 'dustopac.inp'. 
@@ -4104,7 +4239,7 @@ class radmc3dPar():
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readOpac(ext=[''], idust=None):
+def readOpac(ext=[''], idust=None, scatmat=None):
     """Reads the dust opacity files.
     This function is an interface to radmc3dDustOpac.readOpac()
 
@@ -4116,6 +4251,9 @@ def readOpac(ext=[''], idust=None):
     idust : list
             Each element of the list is an integer, the index of the dust species in the master opacity file (dustopac.inp')
 
+    scatmat: list
+            If specified, its elements should be booleans indicating whether the opacity file 
+            contains also the full scattering matrix (True) or only dust opacities (False)
     Returns
     -------
         Returns an instance of the radmc3dDustOpac class 
@@ -4123,7 +4261,7 @@ def readOpac(ext=[''], idust=None):
 
 
     res = radmc3dDustOpac()
-    res.readOpac(ext=ext, idust=idust)
+    res.readOpac(ext=ext, idust=idust, scatmat=scatmat)
     
     return res
 # --------------------------------------------------------------------------------------------------

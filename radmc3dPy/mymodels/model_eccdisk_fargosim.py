@@ -149,6 +149,92 @@ def getDustDensity(grid=None, ppar=None):
     return rho
 
 # -----------------------------------------------------------------------------------------------
+def getDustTemperature(grid=None, ppar=None):
+    """
+    Function to get the dust temperature
+    The dust temperature is taken to be that of the gas (i.e. FARGO-ADSG output) and the disk is assumed to
+    be vertically isothermal. 
+    
+    INPUT:
+    ------
+        grid : a radmc3dGgrid class containing the spatial grid onto which the FARGO output should
+                be interpolated
+        ppar : dictionary containing all parameters of the RADMC3D setup
+
+    OUTPUT:
+    -------
+        Returns the dust temperature in Kelvin
+    """
+
+#
+# Read the gas temperature from a FARGO frame
+# WARNING!!!
+# fdata['gastemp'] has a dimension [nphi, nr] 
+# For other models I was using [nr, nphi] for sigma!!!!
+#
+    fdata = fargo_data(path=ppar['fargo_path'], frame=ppar['fargo_frame'], gfargo=ppar['gfargo'],\
+                           gastemp=True, vel=False)
+
+#
+# Now map the FARGO surface density onto our (r, phi) grid
+#
+#
+# TODO: 
+# The RectBivariateSpline() function should be doublechecked as once it produced a weird wiggle
+#  in the interpolated field similar to numerical instability in the hydrodinamic advenction schemes..
+# 
+    gastemp_sp = itp.RectBivariateSpline(fdata['phi'], fdata['r'], fdata['gastemp'])
+    
+    iirf     = ((grid.x>=fdata['r'].min()*ppar['fargo_ulength'])&(grid.x<=fdata['r'].max()*ppar['fargo_ulength']))  
+    dr       = grid.x[iirf]/ppar['fargo_ulength']
+    fgastemp   = gastemp_sp(grid.z, dr) 
+
+#
+# Add an outer disk 
+#
+    #if ppar['add_outer_disk']:
+        #iiro =(grid.x>=fdata['r'].max()*ppar['fargo_ulength'])
+        #od_r = grid.x[iiro]
+        #od_sigma = np.zeros([grid.nz, od_r.shape[0]])
+        #sig0 = fsigma[:,dr.shape[0]-1].mean()
+        #print fsigma[:,dr.shape[0]-1]
+        #dum = sig0 * (od_r / fdata['r'].max()/ppar['fargo_ulength'])**ppar['od_plsig1']
+        #for iz in range(grid.nz):
+            #od_sigma[iz,:] = dum
+#
+# Blow up the 2D surface density to a 3D volume density distribution
+#
+          
+    dusttemp2D  = np.zeros([grid.nx,grid.nz], dtype=np.float64)
+    for iz in range(grid.nz):
+        dusttemp2D[iirf,iz] = fgastemp[iz,:]
+    #if ppar['add_outer_disk']:
+        #for iz in range(grid.nz):
+            #sigma[iiro,iz] = od_sigma[iz,:]
+
+
+    fig = figure()
+    x = fig.add_subplot(111)
+    plot(grid.x, dusttemp2D[:,0])
+    x.set_xscale('log')
+    x.set_yscale('log')
+
+    show()
+    
+
+    dusttemp = np.zeros([grid.nx, grid.ny, grid.nz, ppar['ngs']], dtype=np.float64)
+    z0  = np.zeros([grid.nx, grid.nz], dtype=np.float64)
+    for iy in range(grid.ny):
+        for iz in range(grid.nz):
+            dusttemp[:,iy,iz,0] = dusttemp2D[:,iz]
+
+    for igs in range(1,ppar['ngs']):
+        dusttemp[:,:,:,igs] = dusttemp[:,:,:,0]
+
+        
+    
+    return dusttemp
+# -----------------------------------------------------------------------------------------------
 def getGasDensity(grid=None, ppar=None):
     """
     Function to generate a 3D volume density distribtion from the surface density output frames of FARGO

@@ -328,7 +328,7 @@ class radmc3dImage():
                 print 'coord="0h10m05s -10d05m30s"'
                 print ra
                 print dum
-                return
+               return
             ra.append(float(dum[:ind]))
             dum = dum[ind+1:]
 
@@ -347,7 +347,10 @@ class radmc3dImage():
 
 
         target_ra = (ra[0] + ra[1]/60. + ra[2]/3600.) * 15.
-        target_dec = (dec[0] + dec[1]/60. + dec[2]/3600.) 
+        if dec[0]>=0:
+            target_dec = (dec[0] + dec[1]/60. + dec[2]/3600.) 
+        else:
+            target_dec = (dec[0] - dec[1]/60. - dec[2]/3600.) 
 
         if len(self.fwhm)==0:
             # Conversion from erg/s/cm/cm/ster to Jy/pixel
@@ -374,14 +377,14 @@ class radmc3dImage():
             if self.stokes:
                 if stokes.strip().upper()!='PI':
                     if self.nfreq==1:
-                        data[0,:,:] = self.image[:,:,istokes] * conv
+                        data[0,:,:] = self.image[:,:,istokes,0] * conv
 
                     else:
                         for inu in range(self.nfreq):
                             data[inu,:,:] = self.image[:,:,istokes,inu] * conv
                 else:
                     if self.nfreq==1:
-                        data[0,:,:] = np.sqrt(self.image[:,:,1]**2 + self.image[:,:,2]**2) * conv
+                        data[0,:,:] = np.sqrt(self.image[:,:,1,0]**2 + self.image[:,:,2,0]**2) * conv
 
                     else:
                         for inu in range(self.nfreq):
@@ -396,80 +399,81 @@ class radmc3dImage():
                         data[inu,:,:] = self.image[:,:,inu] * conv
 
 
-        hdu     = pf.PrimaryHDU(data)
+        naxis = len(data.shape)
+        hdu     = pf.PrimaryHDU(data.swapaxes(naxis-1,naxis-2))
         hdulist = pf.HDUList([hdu])
         
-        hdulist[0].header.update('CRPIX1', (self.nx+1.)/2., ' ')
-        hdulist[0].header.update('CDELT1', -self.sizepix_x/1.496e13/dpc/3600., '')
-        hdulist[0].header.update('CRVAL1', self.sizepix_x/1.496e13/dpc*0.5+target_ra, '')
-        hdulist[0].header.update('CUNIT1', '     DEG', '')
-        hdulist[0].header.update('CTYPE1', 'RA---SIN', '')
+        hdulist[0].header.set('CRPIX1', (self.nx+1.)/2., ' ')
+        hdulist[0].header.set('CDELT1', -self.sizepix_x/1.496e13/dpc/3600., '')
+        hdulist[0].header.set('CRVAL1', self.sizepix_x/1.496e13/dpc*0.5+target_ra, '')
+        hdulist[0].header.set('CUNIT1', '     DEG', '')
+        hdulist[0].header.set('CTYPE1', 'RA---SIN', '')
        
-        hdulist[0].header.update('CRPIX2', (self.ny+1.)/2., '')
-        hdulist[0].header.update('CDELT2', self.sizepix_y/1.496e13/dpc/3600., '')
-        hdulist[0].header.update('CRVAL2', self.sizepix_y/1.496e13/dpc*0.5+target_dec, '')
-        hdulist[0].header.update('CUNIT2', '     DEG', '')
-        hdulist[0].header.update('CTYPE2', 'DEC--SIN', '')
+        hdulist[0].header.set('CRPIX2', (self.ny+1.)/2., '')
+        hdulist[0].header.set('CDELT2', self.sizepix_y/1.496e13/dpc/3600., '')
+        hdulist[0].header.set('CRVAL2', self.sizepix_y/1.496e13/dpc*0.5+target_dec, '')
+        hdulist[0].header.set('CUNIT2', '     DEG', '')
+        hdulist[0].header.set('CTYPE2', 'DEC--SIN', '')
     
         
         # For ARTIST compatibility put the stokes axis to the 4th dimension
         if casa:
-            hdulist[0].header.update('CRPIX4', 1., '')
-            hdulist[0].header.update('CDELT4', 1., '')
-            hdulist[0].header.update('CRVAL4', 1., '')
-            hdulist[0].header.update('CUNIT4', '        ','')
-            hdulist[0].header.update('CTYPE4', 'STOKES  ','')
+            hdulist[0].header.set('CRPIX4', 1., '')
+            hdulist[0].header.set('CDELT4', 1., '')
+            hdulist[0].header.set('CRVAL4', 1., '')
+            hdulist[0].header.set('CUNIT4', '        ','')
+            hdulist[0].header.set('CTYPE4', 'STOKES  ','')
 
             if self.nwav==1:
-                hdulist[0].header.update('CRPIX3', 1.0, '')
-                hdulist[0].header.update('CDELT3', bandwidthmhz*1e6, '')
-                hdulist[0].header.update('CRVAL3', self.freq[0], '')
-                hdulist[0].header.update('CUNIT3', '      HZ', '')
-                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+                hdulist[0].header.set('CRPIX3', 1.0, '')
+                hdulist[0].header.set('CDELT3', bandwidthmhz*1e6, '')
+                hdulist[0].header.set('CRVAL3', self.freq[0], '')
+                hdulist[0].header.set('CUNIT3', '      HZ', '')
+                hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
 
             else:
-                hdulist[0].header.update('CRPIX3', 1.0, '')
-                hdulist[0].header.update('CDELT3', (self.freq[1]-self.freq[0]), '')
-                hdulist[0].header.update('CRVAL3', self.freq[0], '')
-                hdulist[0].header.update('CUNIT3', '      HZ', '')
-                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
-                hdulist[0].header.update('RESTFRQ', self.freq[0])
+                hdulist[0].header.set('CRPIX3', 1.0, '')
+                hdulist[0].header.set('CDELT3', (self.freq[1]-self.freq[0]), '')
+                hdulist[0].header.set('CRVAL3', self.freq[0], '')
+                hdulist[0].header.set('CUNIT3', '      HZ', '')
+                hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
+                hdulist[0].header.set('RESTFRQ', self.freq[0])
         else:
             if self.nwav==1:
-                hdulist[0].header.update('CRPIX3', 1.0, '')
-                hdulist[0].header.update('CDELT3', bandwidthmhz*1e6, '')
-                hdulist[0].header.update('CRVAL3', self.freq[0], '')
-                hdulist[0].header.update('CUNIT3', '      HZ', '')
-                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+                hdulist[0].header.set('CRPIX3', 1.0, '')
+                hdulist[0].header.set('CDELT3', bandwidthmhz*1e6, '')
+                hdulist[0].header.set('CRVAL3', self.freq[0], '')
+                hdulist[0].header.set('CUNIT3', '      HZ', '')
+                hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
             else:
-                hdulist[0].header.update('CRPIX3', 1.0, '')
-                hdulist[0].header.update('CDELT3', (self.freq[1]-self.freq[0]), '')
-                hdulist[0].header.update('CRVAL3', self.freq[0], '')
-                hdulist[0].header.update('CUNIT3', '      HZ', '')
-                hdulist[0].header.update('CTYPE3', 'FREQ-LSR', '')
+                hdulist[0].header.set('CRPIX3', 1.0, '')
+                hdulist[0].header.set('CDELT3', (self.freq[1]-self.freq[0]), '')
+                hdulist[0].header.set('CRVAL3', self.freq[0], '')
+                hdulist[0].header.set('CUNIT3', '      HZ', '')
+                hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
        
 
         if nu0>0:
-            hdulist[0].header.update('RESTFRQ', nu0, '')
+            hdulist[0].header.set('RESTFRQ', nu0, '')
         else:
             if self.nwav==1:
-                hdulist[0].header.update('RESTFRQ', self.freq[0], '')
+                hdulist[0].header.set('RESTFRQ', self.freq[0], '')
 
 
         if len(self.fwhm)==0:
-            hdulist[0].header.update('BUNIT', 'JY/PIXEL', '')
+            hdulist[0].header.set('BUNIT', 'JY/PIXEL', '')
         else:
-            hdulist[0].header.update('BUNIT', 'JY/BEAM', '')
-            hdulist[0].header.update('BMAJ', self.fwhm[0]/3600., '')
-            hdulist[0].header.update('BMIN', self.fwhm[1]/3600., '')
-            hdulist[0].header.update('BPA', self.pa, '')
+            hdulist[0].header.set('BUNIT', 'JY/BEAM', '')
+            hdulist[0].header.set('BMAJ', self.fwhm[0]/3600., '')
+            hdulist[0].header.set('BMIN', self.fwhm[1]/3600., '')
+            hdulist[0].header.set('BPA', self.pa, '')
 
-        hdulist[0].header.update('BTYPE', 'INTENSITY', '')
-        hdulist[0].header.update('BZERO', 0.0, '')
-        hdulist[0].header.update('BSCALE', 1.0, '')
+        hdulist[0].header.set('BTYPE', 'INTENSITY', '')
+        hdulist[0].header.set('BZERO', 0.0, '')
+        hdulist[0].header.set('BSCALE', 1.0, '')
         
-        hdulist[0].header.update('EPOCH', 2000.0, '')
-        hdulist[0].header.update('LONPOLE', 180.0, '')
+        hdulist[0].header.set('EPOCH', 2000.0, '')
+        hdulist[0].header.set('LONPOLE', 180.0, '')
 
 
         if fitsheadkeys:
@@ -679,12 +683,11 @@ class radmc3dImage():
                 self.stokes    = False
                 self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, self.ny, self.nx])
                 self.image     = np.swapaxes(self.image,0,2)
-                self.image     = np.swapaxes(self.image,0,1)
             elif iformat==3:
                 self.stokes    = True
                 self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, 4, self.ny, self.nx])
-                self.image     = np.swapaxes(self.image,0,2)
-                self.image     = np.swapaxes(self.image,1,3)
+                self.image     = np.swapaxes(self.image,0,3)
+                self.image     = np.swapaxes(self.image,1,2)
 
         else:
 
@@ -733,8 +736,8 @@ class radmc3dImage():
                 for iwav in range(self.nwav):
 # Blank line
                     dum = rfile.readline()
-                    for ix in range(self.nx):
-                        for iy in range(self.ny):
+                    for iy in range(self.nx):
+                        for ix in range(self.ny):
                             self.image[ix,iy,iwav] = float(rfile.readline())
                             #self.image[iy,ix,iwav] = float(rfile.readline())
                
@@ -748,8 +751,8 @@ class radmc3dImage():
                 for iwav in range(self.nwav):
 # Blank line
                     dum = rfile.readline()
-                    for ix in range(self.nx):
-                        for iy in range(self.ny):
+                    for iy in range(self.nx):
+                        for ix in range(self.ny):
                             dum = rfile.readline().split()
                             imstokes = [float(i) for i in dum]
                             self.image[ix,iy,0,iwav] = float(dum[0])
@@ -1172,7 +1175,8 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         
     if (ifreq==None):
         ifreq = 0
-    data = np.squeeze(dum_image.image[::-1,:,ifreq])
+    #data = np.squeeze(dum_image.image[::-1,:,ifreq])
+    data = np.squeeze(dum_image.image[:,::-1,ifreq].T)
 
     #if (image.nfreq>1):
         #if (ifreq==None):
@@ -1428,7 +1432,7 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
             print ' cartesian coordinates of the image center'
             return -1
         else:
-            com = com + ' pointau ' + str(posang[0]) + ' ' + str(posang[1]) + ' ' + str(posang[2]) 
+            com = com + ' pointau ' + str(pointau[0]) + ' ' + str(pointau[1]) + ' ' + str(pointau[2]) 
     else:
         com = com + ' pointau 0.0  0.0  0.0'
 
