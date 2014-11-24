@@ -112,7 +112,7 @@ def getModelNames():
         #modname = dum[i][id1:id2]
         modname = sdum[len(sdum)-1][:-3]
 
-        if ((modname!='template')&(modname!='__init__')&(modname!='_libfunc')):
+        if ((modname!='template')&(modname!='__init__')&(modname!='_libfunc')&(modname!='_modellist')):
             mod_names.append(modname)
 
     ## Get the name of all model files in the current working directory

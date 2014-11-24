@@ -328,7 +328,7 @@ class radmc3dImage():
                 print 'coord="0h10m05s -10d05m30s"'
                 print ra
                 print dum
-               return
+                return
             ra.append(float(dum[:ind]))
             dum = dum[ind+1:]
 
@@ -874,7 +874,7 @@ class radmc3dImage():
             if psfType.lower().strip()=='gauss':
                 # Generate the wavelength independent gaussian psf
                 dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
-                        diam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[0])
+                        tdiam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[0])
                 psf   = dum['psf'] 
                 f_psf = np.fft.fft2(psf)
                 
@@ -892,7 +892,7 @@ class radmc3dImage():
                 for ifreq in range(nfreq):
                     # Generate the wavelength-dependent airy-psf
                     dum   = getPSF(nx=self.nx, ny=self.ny, pscale=[dx,dy], psfType=psfType, fwhm=fwhm, pa=pa, \
-                            diam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[ifreq])
+                            tdiam_prim=tdiam_prim, tdiam_sec=tdiam_sec, wav=self.wav[ifreq])
                     psf   = dum['psf'] 
                     f_psf = np.fft.fft2(psf)
 
@@ -1291,7 +1291,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None, pointau=None, \
                   fluxcons=True, nostar=False, noscat=False, \
                   widthkms=None, linenlam=None, vkms=None, iline=None,\
-                  lambdarange=None, nlam=None):
+                  lambdarange=None, nlam=None, stokes=False):
     """Calculates a rectangular image with RADMC-3D 
            
     Parameters
@@ -1347,6 +1347,10 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     noscat      : bool, optional
                   If True, scattered emission will be neglected in the source function, however, 
                    extinction will contain scattering if kappa_scat is not zero.  
+    
+    stokes      : bool, optional
+                  If True, images in all four stokes parameters (IQUV) will be calculated, if
+                  False only the intensity will be calculated
     
     Example
     -------
@@ -1443,6 +1447,8 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     if iline:
         com = com + ' iline '+("%d"%iline)
 
+    if stokes:
+        com = com + ' stokes '
 
 #
 # Now finally run radmc3d and calculate the image

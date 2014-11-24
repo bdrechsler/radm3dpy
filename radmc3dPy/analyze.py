@@ -419,7 +419,7 @@ class radmc3dGrid():
                 self.xi  = xbound[0] * (xbound[1] / xbound[0])**(np.arange(nxi[0], dtype=np.float64)/float(nxi[0]))
                 for ipart in range(1,len(nxi)-1):
                     dum = xbound[ipart] * (xbound[ipart+1] / xbound[ipart])**(np.arange(nxi[ipart], dtype=np.float64)/float(nxi[ipart]))
-                    self.xi = append(self.xi, dum)
+                    self.xi = np.append(self.xi, dum)
 
                 ipart = len(nxi)-1 
                 dum = xbound[ipart] * (xbound[ipart+1] / xbound[ipart])**(np.arange(nxi[ipart], dtype=np.float64)/float(nxi[ipart]-1))
@@ -2962,7 +2962,18 @@ class radmc3dDustOpac():
         # Check the input keywords and if single strings are given convert them to lists
         # This assumes, though, that there is a single dust opacity file or dust species, though!!
         if (type(ext).__name__=='str'):  ext = [ext]
-        if (type(scatmat).__name__=='str'):  scatmat = [scatmat]
+        if scatmat!=None:
+            if (type(scatmat).__name__=='str'):  scatmat = [scatmat]
+        else:
+            # If the scatmat keyword is not given (i.e. if it is None) then assume that 
+            # it is False for all dust species
+            scatmat = []
+            if idust!=None:
+                for i in range(len(idust)):
+                    scatmat.append(False)
+            else:
+                for i in range(len(ext)):
+                    scatmat.append(False)
         
         if idust!=None:
             if (type(idust).__name__=='int'):  idust = [idust]
