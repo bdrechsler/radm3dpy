@@ -48,7 +48,7 @@ for i in range(len(python_files)):
     
 
 setup(name='radmc3dPy',
-        version='0.27.1',
+        version='0.27.2',
       description='Python module for RADMC3D',
       author='Attila Juhasz',
       author_email='juhasz@strw.leidenuniv.nl',

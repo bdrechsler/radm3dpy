@@ -398,6 +398,8 @@ class radmc3dImage():
                     for inu in range(self.nfreq):
                         data[inu,:,:] = self.image[:,:,inu] * conv
 
+        
+
 
         naxis = len(data.shape)
         hdu     = pf.PrimaryHDU(data.swapaxes(naxis-1,naxis-2))
@@ -405,13 +407,15 @@ class radmc3dImage():
         
         hdulist[0].header.set('CRPIX1', (self.nx+1.)/2., ' ')
         hdulist[0].header.set('CDELT1', -self.sizepix_x/1.496e13/dpc/3600., '')
-        hdulist[0].header.set('CRVAL1', self.sizepix_x/1.496e13/dpc*0.5+target_ra, '')
+        #hdulist[0].header.set('CRVAL1', self.sizepix_x/1.496e13/dpc/3600.*0.5+target_ra, '')
+        hdulist[0].header.set('CRVAL1', target_ra, '')
         hdulist[0].header.set('CUNIT1', '     DEG', '')
         hdulist[0].header.set('CTYPE1', 'RA---SIN', '')
        
         hdulist[0].header.set('CRPIX2', (self.ny+1.)/2., '')
         hdulist[0].header.set('CDELT2', self.sizepix_y/1.496e13/dpc/3600., '')
-        hdulist[0].header.set('CRVAL2', self.sizepix_y/1.496e13/dpc*0.5+target_dec, '')
+        #hdulist[0].header.set('CRVAL2', self.sizepix_y/1.496e13/dpc/3600.*0.5+target_dec, '')
+        hdulist[0].header.set('CRVAL2', target_dec, '')
         hdulist[0].header.set('CUNIT2', '     DEG', '')
         hdulist[0].header.set('CTYPE2', 'DEC--SIN', '')
     
@@ -1246,6 +1250,10 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                     data    = data * (image.sizepix_x * image.sizepix_y / (dpc*pc)**2. * 1e23) 
                     cb_label = 'S'+r'$_\nu$'+' [Jy/pixel]'
 
+    else:
+        print 'ERROR'
+        print 'Unknown image unit : '+bunit
+        return
 # Set the color bar boundaries
     if log:
         cb_bound = (data.max(), data.min())
@@ -1291,7 +1299,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None, pointau=None, \
                   fluxcons=True, nostar=False, noscat=False, \
                   widthkms=None, linenlam=None, vkms=None, iline=None,\
-                  lambdarange=None, nlam=None, stokes=False):
+                  lambdarange=None, nlam=None, stokes=False, binary=False):
     """Calculates a rectangular image with RADMC-3D 
            
     Parameters
@@ -1351,6 +1359,10 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     stokes      : bool, optional
                   If True, images in all four stokes parameters (IQUV) will be calculated, if
                   False only the intensity will be calculated
+    
+    binary      : bool, optional
+                  If True the output image will be written in a C-style binary format, if False
+                  the image format will be ASCII
     
     Example
     -------
@@ -1449,6 +1461,9 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
 
     if stokes:
         com = com + ' stokes '
+
+    if binary:
+        com = com + ' imageunform '
 
 #
 # Now finally run radmc3d and calculate the image

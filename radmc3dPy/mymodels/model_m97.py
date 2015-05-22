@@ -1,3 +1,23 @@
+"""Protoplanetary disk model with a twisted warp based on Mouillet et al. 1997
+
+The density is given by 
+
+    .. math::
+        
+        \\rho = \\frac{\\Sigma(r,\\phi)}{H_p\\sqrt{(2\\pi)}} \\exp{\\left(-\\frac{z^2}{2H_p^2}\\right)}
+
+
+    * :math:`\Sigma` - surface density
+    * :math:`H_{\\rm p}` - Pressure scale height
+
+The molecular abundance function takes into account dissociation and freeze-out of the molecules
+For photodissociation only the continuum (dust) shielding is taken into account in a way that
+whenever the continuum optical depth radially drops below a threshold value the molecular abundance
+is dropped to zero. For freeze-out the molecular abundance below a threshold temperature is decreased
+by a given fractor. 
+
+
+"""
 try:
     import numpy as np
 except:
@@ -6,8 +26,9 @@ except:
     print ' To use the python module of RADMC-3D you need to install Numpy'
 
 
+from radmc3dPy.natconst import *
 try:
-    from matplotlib.pylab import *
+    import matplotlib.pylab as plb
 except:
     print ' WARNING'
     print ' matploblib.pylab cannot be imported ' 
@@ -15,15 +36,37 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 
+import radmc3dPy.analyze as analyze
+import sys
+
+
+
+#try:
+    #import numpy as np
+#except:
+    #print 'ERROR'
+    #print ' Numpy cannot be imported '
+    #print ' To use the python module of RADMC-3D you need to install Numpy'
+
+
+#try:
+    #from matplotlib.pylab import *
+#except:
+    #print ' WARNING'
+    #print ' matploblib.pylab cannot be imported ' 
+    #print ' To used the visualization functionality of the python module of RADMC-3D you need to install matplotlib'
+    #print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
+    #print ' display images'
+
 
 try:
-    ppdisk = __import__('model_ppdisk')
+    ppdisk = __import__('ppdisk')
 except:
     try:
-        ppdisk  = __import__('radmc3d.model_ppdisk', fromlist=['']) 
+        ppdisk  = __import__('radmc3dPy.models.ppdisk', fromlist=['']) 
     except:
         print 'ERROR'
-        print ' model_ppdisk.py could not be imported (required by the selected warp_model "m97")'
+        print ' radmc3dPy.models.ppdisk.py could not be imported (required by the selected warp_model "m97")'
         print ' The model files should either be in the current working directory or'
         print ' in the radmc3d python module directory'
 
@@ -33,7 +76,7 @@ import sys
 
 """
 PYTHON module for RADMC3D 
-(c) Attila Juhasz 2011,2012,2013
+(c) Attila Juhasz 2011,2012,2013,2014,2015
 
 Warped protoplanetary disk model of Mouillet et al. 1997
 
@@ -66,7 +109,6 @@ def getDefaultParams():
 
     defpar = ppdisk.getDefaultParams()
 
-    defpar.append(['warp_model', "'m97'", ' Name of the warp model'])
     defpar.append(['warp_dcomp', '5.0*au', ' Distance of the companion, causing the perturbation, from the central star'])
     defpar.append(['warp_icomp', '10./180.*pi', ' Incliation of the companion with respecto the disk plane in radians'])
     defpar.append(['warp_mcomp', '1.0*mju', ' Mass of the perturber companion'])
@@ -80,26 +122,34 @@ def getWarpZ0M97(rcyl=None, phi=None, grid=None, mstar=None, dcomp=None, icomp=N
      Function to create a twisted warp (Mouillet et al. 1997, MNRAS, 292, 896)
        This is a purely kinematic model to describe warps in the outer
        disk caused by a companion within the disk (R_DISK>D_COMP)
-     USAGE
-    
-     Z0 = getWarpZ0M97(GRID=GRID, M_STAR=M_STAR, D_COMP=D_COMP, $
-                                 I_COMP=I_COMP, M_COMP=M_COMP, T=T)
-    
-     OUTPUT
-    
-              Z0     : 3D numpy array, height of the midplane above the unperturbed value (z0)
-    
-     KEYWORDS 
-    
-              crd    : A numpy array the returning value of crd_trans.ctrans_sph2cyl containg
-                       the cylindrical coordinates at each point
-              MSTAR  : Mass of the central star [g] 
-              DCOMP  : Distance of the companion from the central star [cm]
-              ICOMP  : Inclination angle of the obit of the secondary
-                       with respect to the plane of the disk [radian]
-              MCOMP  : Mass of the secondary [g]
-              T      : Time at which the twisted warp should be calculated 
-                       NOTE : If T=0 no perturbation is present
+     
+       
+     Parameters
+     ----------
+
+     crd    : ndarray
+            Cylindrical coordinates at each grid point
+           
+     mstar  : float
+            Mass of the central star [g]
+
+     dcomp  : float
+            Distance of the companion from the central star [cm]
+
+     icomp  : float
+            Inclination angle of the secondary orbit with respect to the disk plane [rad]
+
+     mcomp  : float
+            Mass of the companion [g]
+
+     t      : float
+            Time at which the twisted warp should be calculate 
+            Note for t=0 no perturbation is present
+
+     Returns
+     -------
+
+     Returns a 3D numpy ndarray, height of the midplane above the unperturbed value (z0)
     """
 #
 # Get the coordinates right;
@@ -163,6 +213,85 @@ def getWarpOmegaPrec(rcyl=None, phi=None, mstar=None, dcomp=None, icomp=None, \
 
     return omega_prec
 
+# ============================================================================================================================
+#
+# ============================================================================================================================
+def getGasAbundance(grid=None, ppar=None, ispec=''):
+    """Calculates the molecular abundance. 
+    
+    The number density of a molecule is rhogas * abun 
+   
+    Parameters
+    ----------
+    grid  : radmc3dGrid
+            An instance of the radmc3dGrid class containing the spatial and wavelength grid
+    
+    ppar  : dictionary
+            Dictionary containing all parameters of the model 
+    
+    ispec : str
+            The name of the gas species whose abundance should be calculated
+
+    Returns
+    -------
+    Returns an ndarray containing the molecular abundance at each grid point
+    """
+
+    # Read the dust density and temperature
+    try: 
+        data = analyze.readData(ddens=True, dtemp=True, binary=True)
+    except:
+        try: 
+            data = analyze.readData(ddens=True, dtemp=True, binary=False)
+        except:
+            print 'WARNING!!'
+            print 'No data could be read in binary or in formatted ascii format'
+            print '  '
+            return 0
+
+    # Calculate continuum optical depth 
+    data.getTau(axis='xy', wav=0.55)
+    
+
+    nspec = len(ppar['gasspec_mol_name'])
+    if ppar['gasspec_mol_name'].__contains__(ispec):
+
+        sid   = ppar['gasspec_mol_name'].index(ispec)
+        # Check where the radial and vertical optical depth is below unity
+        gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)  
+        
+        for spec in range(nspec):
+            gasabun[:,:,:] = ppar['gasspec_mol_abun'][sid]
+           
+
+        for iz in range(data.grid.nz):
+            for iy in range(data.grid.ny):
+                ii = (data.taux[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                gasabun[ii,iy,iz] = 1e-90
+
+                ii = (data.dusttemp[:,iy,iz,0]<ppar['gasspec_mol_freezeout_temp'][sid])
+                gasabun[ii,iy,iz] =  ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
+        
+        #for iz in range(data.grid.nz):
+            #for iy in range(data.grid.ny/2):
+
+                #ii = (data.tauy[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                #gasabun[ii,iy,iz] = 1e-90
+                #gasabun[ii,data.grid.ny-1-iy,iz] = 1e-90
+
+    else:
+        gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-10
+        print 'WARNING !!!'
+        print 'Molecule name "'+ispec+'" is not found in gasspec_mol_name'
+        print 'A default 1e-10 abundance will be used'
+        print ' ' 
+
+
+
+    #gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
+    #gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
+
+    return gasabun
 # -----------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------
 def getGasDensity(grid=None, ppar=None):
@@ -174,14 +303,10 @@ def getGasDensity(grid=None, ppar=None):
 # Apply perturbations 
 #
     
-    z0      = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
-
-
-    if ppar.has_key('warp_model'):
-        if ppar['warp_model'].lower()=='m97':
-            z0 =getWarpZ0M97(grid=grid, mstar=ppar['mstar'], \
-                                    dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
-                                    t=ppar['warp_t'])
+    z0 = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
+    z0 = getWarpZ0M97(grid=grid, mstar=ppar['mstar'], \
+                            dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
+                            t=ppar['warp_t'])
 
     rr, th = np.meshgrid(grid.x, grid.y)
     rcyl = rr * np.sin(th)
@@ -208,14 +333,10 @@ def getDustDensity(grid=None, ppar=None):
 # Apply perturbations 
 #
     
-    z0      = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
-
-
-    if ppar.has_key('warp_model'):
-        if ppar['warp_model'].lower()=='m97':
-            z0 =getWarpZ0M97(grid=grid, mstar=ppar['mstar'], \
-                                    dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
-                                    t=ppar['warp_t'])
+    z0 = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
+    z0 = getWarpZ0M97(grid=grid, mstar=ppar['mstar'], \
+                            dcomp=ppar['warp_dcomp'],  icomp=ppar['warp_icomp'], mcomp=ppar['warp_mcomp'],\
+                            t=ppar['warp_t'])
 
     rr, th = np.meshgrid(grid.x, grid.y)
     rcyl = rr * np.sin(th)

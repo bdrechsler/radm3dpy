@@ -535,7 +535,8 @@ class radmc3dGrid():
 
 
 
-            
+          
+                
                 self.yi = np.append(self.yi, dum)
                 self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
 
@@ -576,8 +577,7 @@ class radmc3dGrid():
                     self.zi = np.array([0., np.pi*2.])
                     self.nz = 1
                     self.nzi = 2
-                
-
+            
         #if (crd_sys!='sph'):
             #print 'WARNING:'
             #print 'Currently only spherical coordinate system is supported!'
@@ -1085,6 +1085,7 @@ class radmc3dData():
             return -1
 
 
+        scatmat = None
         # If the kappa keyword is set it should be used during the optical depth calculation
         if kappa:
             # Safety check
@@ -1095,7 +1096,9 @@ class radmc3dData():
         else:  
             # Read the master opacity file to get the dustkappa file name extensions
             dum = radmc3dDustOpac()
-            dummy_ext = dum.readMasterOpac()['ext']
+            mo  = dum.readMasterOpac()
+            dummy_ext = mo['ext']
+            scatmat = mo['scatmat']
             if len(dummy_ext)<=max(idust):
                 print 'ERROR'
                 print 'There are less dust species specified in dustopac.inp than some of the specified idust indices'
@@ -1111,7 +1114,7 @@ class radmc3dData():
         for i in idust:
 
             if kappa==None:
-                opac = readOpac(ext=ext[i])
+                opac = readOpac(ext=ext[i], scatmat=scatmat)
                 if opac.ext==[]:
                     return -1
                 else:
@@ -1330,14 +1333,14 @@ class radmc3dData():
         
         if (self.grid.nx==-1):
             self.grid.readGrid()
-            
-        print 'Reading gas density (numberdens_'+ispec+'.inp)'
+           
 
         if binary:
             fname = 'numberdens_'+ispec+'.binp'
         else:
             fname = 'numberdens_'+ispec+'.inp'
             
+        print 'Reading gas density ('+fname+')'
         self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary)
        
 # --------------------------------------------------------------------------------------------------
@@ -1692,7 +1695,7 @@ class radmc3dData():
                 for iy in range(nyi):
                     for iz in range(nzi):      
                         vsph = np.array([vgas[ix,iy,iz,0],vgas[ix,iy,iz,2],vgas[ix,iy,iz,1]])
-                        vxyz = vtrans_sph2cart([x[ix],z[iz],y[iy]], vsph)
+                        vxyz = crd_trans.vtrans_sph2cart([x[ix],z[iz],y[iy]], vsph)
                 
                         wfile.write('%.9e %.9e %.9e\n'%(vxyz[0], vxyz[1], vxyz[2]))
                       
@@ -1733,7 +1736,7 @@ class radmc3dData():
                 print 'writing gas density : ', ix, nxi-2
                 for iy in range(nyi-1):
                     for iz in range(nzi-1):
-                        wfile.write('%.9e\n'%self.rhogas[ix,iy,iz])
+                        wfile.write('%.9e\n'%self.ndens_mol[ix,iy,iz])
 
         if gtemp:
             for ids in idust:
@@ -3020,15 +3023,23 @@ class radmc3dDustOpac():
                     print 'ERROR'
                     print ' No dustkapscatmat_'+ext[i]+'.inp file was found'
                     return -1
+                
+                print 'Reading dustkapscatmat_'+ext[i]+'.inp ....'
 
                 self.ext.append(ext[i])
                 
-                # Read the comment field
-                for j in range(6):
+                # Read the header/comment field
+                dum = rfile.readline()
+                while dum.strip()[0]=='#':
                     dum = rfile.readline()
 
+
+                #for j in range(6):
+                    #dum = rfile.readline()
+
                 # Read the file format
-                iformat = int(rfile.readline())
+                iformat = int(dum)
+                #iformat = int(rfile.readline())
                 if iformat!=1:
                     print 'ERROR'
                     print 'Format number of the file dustkapscatmat_'+ext[i]+'.inp (iformat='+("%d"%iformat)+') is unkown'
@@ -4265,6 +4276,7 @@ def readOpac(ext=[''], idust=None, scatmat=None):
     scatmat: list
             If specified, its elements should be booleans indicating whether the opacity file 
             contains also the full scattering matrix (True) or only dust opacities (False)
+    
     Returns
     -------
         Returns an instance of the radmc3dDustOpac class 
@@ -4489,7 +4501,7 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
         dusttemp = data.dusttemp
       
     #rho_new = np.zeros(data.rhodust.shape, dtype=np.float64)
-    rho_new = array(data.rhodust)
+    rho_new = np.array(data.rhodust)
     if len(gsize)!=0:
         mean_dusttemp = np.zeros([data.grid.nx, data.grid.ny, data.grid.nz], dtype=np.float64)
         w             = np.zeros(data.rhodust.shape, dtype=np.float64)
@@ -4535,7 +4547,7 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
                     rho_new[ir,data.grid.ny-1,ip,ispec] = 1.0
 
                     for it in range(data.grid.ny-1)[::-1]:
-                        rho_new[ir,it,ip,ispec] = rho_new[ir,it+1,ip,ispec] * exp(-(const*zpt[it] + dlgtemp[it]/dz[it])*dz[it])
+                        rho_new[ir,it,ip,ispec] = rho_new[ir,it+1,ip,ispec] * np.exp(-(const*zpt[it] + dlgtemp[it]/dz[it])*dz[it])
                 
                     rho_new = rho_new.clip(1e-90, 1e90)
                   
