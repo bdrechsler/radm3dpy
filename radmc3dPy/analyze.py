@@ -23,7 +23,7 @@ import subprocess as sp
 import sys, os, copy
 from radmc3dPy.natconst import *
 import radmc3dPy.crd_trans  as crd_trans 
-
+from staratm import StellarAtm
 
 
 class radmc3dGrid():
@@ -2092,7 +2092,7 @@ class radmc3dRadSources():
         
         self.nstar = len(self.rstar)
         #self.pstar = ppar['pstar']
-        
+       
 
         print 'Writing stars.inp'
         wfile = open('stars.inp', 'w')
@@ -2131,12 +2131,17 @@ class radmc3dRadSources():
 
 
         else:
+            self.getStarSpectrum(ppar=ppar)
             for istar in range(self.nstar):
-                wfile.write('%.9e\n'%(-self.tstar[istar]))
+                if self.staremis_type[istar].strip().lower()=="blackbody":
+                    wfile.write('%.9e\n'%(-self.tstar[istar]))
+                else:
+                    for ilam in range(self.grid.nwav):
+                        wfile.write('%.9e\n'%(self.fnustar[ilam,istar]))
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def getStarSpectrum(self, tstar=None, rstar=None, lstar=None, ppar=None, grid=None):
+    def getStarSpectrum(self, tstar=None, rstar=None, lstar=None, mstar=None, ppar=None, grid=None):
         """Calculates a blackbody stellar spectrum.
 
         Parameters
@@ -2151,6 +2156,9 @@ class radmc3dRadSources():
         lstar : list
                 Bolometric luminosity of the star [erg/s] (either rstar or lstar should be given)
         
+        mstar : list
+                Stellar mass in [g] (only required if an atmosphere model is used to calculate logg)
+
         ppar  : dictionary
                 Dictionary containing all input parameters
         
@@ -2169,6 +2177,11 @@ class radmc3dRadSources():
                 tstar = ppar['tstar']
             if rstar==None:
                 rstar = ppar['rstar']
+            if mstar==None:
+                self.mstar = ppar['mstar']
+
+        if mstar:
+            self.mstar = mstar
 
         if tstar:
             if type(tstar).__name__!='list':
@@ -2200,12 +2213,44 @@ class radmc3dRadSources():
                     self.nstar = self.rstar.shape[0]
                     self.tstar = (self.lstar / (4.*np.pi*ss*self.rstar**2.))**0.25
 
+            
+        #
+        # If we take blackbody spectrum
+        #
+       
+        if ppar:
+            if ppar.has_key('staremis_type'):
+                self.staremis_type = ppar['staremis_type']
+            else:
+                self.staremis_type = []
+                for i in range(self.nstar):
+                    self.staremis_type.append("blackbody")
+        else:
+            self.staremis_type = []
+            for i in range(self.nstar):
+                self.staremis_type.append("blackbody")
+
 
         self.fnustar   = np.zeros([self.grid.nwav, len(self.tstar)], dtype=np.float64)
-        for istar in range(len(self.tstar)):
-            self.fnustar[:,istar]   = 2.*hh*self.grid.freq**3./cc**2/(np.exp(hh*self.grid.freq/kk/self.tstar[istar])-1.0) * \
-                    np.pi * self.rstar[istar]**2. / pc**2.
-
+        for istar in range(self.nstar):
+            if self.staremis_type[istar].strip().lower()=="blackbody":
+                self.fnustar[:,istar]   = 2.*hh*self.grid.freq**3./cc**2/(np.exp(hh*self.grid.freq/kk/self.tstar[istar])-1.0) * \
+                        np.pi * self.rstar[istar]**2. / pc**2.
+            elif self.staremis_type[istar].strip().lower()=="kurucz":
+                sta = StellarAtm()
+                dum = sta.getAtmModel(teff=self.tstar[istar], mstar=self.mstar[istar], rstar=self.rstar[istar], iwav=self.grid.wav, model="kurucz")
+                self.fnustar[:,istar]   = dum['lnu'] / (4. * np.pi * pc**2)
+            
+            elif self.staremis_type[istar].strip().lower()=="nextgen":
+                sta = StellarAtm()
+                dum = sta.getAtmModel(teff=self.tstar[istar], mstar=self.mstar[istar], rstar=self.rstar[istar], iwav=self.grid.wav, model="nextgen")
+                self.fnustar[:,istar]   = dum['lnu'] / (4. * np.pi * pc**2)
+            
+            else:
+                print 'ERROR'
+                print 'Unknown stellar atmosphere model : ', self.staremis_type[istar]
+                return
+        
 # --------------------------------------------------------------------------------------------------
     def getAccdiskTemperature(self, ppar=None, grid=None):
         """Calculates the effective temperature of a viscous accretion disk.
@@ -4074,6 +4119,7 @@ class radmc3dPar():
         self.setPar(['rstar','[2.0*rs]', '# Radius of the star(s)', 'Radiation sources'])
         self.setPar(['tstar','[4000.0]', '# Effective temperature of the star(s) [K]', 'Radiation sources'])
         self.setPar(['pstar','[0.0, 0.0, 0.0]', '# Position of the star(s) (cartesian coordinates)', 'Radiation sources'])
+        self.setPar(['staremis_type','["blackbody"]', '# Stellar emission type ("blackbody", "kurucz", "nextgen")', 'Radiation sources'])
         self.setPar(['incl_cont_stellarsrc', 'False', '# Switches on (True) or off (False) continuous stellar sources )', 'Radiation sources'])
         #
         # Grid parameters

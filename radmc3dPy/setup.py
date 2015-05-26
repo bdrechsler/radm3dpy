@@ -132,7 +132,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # Create the grid
 # --------------------------------------------------------------------------------------------
     grid = analyze.radmc3dGrid()
-    
     # Wavelength grid
     grid.makeWavelengthGrid(ppar=ppar)
     # Spatial grid
