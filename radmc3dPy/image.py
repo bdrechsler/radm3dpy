@@ -763,7 +763,7 @@ class radmc3dImage():
                             self.image[ix,iy,1,iwav] = float(dum[1])
                             self.image[ix,iy,2,iwav] = float(dum[2])
                             self.image[ix,iy,3,iwav] = float(dum[3])
-            
+                            print '>>>>> ', iy, ix 
             #self.image = squeeze(self.image)
             rfile.close()
 

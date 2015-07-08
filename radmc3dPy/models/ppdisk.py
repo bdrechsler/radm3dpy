@@ -96,6 +96,8 @@ def getDefaultParams():
     ['bgdens', '1e-30', ' Background density (g/cm^3)'],
     ['srim_rout', '0.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
     ['srim_plsig', '0.0', 'Power exponent of the density reduction inside of srim_rout*rin'],
+    ['prim_rout', '0.0', 'Outer boundary of the puffed-up inner rim in terms of rin'],
+    ['hpr_prim_rout', '0.0', 'Pressure scale height at rin'],
     ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
     ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
     ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
@@ -218,8 +220,18 @@ def getGasDensity(grid=None, ppar=None):
     rcyl = rr * np.sin(th)
 
     # Calculate the pressure scale height as a function of r, phi
-    hp = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
-    dum = ppar['hrdisk'] * (rcyl/ppar['rdisk'])**ppar['plh'] * rcyl
+    hp  = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+    dum = ppar['hrdisk'] * (rcyl/ppar['hrpivot'])**ppar['plh'] * rcyl
+
+    if ppar.has_key('prim_rout'):
+        if ppar['prim_rout']>=1.:
+            dum_hrdisk = ppar['hrdisk'] * (rcyl/ppar['hrpivot'])**ppar['plh'] 
+            hpr0       = ppar['hrdisk'] * (ppar['prim_rout'] * ppar['rin']/ppar['hrpivot'])**ppar['plh']
+            dummy      = np.log10(hpr0 / ppar['hpr_prim_rout']) / np.log10(ppar['prim_rout'])
+            dum_prim   = ppar['hpr_prim_rout'] * (rcyl/ppar['rin'])**dummy
+            dum        = (dum_hrdisk**8. + dum_prim**8.)**(1./8.) * rcyl
+
+
     dum = dum.swapaxes(0,1)
     for iz in range(grid.nz):
         hp[:,:,iz] = dum

@@ -4,17 +4,24 @@ import os
 
 class StellarAtm():
     """
+    Class for stellar atmosphere models
+
+    Attributes
+    ----------
+
+    kuruczDir   : str
+                Full path to the Kurucz model atmospheres
+                I.e. the path to the files (*.pck)
+
+    nextgenDir  : str
+                Full path to the NextGen model atmospheres
+                The model spectra has to be gzipped, i.e. the nextgenDir is the full path to the 
+                files like  nlte98-4.5-2.5.NextGen.spec.gz. The NextGen spectra can be downloaded
+                in this gzipped format from France Allard's website (http://perso.ens-lyon.fr/france.allard/)
     """
 
-    def __init__(self):
 
-        self.wav   = None
-        self.fnu   = None
-        self.bnu   = None
-        self.logg  = None
-        self.teff  = None
-        self.metal = None
-        self.fname = None
+    def __init__(self):
 
         self.kuruczDir  = '/disk2/juhasz/Data/kurucz/'
         self.nextgenDir = '/disk2/juhasz/Data/NextGen/SPECTRA/'
@@ -22,6 +29,50 @@ class StellarAtm():
     
     def getAtmModel(self, teff=0., logg=None, mstar=None, lstar=None, rstar=None, iwav=None, model='kurucz', wmax=7.):
         """
+        Interpolates the stellar model atmosphere on a pre-defined wavelength grid
+        The model atmospheres are interpolated in logg and Teff and rebinned in wavelength 
+        to the input wavelength grid and scaled to have the same luminosity as specified 
+
+
+        Parameters
+        ----------
+
+        teff        : float
+                      Effective temperature of the star
+        
+        logg        : float
+                      Logarithm of the surface gravity of the star
+        
+        mstar       : float
+                      Mass of the star in gramm
+
+        lstar       : float, optional
+                      Luminosity of the star (either lstar or rstar should be specified)
+
+        rstar       : float, optional
+                      Radius of the star (either lstar or rstar should be specified)
+
+        iwav        : ndarray
+                      Wavelength grid for which the stellar atmosphere model should be calculated
+
+        model       : {'kurucz', 'nextgen'}
+                      Name of the model atmosphere family
+
+        wmax        : float
+                      Maximum wavelength until the model atmosphere is used on the interpolated grid
+                      Longwards of this wavelength the Rayleigh-Jeans approximation (lambda^(-2)) is used. 
+
+        Returns
+        -------
+
+        Returns a dictionary with the following keys:
+
+            * wav    : ndarray
+                       Wavelength in micron (same as the input iwav keyword)
+
+            * lnu    : ndarray
+                       Monochromatic luminosity of the stellar atmosphere in erg/s/Hz
+
         """
         ss = 5.6703e-05
         kk = 1.3807e-16
@@ -73,9 +124,41 @@ class StellarAtm():
         return {'wav':iwav, 'lnu':ilnu}
             
 
-    def getSpectrumKurucz(self, teff=0., logg=0., lstar=None, rstar=None, wmin=None, wmax=None, nwav=None, wav=None):
+    def getSpectrumKurucz(self, teff=0., logg=0., lstar=None, rstar=None, wav=None):
         """
-        Returns the spectrum in lnu in erg/s/cm/cm/Hz
+        Interpolates the Kurucz model atmospheres in logg and Teff 
+
+        Parameters
+        ----------
+
+        teff        : float
+                      Effective temperature of the star
+        
+        logg        : float
+                      Logarithm of the surface gravity of the star
+        
+        lstar       : float, optional
+                      Luminosity of the star (either lstar or rstar should be specified)
+
+        rstar       : float, optional
+                      Radius of the star (either lstar or rstar should be specified)
+
+        wav         : ndarray
+                      Wavelength grid for which the stellar atmosphere model should be calculated
+
+        Returns
+        -------
+
+        Returns a dictionary with the following keys:
+
+            * wav     : ndarray
+                        Wavelength in micron (same as the input wav keyword)
+
+            * lnu     : ndarray
+                        Monochromatic luminosity of the stellar atmosphere in erg/s/Hz
+            
+            * lnucont : ndarray
+                        Monochromatic luminosity of the continuum stellar atmosphere in erg/s/Hz
         """
        
         ss = 5.6703e-05
@@ -184,26 +267,26 @@ class StellarAtm():
                 x.append(teff_grid[idt1])
                 y.append(logg_grid_lower[idgl1])
                 ii = ((dum['teff']==teff_grid[idt1])&(dum['logg']==logg_grid_lower[idgl1]))
-                sp.append(squeeze(dum['fnu'][ii,:]))
-                spc.append(squeeze(dum['fnucont'][ii,:]))
+                sp.append(squeeze(dum['inu'][ii,:]))
+                spc.append(squeeze(dum['inucont'][ii,:]))
             if idgl2>=0:
                 x.append(teff_grid[idt1])
                 y.append(logg_grid_lower[idgl2])
                 ii = ((dum['teff']==teff_grid[idt1])&(dum['logg']==logg_grid_lower[idgl2]))
-                sp.append(squeeze(dum['fnu'][ii,:]))
-                spc.append(squeeze(dum['fnucont'][ii,:]))
+                sp.append(squeeze(dum['inu'][ii,:]))
+                spc.append(squeeze(dum['inucont'][ii,:]))
             if idgu1>=0:
                 x.append(teff_grid[idt2])
                 y.append(logg_grid_upper[idgu1])
                 ii = ((dum['teff']==teff_grid[idt2])&(dum['logg']==logg_grid_upper[idgu1]))
-                sp.append(squeeze(dum['fnu'][ii,:]))
-                spc.append(squeeze(dum['fnucont'][ii,:]))
+                sp.append(squeeze(dum['inu'][ii,:]))
+                spc.append(squeeze(dum['inucont'][ii,:]))
             if idgu2>=0:
                 x.append(teff_grid[idt2])
                 y.append(logg_grid_upper[idgu2])
                 ii = ((dum['teff']==teff_grid[idt2])&(dum['logg']==logg_grid_upper[idgu2]))
-                sp.append(squeeze(dum['fnu'][ii,:]))
-                spc.append(squeeze(dum['fnucont'][ii,:]))
+                sp.append(squeeze(dum['inu'][ii,:]))
+                spc.append(squeeze(dum['inucont'][ii,:]))
 
             if len(x)!=3:
                 print 'Something went wrong..'
@@ -219,17 +302,10 @@ class StellarAtm():
             c2 = ( (y[2]-y[0])*(teff-x[2]) + (x[0]-x[2])*(logg-y[2]) ) / ( (y[1]-y[2])*(x[0]-x[2]) + (x[2]-x[1])*(y[0]-y[2]) )
             c3 = 1.-c1-c2
             
-            fnu = c1*sp[0] + c2*sp[1] + c3*sp[2]
-            fnucont = c1*spc[0] + c2*spc[1] + c3*spc[2]
+            lnu = c1*sp[0] + c2*sp[1] + c3*sp[2]
+            lnucont = c1*spc[0] + c2*spc[1] + c3*spc[2]
 
-
-            #fig = figure()
-            #loglog(dum['wav'], sp[0], 'b-')
-            #loglog(dum['wav'], sp[1], 'r-')
-            #loglog(dum['wav'], sp[2], 'g-')
-            #loglog(dum['wav'], fnu, 'k-')
-            #dum = raw_input() 
-
+           
         else:
             print 'Bracketed spectrum with Teff : ',teff ,' and logg : ',logg
             print 'Teff grid : ', teff_grid[idt1], teff_grid[idt2]
@@ -238,13 +314,13 @@ class StellarAtm():
             # Do the standard four point bilinear interpolation
             #
             ii = ((dum['teff']==teff_grid[idt1])&(dum['logg']==logg_grid_lower[idgl1]))
-            sp11 = np.squeeze(dum['fnu'][ii,:])
+            sp11 = np.squeeze(dum['inu'][ii,:])
             ii = ((dum['teff']==teff_grid[idt1])&(dum['logg']==logg_grid_lower[idgl2]))
-            sp12 = np.squeeze(dum['fnu'][ii,:])
+            sp12 = np.squeeze(dum['inu'][ii,:])
             ii = ((dum['teff']==teff_grid[idt2])&(dum['logg']==logg_grid_upper[idgu1]))
-            sp22 = np.squeeze(dum['fnu'][ii,:])
+            sp22 = np.squeeze(dum['inu'][ii,:])
             ii = ((dum['teff']==teff_grid[idt2])&(dum['logg']==logg_grid_upper[idgu2]))
-            sp21 = np.squeeze(dum['fnu'][ii,:])
+            sp21 = np.squeeze(dum['inu'][ii,:])
 
             c11 = (teff_grid[idt2] - teff) * (logg_grid_upper[idgu2]-logg)
             c12 = (teff_grid[idt2] - teff) * (logg-logg_grid_upper[idgu1])
@@ -252,18 +328,54 @@ class StellarAtm():
             c21 = (teff-teff_grid[idt1]) * (logg_grid_lower[idgl2]-logg)  
             c00 = 1./( (teff_grid[idt2]-teff_grid[idt1]) * (logg_grid_lower[idgl2]-logg_grid_lower[idgl1]))
 
-            fnu     = c00 * (c11*sp11 + c12*sp12 + c22*sp22 + c21*sp21)
-            fnucont = c00 * (c11*sp11 + c12*sp12 + c22*sp22 + c21*sp21)
+            lnu     = c00 * (c11*sp11 + c12*sp12 + c22*sp22 + c21*sp21)
+            lnucont = c00 * (c11*sp11 + c12*sp12 + c22*sp22 + c21*sp21)
                     
       
         nu  = cc/dum['wav']*1e4
-        lum = (0.5 * abs(nu[1:] - nu[:-1]) * (fnu[1:] + fnu[:-1])).sum()
-        fnu *= lstar / lum
+        lum = (0.5 * abs(nu[1:] - nu[:-1]) * (lnu[1:] + lnu[:-1])).sum()
+        lnu *= lstar / lum
+        lnucont *= lstar / lum
 
-        return {'wav':dum['wav'], 'lnu':fnu, 'fnucont':fnucont}
+        return {'wav':dum['wav'], 'lnu':lnu, 'lnucont':lnucont}
 
     def readKuruczGrid(self, fname=''):
         """
+        Reads the Kurucz model atmosphere grid. It reads a whole file from the Kurucz grid that contains
+        a 2D grid of atmosphere models for Teff and logg.  
+
+        Parameters
+        ----------
+
+        fname       : str
+                      File name containing the Kurucz model atmosphere (e.g. fp00k2.pck)
+
+        
+        Returns
+        -------
+        
+        Returns a dictionary with the following keys:
+
+            * wav     : ndarray
+                        Wavelength in micron 
+
+            * nwav    : int
+                        Number of wavelength points
+
+            * inu     : list
+                        Each element of the list contains an ndarray with the specific intensity of the stellar 
+                        model atmosphere in erg/s/cm/cm/Hz/ster
+            
+            * inucont : list
+                        Each element of the list contains an ndarray with the specific intensity of the stellar 
+                        model atmosphere continuum in erg/s/cm/cm/Hz/ster
+
+            * teff    : list
+                        Contains the Teff grid of the model grid 
+
+            * logg    : list
+                        Contains the logg grid of the model grid
+        
         """
 
         rfile = open(fname, 'r')
@@ -293,8 +405,8 @@ class StellarAtm():
         nwav         = wav.shape[0]
         tgrid_list   = []
         logg_list    = []
-        fnu_list     = []
-        fnucont_list = []
+        inu_list     = []
+        inucont_list = []
 
 
         #
@@ -318,7 +430,7 @@ class StellarAtm():
             dum = rfile.readline()
             for j in range(5):
                 arr.append(float(dum[j*n:(j+1)*n]))
-            fnu_list.append(np.array(arr))
+            inu_list.append(np.array(arr))
             # 
             # Read the continuum spectrum
             #
@@ -330,7 +442,7 @@ class StellarAtm():
             dum = rfile.readline()
             for j in range(5):
                 arr.append(float(dum[j*n:(j+1)*n]))
-            fnucont_list.append(np.array(arr))
+            inucont_list.append(np.array(arr))
        
             #
             # Read the next section header
@@ -341,14 +453,50 @@ class StellarAtm():
 
         teff_grid  = np.array(tgrid_list)
         logg_grid  = np.array(logg_list)
-        fnu        = np.array(fnu_list)
-        fnucont    = np.array(fnucont_list)
+        inu        = np.array(inu_list)
+        inucont    = np.array(inucont_list)
       
 
-        return {'wav':wav, 'fnu':fnu, 'fnucont':fnucont, 'teff':teff_grid, 'logg':logg_grid, 'nwav':nwav}
+        return {'wav':wav, 'inu':inu, 'inucont':inucont, 'teff':teff_grid, 'logg':logg_grid, 'nwav':nwav}
 
     def readNextGenSpectrum(self,fname=''):
         """
+        Reads the NextGen model atmosphere.
+
+        Parameters
+        ----------
+
+        fname       : str
+                      File name containing the NextGen model atmosphere (e.g. nlte98-4.5-2.5.NextGen.spec)
+        
+        
+        Returns
+        -------
+
+        Returns a dictionary with the following keys:
+
+            * wav     : ndarray
+                        Wavelength in micron 
+
+            * nwav    : int
+                        Number of wavelength points
+
+            * inu     : ndarray
+                        Specific intensity of the stellar model atmosphere in erg/s/cm/cm/Hz/ster
+            
+            * bnu     : list
+                        Specific intensity of a blackbody stellar model atmosphere with the same luminosity
+                        and the same effective temperature in erg/s/cm/cm/Hz/ster
+
+            * teff    : float
+                        Effective temperature of the model
+
+            * logg    : float
+                        Logarithm of the surface gravity of the model
+
+            * mph     : float
+                        Metallicity of the atmosphere model
+        
         """
 
         print 'Reading : ', fname
@@ -373,23 +521,42 @@ class StellarAtm():
         bigline = np.array(bigline)
         # Convert wavelength from angstrom to micron
         wav = bigline[:nwav]/1e4
-        fnu = bigline[nwav:2*nwav]
+        inu = bigline[nwav:2*nwav]
         bnu = bigline[nwav*2:nwav*3]
 
         ii = wav.argsort()
         wav = wav[ii]
-        fnu = fnu[ii]*1e-8 * wav * 1e4 /np.pi / (29979245800.0/wav*1e4)
+        inu = inu[ii]*1e-8 * wav * 1e4 /np.pi / (29979245800.0/wav*1e4)
         bnu = bnu[ii]*1e-8 * wav * 1e4 /np.pi / (29979245800.0/wav*1e4)
         
         #
         # The unit is now erg/s/cm/Hz/ster
         #
 
-        return {'teff':teff, 'logg':logg, 'mph':mph, 'nwav':nwav, 'wav':wav, 'fnu':fnu, 'bnu':bnu} 
+        return {'teff':teff, 'logg':logg, 'mph':mph, 'nwav':nwav, 'wav':wav, 'inu':inu, 'bnu':bnu} 
 
 
     def rebinSpectrum(self, wav=None, fnu=None, iwav=None):
         """
+        Rebins the spectrum to a coarser wavelength grid
+
+        Parameters
+        ----------
+
+        wav     : ndarray
+                  Wavelength grid of the spectrum to be rebinned
+
+        fnu     : ndarray
+                  Wavelength dependent spectrum (e.g. specific intensity, monochromatic luminosity etc) to be rebbinned
+
+        iwav    : ndarray
+                  Wavelength grid onto which the spectrum should be rebinned (it is assumed to be logarithmically spaced)
+
+        Returns
+        -------
+
+        Returns an ndarray containing the spectrum rebinned to the input wavelength grid
+                  
         """
 
         # 
@@ -412,8 +579,42 @@ class StellarAtm():
 
         return ifnu
 
-    def getSpectrumNextGen(self, teff=0., logg=0., lstar=None, rstar=None, wmin=None, wmax=None, nwav=None, wav=None):
+    def getSpectrumNextGen(self, teff=0., logg=0., lstar=None, rstar=None, wav=None):
         """
+        Interpolates the NextGen model atmospheres in logg and Teff 
+
+        Parameters
+        ----------
+
+        teff        : float
+                      Effective temperature of the star
+        
+        logg        : float
+                      Logarithm of the surface gravity of the star
+        
+        lstar       : float, optional
+                      Luminosity of the star (either lstar or rstar should be specified)
+
+        rstar       : float, optional
+                      Radius of the star (either lstar or rstar should be specified)
+
+        wav         : ndarray
+                      Wavelength grid for which the stellar atmosphere model should be calculated
+
+        Returns
+        -------
+
+        Returns a dictionary with the following keys:
+
+            * wav     : ndarray
+                        Wavelength in micron (same as the input wav keyword)
+
+            * lnu     : ndarray
+                        Monochromatic luminosity of the stellar atmosphere in erg/s/Hz
+            
+            * bnu     : ndarray
+                        Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and 
+                        effective temperature as the stellar model in erg/s/Hz
         """
         ss = 5.6703e-05
         kk = 1.3807e-16
@@ -519,7 +720,7 @@ class StellarAtm():
         c21 = (teff/100. - teff_grid[idt1])*(logg_grid[idg2]-logg)
         c00 = 1./((teff_grid[idt2]-teff_grid[idt1]) * (logg_grid[idg2]-logg_grid[idg1]))
         
-        fnu = c00 * (c11*sp11['fnu'] + c12*sp12['fnu'] + c22*sp22['fnu'] + c21*sp21['fnu']) 
+        lnu = c00 * (c11*sp11['inu'] + c12*sp12['inu'] + c22*sp22['inu'] + c21*sp21['inu']) 
         bnu = c00 * (c11*sp11['bnu'] + c12*sp12['bnu'] + c22*sp22['bnu'] + c21*sp21['bnu']) 
         
         shutil.rmtree('./tmp')
@@ -528,13 +729,13 @@ class StellarAtm():
         # Scale the spectrum to give the same luminosity as required
         #
         nu = cc/sp11['wav']*1e4
-        lum = (0.5 * abs(nu[1:] - nu[:-1]) * (fnu[1:] + fnu[:-1])).sum()
-        fnu *= lstar / lum
+        lum = (0.5 * abs(nu[1:] - nu[:-1]) * (lnu[1:] + lnu[:-1])).sum()
+        lnu *= lstar / lum
         
         lum = (0.5 * abs(nu[1:] - nu[:-1]) * (bnu[1:] + bnu[:-1])).sum()
         bnu *= lstar / lum
         
-        return {'wav':sp11['wav'], 'lnu':fnu, 'bnu':bnu}
+        return {'wav':sp11['wav'], 'lnu':lnu, 'bnu':bnu}
 
 
 

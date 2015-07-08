@@ -16,7 +16,7 @@ from radmc3dPy.natconst import *
 import radmc3dPy.analyze as analyze
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
+def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, **kwargs):
     """
     Function to set up a dust model for RADMC-3D 
     
@@ -37,6 +37,9 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     writeDustTemp   : bool, optional
                       If True a separate dust_temperature.inp/dust_tempearture.binp file will be
                       written under the condition that the model contains a function getDustTemperature() 
+        
+    old             : bool, optional
+                      If set to True the input files for the old 2D version of radmc will be created
 
     **kwargs        : 
                     Any varible name in problem_params.inp can be used as a keyword argument.
@@ -51,7 +54,7 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     Notes
     -----
 
-    Files written by problemSetupDust()
+    Files written by problemSetupDust() for RADMC-3D
         
         * dustopac.inp             : Dust opacity master file.
         
@@ -84,7 +87,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
         return
 
     if not ppar:
-        print 'ERROR'
         print 'problem_params.inp was not found'
         return 
 # --------------------------------------------------------------------------------------------
@@ -137,17 +139,30 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     # Spatial grid
     grid.makeSpatialGrid(ppar=ppar)
 
+#    from matplotlib.pylab import plot
+    #plot(np.pi/2.-grid.y, 'ko-')
+    #dum = raw_input()
+    #exit()
+
 # --------------------------------------------------------------------------------------------
 # Dust opacity
 # --------------------------------------------------------------------------------------------
     if ppar.has_key('dustkappa_ext'):
         opac=analyze.radmc3dDustOpac()
         #Master dust opacity file
-        opac.writeMasterOpac(ext=ppar['dustkappa_ext'], scattering_mode_max=ppar['scattering_mode_max'])
+        opac.writeMasterOpac(ext=ppar['dustkappa_ext'], scattering_mode_max=ppar['scattering_mode_max'], old=old)
+        if old:
+            #Frequency grid
+            grid.writeWavelengthGrid(old=old)
+            # Create the dust opacity files
+            opac.makeopacRadmc2D(ext=ppar['dustkappa_ext'])
     else:
+        #if old:
+            #print 'ERROR'
+            #print 'Calculating dust opacities for radmc (2D version) is not yet implemented)'
         opac=analyze.radmc3dDustOpac()
         # Calculate the opacities and write the master opacity file
-        opac.makeOpac(ppar=ppar)
+        opac.makeOpac(ppar=ppar,old=old)
 
 # --------------------------------------------------------------------------------------------
 # Try to get the specified model
@@ -172,24 +187,27 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 
 
     # Check if the model has functions to set up continuous starlike sources 
-    if ppar.has_key('incl_accretion'):
-        stellarsrcEnabled = ppar['incl_accretion']
-    else:
-        stellarsrcEnabled = False
-    if dir(mdl).__contains__('getStellarsrcDensity'):
-        if callable(getattr(mdl, 'getStellarsrcDensity')):
-            if dir(mdl).__contains__('getStellarsrcTemplates'):
-                if callable(getattr(mdl, 'getStellarsrcTemplates')):
-                    stellarsrcEnabled = True
+    if ppar.has_key('incl_cont_stellarsrc'):
+        stellarsrcEnabled = ppar['incl_cont_stellarsrc']
+       
+        if stellarsrcEnabled:
+            if dir(mdl).__contains__('getStellarsrcDensity'):
+                if callable(getattr(mdl, 'getStellarsrcDensity')):
+                    if dir(mdl).__contains__('getStellarsrcTemplates'):
+                        if callable(getattr(mdl, 'getStellarsrcTemplates')):
+                            stellarsrcEnabled = True
+                        else: 
+                            stellarsrcEnabled = False
+                    else: 
+                        stellarsrcEnabled = False
                 else: 
                     stellarsrcEnabled = False
             else: 
                 stellarsrcEnabled = False
-        else: 
-            stellarsrcEnabled = False
-    else: 
-        stellarsrcEnabled = False
    
+    else:
+        stellarsrcEnabled = False
+
     if stellarsrcEnabled:
         dum = mdl.getStellarsrcTemplates(grid=grid, ppar=ppar)
         if dum[0,0]<=0.:
@@ -206,6 +224,7 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
             radSources.cststar = []
             radSources.csrstar = []
             radSources.csmstar = []
+
 
         radSources.csdens = mdl.getStellarsrcDensity(grid=grid, ppar=ppar)
 
@@ -249,11 +268,11 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
 # --------------------------------------------------------------------------------------------
 
     #Frequency grid
-    grid.writeWavelengthGrid()
+    grid.writeWavelengthGrid(old=old)
     #Spatial grid
-    grid.writeSpatialGrid()
+    grid.writeSpatialGrid(old=old)
     #Input radiation field
-    radSources.writeStarsinp(ppar=ppar)
+    radSources.writeStarsinp(ppar=ppar, old=old)
     #radSources.writeStarsinp(wav=grid.wav, pstar=ppar['pstar'], tstar=ppar['tstar'], \
             #rstar=ppar['rstar'], incl_spot=ppar['incl_accretion'])
     # Continuous starlike sources
@@ -276,12 +295,16 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, **kwargs):
     print '-------------------------------------------------------------'
 
     #Dust density distribution
-    data.writeDustDens(binary=binary)
+    data.writeDustDens(binary=binary, old=old)
     #Dust temperature distribution
     if writeDustTemp:
         data.writeDustTemp(binary=binary)
     #radmc3d.inp
-    writeRadmc3dInp(modpar=modpar)
+    if not old:
+        writeRadmc3dInp(modpar=modpar)
+    else:
+        writeRadmcInp(modpar=modpar)
+
 
 # --------------------------------------------------------------------------------------------
 # Calculate optical depth for diagnostics purposes
@@ -632,6 +655,61 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # --------------------------------------------------------------------------------------------
     # Write the lines.inp the main control file for the line RT
     writeLinesInp(ppar=ppar)
+# --------------------------------------------------------------------------------------------------
+def writeRadmcInp(modpar=None):
+    """Writes the radmc.inp master command file for the 2D version of radmc
+
+    Parameters
+    ----------
+    ppar   : dictionary
+             Contains all parameters of a radmc run.
+
+    """
+
+    ppar = modpar.ppar
+    fname = 'radmc.inp'
+    try :
+        wfile = open(fname, 'w')
+    except:
+        print 'Error!' 
+        print fname+' cannot be opened!'
+        return 
+
+    wfile.write("nphot       =    %d\n"%(ppar['nphot']))
+    wfile.write("iseed       =    -17933201\n")
+    wfile.write("imethod     =    2\n")
+    wfile.write("ifast       =    0\n")
+    wfile.write("enthres     =      0.010000000\n")
+    wfile.write("cntdump     =    100000000\n")
+    wfile.write("irestart    =        0\n")
+    wfile.write("itempdecoup =        1\n")
+    wfile.write("iquantum    =        0\n")
+    wfile.write("istarsurf   =        1\n")
+    wfile.write("nphotdiff   =       15\n")
+    wfile.write("errtol      =    1.0000000e-10\n")
+    wfile.write("nvstr       =        0\n")
+    wfile.write("vserrtol    =     0.0100000\n")
+    wfile.write("ivstrt      =        1\n")
+    wfile.write("ntemp       =     3000\n")
+    wfile.write("temp0       =      0.010000000\n")
+    wfile.write("temp1       =        1000000.0\n")
+    wfile.close()
+
+    #fname = 'raytrace.inp'
+    #try :
+        #wfile = open(fname, 'w')
+    #except:
+        #print 'Error!' 
+        #print fname+' cannot be opened!'
+        #return 
+
+    #wfile.write("nrphiinf    =       32\n")
+    #wfile.write("nrrayextra  =      -20\n")
+    #wfile.write("imethod     =        1\n")
+    #wfile.write("nrref       =       10\n")
+    #wfile.write("dbdr        =        1\n")
+    #wfile.write("inclination =       45.0000\n")
+    #wfile.close()
 # --------------------------------------------------------------------------------------------------
 def writeRadmc3dInp(modpar=None):
     """Writes the radmc3d.inp master command file for RADMC-3D

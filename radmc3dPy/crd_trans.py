@@ -189,7 +189,7 @@ def csrot(crd=None, ang=None, xang=0.0, yang=0.0, zang=0.0, deg=False):
 
     .. math:: 
          \\left(\\begin{matrix} 
-                 cos(\\beta) & 0 & sin(\\beta) \\\\
+                 cos(\\beta) & 0 & -sin(\\beta) \\\\
                  0 & 1 & 0\\\\
                  sin(\\beta)& 0 & cos(\\beta)
                  \\end{matrix}\\right)
@@ -206,6 +206,10 @@ def csrot(crd=None, ang=None, xang=0.0, yang=0.0, zang=0.0, deg=False):
 
     """
     crd_new = np.zeros(len(crd), dtype=np.float64)
+
+    if ang==None:
+        if (xang==0.)&(yang==0.)&(zang==0.):
+            return crd
 
     if (ang!=None):
         xang = ang[0]
@@ -253,6 +257,8 @@ def csrot(crd=None, ang=None, xang=0.0, yang=0.0, zang=0.0, deg=False):
         dumz = crd[2]
         
         crd_new = [dumx, dumy, dumz]
+
+
 
     return crd_new
 

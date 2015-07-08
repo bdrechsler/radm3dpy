@@ -150,30 +150,55 @@ class radmc3dGrid():
         dum        = wbound[ipart] * (wbound[ipart+1]/wbound[ipart])**(np.arange(nw[ipart], dtype=np.float64) / (nw[ipart]-1.))
         self.wav   = np.append(self.wav, dum)
         self.nwav  = self.wav.shape[0]
+        cc = 29979245800.
         self.freq  = cc / self.wav * 1e4
         self.nfreq = self.nwav
 
 # --------------------------------------------------------------------------------------------------
-    def writeWavelengthGrid(self, fname=''):
+    def writeWavelengthGrid(self, fname='', old=False):
         """Wriites the wavelength grid to a file (e.g. wavelength_micron.inp).
 
         Parameters
         ----------
         
         fname  : str, optional
-                File name into which the wavelength grid should be written. If omitted 'wavelength_micron.inp' will be used
-        """
+                 File name into which the wavelength grid should be written. If omitted 'wavelength_micron.inp' will be used
         
-        if fname=='':
-            fname = 'wavelength_micron.inp'
-
-        print 'Writing '+fname
-        wfile = open(fname, 'w')
-        wfile.write('%d\n'%self.nwav)
-        for ilam in range(self.nwav):
-            wfile.write('%.9e\n'%self.wav[ilam])
-        wfile.close()
+        old    : bool, optional
+                 If set to True the file format of the previous, 2D version of radmc will be used
+        """
        
+        if not old:
+            if fname=='':
+                fname = 'wavelength_micron.inp'
+
+            print 'Writing '+fname
+            wfile = open(fname, 'w')
+            wfile.write('%d\n'%self.nwav)
+            for ilam in range(self.nwav):
+                wfile.write('%.9e\n'%self.wav[ilam])
+            wfile.close()
+        else:
+            if fname=='':
+                fname='frequency.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return 
+           
+            print 'Writing '+fname
+            wfile.write("%d\n"%self.nfreq)
+            wfile.write(" \n")
+            #
+            # Reverse the order of the frequency grid as it is ordered in frequency in radmc
+            #
+            freq = self.freq[::-1]
+            for i in range(self.nfreq):
+                wfile.write("%.7e\n"%freq[i])
+            
+            wfile.close()             
 # --------------------------------------------------------------------------------------------------
     def makeSpatialGrid(self,crd_sys=None,xbound=None,ybound=None,zbound=None,nxi=None,nyi=None,nzi=None,ppar=None):
         """Calculates the spatial grid.
@@ -584,7 +609,7 @@ class radmc3dGrid():
             #return
 
 # --------------------------------------------------------------------------------------------------
-    def writeSpatialGrid(self, fname=''):
+    def writeSpatialGrid(self, fname='', old=False):
         """Writes the wavelength grid to a file (e.g. amr_grid.inp).
 
         Parameters
@@ -592,35 +617,75 @@ class radmc3dGrid():
         
         fname : str, optional
                 File name into which the spatial grid should be written. If omitted 'amr_grid.inp' will be used. 
+        
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
         
+        #
+        # Write the spatial grid for radmc3d
+        #
+        if not old:
+            if fname=='':
+                fname = 'amr_grid.inp'
 
+            print 'Writing '+fname
+            wfile = open(fname, 'w')
+            wfile.write('%d\n'%1)                    # Format number
+            wfile.write('%d\n'%0)                    # AMR self.style (0=regular self. NO AMR)
+            if self.crd_sys=='car':
+                wfile.write('%d\n'%0)                  # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
+            if self.crd_sys=='sph':
+                wfile.write('%d\n'%100)                  # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
+            if self.crd_sys=='cyl':
+                wfile.write('%d\n'%200)                  # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
+            wfile.write('%d\n'%0)                    # Gridinfo
+            
+            wfile.write('%d %d %d \n'%(self.act_dim[0], self.act_dim[1], self.act_dim[2]))       # Which dimension is active
+            wfile.write('%d %d %d \n'%(self.nx,self.ny,self.nz))    # Grid size (x,y,z or r,phi,theta, or r,phi,z)
+            for i in range(self.nxi): wfile.write('%.9e\n'%self.xi[i])
+            for i in range(self.nyi): wfile.write('%.9e\n'%self.yi[i])
+            for i in range(self.nzi): wfile.write('%.9e\n'%self.zi[i])
+            wfile.close()
+        #
+        # Write the spatial grid for radmc
+        #
+        else:
 
-        if fname=='':
-            fname = 'amr_grid.inp'
+            fname='radius.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return
 
-        print 'Writing '+fname
-        wfile = open(fname, 'w')
-        wfile.write('%d\n'%1)                    # Format number
-        wfile.write('%d\n'%0)                    # AMR self.style (0=regular self. NO AMR)
-        if self.crd_sys=='car':
-            wfile.write('%d\n'%0)                  # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
-        if self.crd_sys=='sph':
-            wfile.write('%d\n'%100)                  # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
-        if self.crd_sys=='cyl':
-            wfile.write('%d\n'%200)                  # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
-        wfile.write('%d\n'%0)                    # Gridinfo
-        
-        wfile.write('%d %d %d \n'%(self.act_dim[0], self.act_dim[1], self.act_dim[2]))       # Which dimension is active
-        wfile.write('%d %d %d \n'%(self.nx,self.ny,self.nz))    # Grid size (x,y,z or r,phi,theta, or r,phi,z)
-        for i in range(self.nxi): wfile.write('%.9e\n'%self.xi[i])
-        for i in range(self.nyi): wfile.write('%.9e\n'%self.yi[i])
-        for i in range(self.nzi): wfile.write('%.9e\n'%self.zi[i])
-        wfile.close()
+            print 'Writing '+fname
+            x = np.sqrt(self.xi[1:] * self.xi[:-1])
+            wfile.write("%d\n"%self.nx)
+            wfile.write(" \n")
+            for i in range(self.nx):
+                wfile.write("%.7e\n"%x[i])
+            wfile.close()
+            
+            fname='theta.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return
 
+            print 'Writing '+fname
+            wfile.write("%d 1\n"%(self.ny/2))
+            wfile.write(" \n")
+            for i in range(self.ny/2):
+                wfile.write("%.7e\n"%self.y[i])
+            wfile.close()
+            
 
 # --------------------------------------------------------------------------------------------------
-    def readGrid(self, fname=''):
+    def readGrid(self, fname='', old=False):
         """Reads the spatial (amr_grid.inp) and frequency grid (wavelength_micron.inp).
         
         Parameters
@@ -628,89 +693,182 @@ class radmc3dGrid():
 
         fname : str, optional
                 File name from which the spatial grid should be read. If omitted 'amr_grid.inp' will be used. 
+
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
+
+
 #
 # Natural constants
 #
 
         cc = 29979245800.
 
-        if fname=='':
-            fname = 'amr_grid.inp'
-
 # 
-# Read the spatial grid 
+# Read the radmc3d format
 #
-        try :
-            rfile = open(fname, 'r')
-        except:
-            print 'Error!' 
-            print 'amr_grid.inp was not found!'
-            return 
-    
-        form        = float(rfile.readline())
-        grid_style  = float(rfile.readline())
-        crd_system  = int(rfile.readline())
-        if crd_system<100:
-            self.crd_sys = 'car'
-        elif ((crd_system>=100)&(crd_system<200)):
-            self.crd_sys = 'sph'
-        elif ((crd_system>=200)&(crd_system<300)):
-            self.crd_sys = 'cyl'
-        else:
+        if not old:
+            if fname=='':
+                fname = 'amr_grid.inp'
+    # 
+    # Read the spatial grid 
+    #
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print 'amr_grid.inp was not found!'
+                return 
+        
+            form        = float(rfile.readline())
+            grid_style  = float(rfile.readline())
+            crd_system  = int(rfile.readline())
+            if crd_system<100:
+                self.crd_sys = 'car'
+            elif ((crd_system>=100)&(crd_system<200)):
+                self.crd_sys = 'sph'
+            elif ((crd_system>=200)&(crd_system<300)):
+                self.crd_sys = 'cyl'
+            else:
+                rfile.close()
+                print 'ERROR'
+                print ' unsupported coordinate system in the amr_grid.inp file'
+                print crd_system
+                return
+
+            grid_info   = float(rfile.readline())
+            dum         = rfile.readline().split()
+            self.act_dim = [int(dum[i]) for i in range(len(dum))]
+            dum         = rfile.readline().split()
+            self.nx,self.ny,self.nz    = int(dum[0]), int(dum[1]), int(dum[2])
+            self.nxi,self.nyi,self.nzi = self.nx+1, self.ny+1, self.nz+1
+
+            self.xi           = np.zeros(self.nx+1, dtype=np.float64)
+            self.yi           = np.zeros(self.ny+1, dtype=np.float64)
+            self.zi           = np.zeros(self.nz+1, dtype=np.float64)
+           
+            for i in range(self.nxi): self.xi[i] = float(rfile.readline())
+            for i in range(self.nyi): self.yi[i] = float(rfile.readline())
+            for i in range(self.nzi): self.zi[i] = float(rfile.readline())
+
+            if self.crd_sys=='car':
+                self.x = (self.xi[0:self.nx] +  self.xi[1:self.nx+1]) * 0.5
+                self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+                self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+            else: 
+                self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
+                self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+                self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+
             rfile.close()
-            print 'ERROR'
-            print ' unsupported coordinate system in the amr_grid.inp file'
-            print crd_system
-            return
 
-        grid_info   = float(rfile.readline())
-        dum         = rfile.readline().split()
-        self.act_dim = [int(dum[i]) for i in range(len(dum))]
-        dum         = rfile.readline().split()
-        self.nx,self.ny,self.nz    = int(dum[0]), int(dum[1]), int(dum[2])
-        self.nxi,self.nyi,self.nzi = self.nx+1, self.ny+1, self.nz+1
+    # 
+    # Read the frequency grid 
+    #
 
-        self.xi           = np.zeros(self.nx+1, dtype=np.float64)
-        self.yi           = np.zeros(self.ny+1, dtype=np.float64)
-        self.zi           = np.zeros(self.nz+1, dtype=np.float64)
-       
-        for i in range(self.nxi): self.xi[i] = float(rfile.readline())
-        for i in range(self.nyi): self.yi[i] = float(rfile.readline())
-        for i in range(self.nzi): self.zi[i] = float(rfile.readline())
+            try :
+                rfile = open('wavelength_micron.inp', 'r')
+            except:
+                print 'Error!' 
+                print 'wavelength_micron.inp was not found!'
+                return 
 
-        if self.crd_sys=='car':
-            self.x = (self.xi[0:self.nx] +  self.xi[1:self.nx+1]) * 0.5
-            self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
-            self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
-        else: 
-            self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
-            self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
-            self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+            self.nwav = int(rfile.readline())
+            self.nfreq = self.nwav
+            self.wav  = np.zeros(self.nwav, dtype=np.float64)
 
-        rfile.close()
+            for i in range(self.nwav): self.wav[i] = float(rfile.readline())
 
-# 
-# Read the frequency grid 
+            self.freq = cc / self.wav * 1e4
+
+            rfile.close()
 #
+# Read the old radmc format
+#
+        else:
+            self.crd_sys = 'sph'
+            self.act_dim = [1,1,0]
+        
+            #
+            # Read the radial grid
+            #
+            try: 
+                rfile = open('radius.inp')
+            except:
+                print 'Error!' 
+                print 'radius.inp was not found!'
+                return 
 
-        try :
-            rfile = open('wavelength_micron.inp', 'r')
-        except:
-            print 'Error!' 
-            print 'wavelength_micron.inp was not found!'
-            return 
+            self.nx  = int(rfile.readline())
+            self.nxi = self.nx + 1
+            dum = rfile.readline()
+            self.x  = np.zeros(self.nx, dtype=float)
+            self.xi = np.zeros(self.nxi, dtype=float)
+            for i in range(self.nx):
+                self.x[i] = float(rfile.readline())
+            self.xi[1:-1] = 0.5 * (self.x[1:] + self.x[:-1])
+            self.xi[0]    = self.x[0] - (self.xi[1] - self.x[0])
+            self.xi[-1]   = self.x[-1] + (self.x[-1] - self.xi[-2])
+            rfile.close()
 
-        self.nwav = int(rfile.readline())
-        self.nfreq = self.nwav
-        self.wav  = np.zeros(self.nwav, dtype=np.float64)
+            
+            #
+            # Read the poloidal angular grid
+            #
+            try: 
+                rfile = open('theta.inp')
+            except:
+                print 'Error!' 
+                print 'theta.inp was not found!'
+                return 
 
-        for i in range(self.nwav): self.wav[i] = float(rfile.readline())
+    
+            ny = int(rfile.readline().split()[0])
+            self.ny = ny*2
+            self.nyi = self.ny+1
+            dum = rfile.readline()
 
-        self.freq = cc / self.wav * 1e4
+            self.y  = np.zeros(self.ny, dtype=float)
+            self.yi = np.zeros(self.nyi, dtype=float)
+            self.yi[0] = 0.
+            self.yi[-1] = np.pi
+            self.yi[ny] = np.pi*0.5
 
-        rfile.close()
+            for i in range(self.ny/2):
+                 self.y[i]           = float(rfile.readline())
+                 self.y[self.ny-1-i] = np.pi-self.y[i]
 
+            self.yi[1:-1] = 0.5 * (self.y[1:] + self.y[:-1])
+            self.yi[ny] = np.pi*0.5
+            rfile.close()
+
+            #
+            # Create the azimuthal grid
+            #
+
+            self.nz = 1
+            self.zi = np.array([0., 2.*np.pi], dtype=float)
+
+            # 
+            # Read the frequency grid 
+            #
+            try: 
+                rfile = open('frequency.inp')
+            except:
+                print 'Error!' 
+                print 'frequency.inp was not found!'
+                return 
+
+            self.nfreq = int(rfile.readline())
+            self.nwav  = self.nfreq
+            dum = rfile.readline()
+            self.freq = np.zeros(self.nfreq, dtype=float)
+            self.wav  = np.zeros(self.nfreq, dtype=float)
+            for i in range(self.nfreq):
+                self.freq[i] = float(rfile.readline())
+                self.wav[i]  = cc/self.freq[i]*1e4
+            rfile.close()
 # --------------------------------------------------------------------------------------------------
     def getCellVolume(self):
         """Calculates the volume of grid cells.
@@ -850,7 +1008,7 @@ class radmc3dData():
             if len(data.shape)==3:
                 hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
             elif len(data.shape)==4:
-                hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
+                hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  data.shape[3]], dtype=int)
             hdr.tofile(wfile)
             # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
             # array always in C-order while we need Fortran-order to be written
@@ -1047,7 +1205,7 @@ class radmc3dData():
         return {'taux':taux, 'tauy':tauy}
 
 # --------------------------------------------------------------------------------------------------
-    def  getTau(self, idust=[], axis='xy', wav=0., kappa=None):
+    def  getTau(self, idust=[], axis='xy', wav=0., kappa=None, old=False):
         """Calculates the optical depth along any given combination of the axes.
 
         Parameters
@@ -1069,6 +1227,8 @@ class radmc3dData():
                 If set it should be a list of mass extinction coefficients at the desired wavelength
                 The number of elements in the list should be equal to that in the idust keyword
 
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
         # Check if the input idust indices can be found in rhoudust 
         if len(self.rhodust.shape)==3: 
@@ -1093,18 +1253,19 @@ class radmc3dData():
                 print 'ERROR'
                 print ' The number of kappa values should be identical to the number of specified dust species '
                 return -1
-        else:  
-            # Read the master opacity file to get the dustkappa file name extensions
-            dum = radmc3dDustOpac()
-            mo  = dum.readMasterOpac()
-            dummy_ext = mo['ext']
-            scatmat = mo['scatmat']
-            if len(dummy_ext)<=max(idust):
-                print 'ERROR'
-                print 'There are less dust species specified in dustopac.inp than some of the specified idust indices'
-                return -1
-            else:
-                ext = [dummy_ext[i] for i in idust]
+        else: 
+            if not old:
+                # Read the master opacity file to get the dustkappa file name extensions
+                dum = radmc3dDustOpac()
+                mo  = dum.readMasterOpac()
+                dummy_ext = mo['ext']
+                scatmat = mo['scatmat']
+                if len(dummy_ext)<=max(idust):
+                    print 'ERROR'
+                    print 'There are less dust species specified in dustopac.inp than some of the specified idust indices'
+                    return -1
+                else:
+                    ext = [dummy_ext[i] for i in idust]
 
         if axis.find('x')>=0:
             self.taux = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=np.float64) 
@@ -1114,7 +1275,11 @@ class radmc3dData():
         for i in idust:
 
             if kappa==None:
-                opac = readOpac(ext=ext[i], scatmat=scatmat)
+                if old:
+                    opac = readOpac(ext=[("%d"%(i+1))], old=True)
+                else:
+                    opac = readOpac(ext=ext[i], scatmat=scatmat)
+                
                 if opac.ext==[]:
                     return -1
                 else:
@@ -1135,7 +1300,7 @@ class radmc3dData():
                 self.tauy = self.tauy + dum['tauy']
 
 # --------------------------------------------------------------------------------------------------
-    def readDustDens(self, fname='', binary=True):
+    def readDustDens(self, fname='', binary=True, old=False):
         """Reads the dust density.
 
         Parameters
@@ -1147,23 +1312,60 @@ class radmc3dData():
         
         binary : bool, optional 
                 If true the data will be read in binary format, otherwise the file format is ascii
+        
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
-    
+   
         if (self.grid.nx==-1):
-            self.grid.readGrid()
+            self.grid.readGrid(old=old)
             
         print 'Reading dust density'
 
-        if binary:
-            if fname=='':
-                fname = 'dust_density.binp'
+        # 
+        # Read radmc3d output 
+        #
+        if not old:
+
+            if binary:
+                if fname=='':
+                    fname = 'dust_density.binp'
+            else:
+                if fname=='':
+                    fname = 'dust_density.inp'
+                
+            self.rhodust = self._scalarfieldReader(fname=fname, binary=binary)
+        # 
+        # Read the output of the previous 2d version of the code
+        #
+        
         else:
-            if fname=='':
-                fname = 'dust_density.inp'
+            try :
+                rfile = open('dustdens.inp', 'r')
+            except:
+                print 'Error!' 
+                print 'dustdens.inp was not found!'
+                return 
+           
+            dum = rfile.readline().split()
+            ndust = int(dum[0])
+            nr    = int(dum[1])
+            nt    = int(dum[2])
+            imirt = int(dum[3])
+
+            rfile.readline()
+            self.rhodust = np.zeros([nr,nt*2,1,ndust], dtype=float)
+
+            for idust in range(ndust):
+                for ix in range(nr):
+                    for iy in range(nt):
+                        self.rhodust[ix,iy,0,idust] = float(rfile.readline())
+                        self.rhodust[ix,self.grid.ny-1-iy,0,idust] = self.rhodust[ix,iy,0,idust]
+
+            rfile.close()
             
-        self.rhodust = self._scalarfieldReader(fname=fname, binary=binary)
 # --------------------------------------------------------------------------------------------------
-    def readDustTemp(self, fname='', binary=True):
+    def readDustTemp(self, fname='', binary=True, old=False):
         """Reads the dust temperature.
 
         Parameters
@@ -1178,19 +1380,44 @@ class radmc3dData():
        
 
         if (self.grid.nx==-1):
-            self.grid.readGrid()
+            self.grid.readGrid(old=old)
             
         print 'Reading dust temperature'
 
-        if binary:
-            if fname=='':
-                fname = 'dust_temperature.bdat'
+        if not old:
+            if binary:
+                if fname=='':
+                    fname = 'dust_temperature.bdat'
+            else:
+                if fname=='':
+                    fname = 'dust_temperature.dat'
+                
+            self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary)
         else:
-            if fname=='':
-                fname = 'dust_temperature.dat'
-            
-        self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary)
+            try :
+                rfile = open('dusttemp_final.dat', 'r')
+            except:
+                print 'Error!' 
+                print 'dusttemp_final.dat was not found!'
+                return 
+           
+            dum = rfile.readline().split()
+            ndust = int(dum[0])
+            nr    = int(dum[1])
+            nt    = int(dum[2])
+            imirt = int(dum[3])
 
+            rfile.readline()
+            self.dusttemp = np.zeros([nr,nt*2,1,ndust], dtype=float)
+
+            for idust in range(ndust):
+                rfile.readline()
+                for ix in range(nr):
+                    for iy in range(nt):
+                        self.dusttemp[ix,iy,0,idust] = float(rfile.readline())
+                        self.dusttemp[ix,self.grid.ny-1-iy,0,idust] = self.dusttemp[ix,iy,0,idust]
+
+            rfile.close()
 # --------------------------------------------------------------------------------------------------
     def readGasVel(self, fname='', binary=True):
         """Reads the gas velocity.  
@@ -1374,7 +1601,7 @@ class radmc3dData():
         self.gastemp = self._scalarfieldReader(fname=fname, binary=binary)
 
 # --------------------------------------------------------------------------------------------------
-    def writeDustDens(self, fname='', binary=True):
+    def writeDustDens(self, fname='', binary=True, old=False):
         """Writes the dust density.
 
         Parameters
@@ -1385,19 +1612,52 @@ class radmc3dData():
         
         binary : bool
                 If true the data will be written in binary format, otherwise the file format is ascii
+    
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
-        
-        if fname=='':
-            if binary:
-                fname = 'dust_density.binp'
-            else:
-                fname = 'dust_density.inp'
+      
+        # 
+        # Write dust density for radmc3d
+        #
+        if not old:
+            if fname=='':
+                if binary:
+                    fname = 'dust_density.binp'
+                else:
+                    fname = 'dust_density.inp'
 
-        print 'Writing '+fname
+            print 'Writing '+fname
 
-        self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary)
+            self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary)
 
+        # 
+        # Write dust density for the previous 2D version of the code
+        #
+        else:
+            if self.rhodust.shape[2]>1:
+                print 'ERROR'
+                print 'You are trying to write a 3D dust density structure for a 2D model'
+                print 'The "old" keyword is set meaning that the input is meant for the previous 2D version of radmc'
+                return
 
+            if fname=='':
+                fname = 'dustdens.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return 
+          
+            wfile.write("%d %d %d 1\n"%(self.rhodust.shape[3], self.grid.nx, self.grid.ny/2))# self.rhodust.shape[0], self.rhodust.shape[1]))
+            wfile.write(" \n")
+            for idust in range(self.rhodust.shape[3]):
+                for ix in range(self.grid.nx):
+                    for iy in range(self.grid.ny/2):
+                        wfile.write("%.7e\n"%self.rhodust[ix,iy,0,idust])
+
+            wfile.close()
 # --------------------------------------------------------------------------------------------------
     def writeDustTemp(self, fname='', binary=True):
         """Writes the dust density.
@@ -2062,7 +2322,7 @@ class radmc3dRadSources():
 
 
 # --------------------------------------------------------------------------------------------------
-    def writeStarsinp(self, ppar=None, wav=None, freq=None):
+    def writeStarsinp(self, ppar=None, wav=None, freq=None, old=False):
         """Writes the input file for discrete stellar sources (stars.inp).
 
         Parameters
@@ -2076,69 +2336,125 @@ class radmc3dRadSources():
         
         freq  : ndarray, optional
                 Frequency grid for the stellar spectrum (either freq or wav should be set)
+        
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
 
-        if freq!=None:
-            self.grid.wav  = cc/np.array(freq)*1e4
-            self.grid.freq = np.array(freq)
-            self.grid.nwav = self.grid.wav.shape[0]
-            self.grid.nfreq = self.grid.nwav
+        if not old:
+            if freq!=None:
+                self.grid.wav  = cc/np.array(freq)*1e4
+                self.grid.freq = np.array(freq)
+                self.grid.nwav = self.grid.wav.shape[0]
+                self.grid.nfreq = self.grid.nwav
 
-        if wav!=None:
-            self.grid.wav = np.array(wav)
-            self.grid.freq = cc/self.grid.wav*1e4
-            self.grid.nwav = self.grid.wav.shape[0]
-            self.grid.nfreq = self.grid.nwav
-        
-        self.nstar = len(self.rstar)
-        #self.pstar = ppar['pstar']
-       
-
-        print 'Writing stars.inp'
-        wfile = open('stars.inp', 'w')
-        wfile.write('%d\n'%2)
-        wfile.write('%d %d\n'%(self.nstar,self.grid.nwav))
-        
-        if (self.nstar>1):
-            for istar in range(self.nstar):
-                wfile.write('%.9e %.9e %.9e %.9e %.9e\n'%(self.rstar[istar], self.mstar[istar],
-                    self.pstar[istar][0],self.pstar[istar][1],self.pstar[istar][2]))
-        else:
-            wfile.write('%.9e %.9e %.9e %.9e %.9e\n'%(self.rstar[0], self.mstar[0],
-                self.pstar[0],self.pstar[1],self.pstar[2]))
-
-        wfile.write('%s\n'%' ')
-        for ilam in range(self.grid.nwav):
-            wfile.write('%.9e\n'%self.grid.wav[ilam])
-        wfile.write('%s\n'%' ')
-
-        # If accretion is active write the sum of the spot and the star emission
-        # NOTE, for now the spot emission is only added to the first star in the list
-        if self.incl_accretion:
-            # Get the stellar spectrum
-            self.getStarSpectrum(tstar=self.tstar, rstar=self.rstar)
-            # Get the spot spectrum
-            self.getSpotSpectrum(ppar=ppar)
+            if wav!=None:
+                self.grid.wav = np.array(wav)
+                self.grid.freq = cc/self.grid.wav*1e4
+                self.grid.nwav = self.grid.wav.shape[0]
+                self.grid.nfreq = self.grid.nwav
             
-            # Write out the spectrum of the first star with the additional spot luminosity  
+            self.nstar = len(self.rstar)
+            #self.pstar = ppar['pstar']
+           
+
+            print 'Writing stars.inp'
+            wfile = open('stars.inp', 'w')
+            wfile.write('%d\n'%2)
+            wfile.write('%d %d\n'%(self.nstar,self.grid.nwav))
+            
+            if (self.nstar>1):
+                for istar in range(self.nstar):
+                    wfile.write('%.9e %.9e %.9e %.9e %.9e\n'%(self.rstar[istar], self.mstar[istar],
+                        self.pstar[istar][0],self.pstar[istar][1],self.pstar[istar][2]))
+            else:
+                wfile.write('%.9e %.9e %.9e %.9e %.9e\n'%(self.rstar[0], self.mstar[0],
+                    self.pstar[0],self.pstar[1],self.pstar[2]))
+
+            wfile.write('%s\n'%' ')
             for ilam in range(self.grid.nwav):
-                wfile.write('%.9e\n'%(self.fnustar[ilam,0]+self.fnuspot[ilam]))
-            
-            # Now write the spectrum of all other discrete stars without the spot emission
-            for istar in range(1,self.nstar):
+                wfile.write('%.9e\n'%self.grid.wav[ilam])
+            wfile.write('%s\n'%' ')
+
+            # If accretion is active write the sum of the spot and the star emission
+            # NOTE, for now the spot emission is only added to the first star in the list
+            if self.incl_accretion:
+                # Get the stellar spectrum
+                self.getStarSpectrum(tstar=self.tstar, rstar=self.rstar)
+                # Get the spot spectrum
+                self.getSpotSpectrum(ppar=ppar)
+                
+                # Write out the spectrum of the first star with the additional spot luminosity  
                 for ilam in range(self.grid.nwav):
-                    wfile.write('%.9e\n'%(self.fnustar[ilam,istar]))
-
-
-        else:
-            self.getStarSpectrum(ppar=ppar)
-            for istar in range(self.nstar):
-                if self.staremis_type[istar].strip().lower()=="blackbody":
-                    wfile.write('%.9e\n'%(-self.tstar[istar]))
-                else:
+                    wfile.write('%.9e\n'%(self.fnustar[ilam,0]+self.fnuspot[ilam]))
+                
+                # Now write the spectrum of all other discrete stars without the spot emission
+                for istar in range(1,self.nstar):
                     for ilam in range(self.grid.nwav):
                         wfile.write('%.9e\n'%(self.fnustar[ilam,istar]))
-        wfile.close()
+
+
+            else:
+                self.getStarSpectrum(ppar=ppar)
+                for istar in range(self.nstar):
+                    if self.staremis_type[istar].strip().lower()=="blackbody":
+                        wfile.write('%.9e\n'%(-self.tstar[istar]))
+                    else:
+                        for ilam in range(self.grid.nwav):
+                            wfile.write('%.9e\n'%(self.fnustar[ilam,istar]))
+            wfile.close()
+        else:
+            if freq!=None:
+                self.grid.wav  = cc/np.array(freq)*1e4
+                self.grid.freq = np.array(freq)
+                self.grid.nwav = self.grid.wav.shape[0]
+                self.grid.nfreq = self.grid.nwav
+
+            if wav!=None:
+                self.grid.wav = np.array(wav)
+                self.grid.freq = cc/self.grid.wav*1e4
+                self.grid.nwav = self.grid.wav.shape[0]
+                self.grid.nfreq = self.grid.nwav
+           
+
+            self.nstar = len(self.rstar)
+            self.getStarSpectrum(ppar=ppar)
+            
+            if self.grid.freq[-1]<self.grid.freq[0]:
+                self.grid.freq = self.grid.freq[::-1]
+                self.grid.wav  = self.grid.wav[::-1]
+                for istar in range(self.nstar):
+                    self.fnustar[:,istar] = self.fnustar[::-1,istar]
+                
+
+            print 'Writing starinfo.inp'
+            fname = 'starinfo.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return 
+            wfile.write("1\n")
+            wfile.write("%.7e\n"%ppar['rstar'][0])
+            wfile.write("%.7e\n"%ppar['mstar'][0])
+            wfile.write("%.7e\n"%ppar['tstar'][0])
+            wfile.close()
+
+            print 'Writing starspectrum.inp'
+            fname = 'starspectrum.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return 
+
+            wfile.write("%d\n"%self.grid.nfreq)
+            wfile.write(" \n")
+            for i in range(self.grid.nfreq):
+                wfile.write("%.7e %.7e\n"%(self.grid.freq[i], self.fnustar[i,0]))
+            wfile.close()
 
 # --------------------------------------------------------------------------------------------------
     def getStarSpectrum(self, tstar=None, rstar=None, lstar=None, mstar=None, ppar=None, grid=None):
@@ -2670,7 +2986,6 @@ class radmc3dRadSources():
                 Name of the file into which the stellar templates will be written. If omitted the default
                 'stellarsrc_templates.inp' will be used.
         """
-
         # First check if we'd need to write anything at al
 
         if len(self.cststar)==0:
@@ -2705,6 +3020,7 @@ class radmc3dRadSources():
                     return
                 return
 
+        
         print 'Writing '+fname
         wfile = open(fname, 'w')
         # Format number
@@ -2990,7 +3306,7 @@ class radmc3dDustOpac():
         self.nang     = []
 
 # --------------------------------------------------------------------------------------------------
-    def  readOpac(self, ext=[''], idust=None, scatmat=None):
+    def readOpac(self, ext=[''], idust=None, scatmat=None, old=False):
         """Reads the dust opacity files.
 
         Parameters
@@ -3005,6 +3321,9 @@ class radmc3dDustOpac():
         scatmat: list
                 If specified, its elements should be booleans indicating whether the opacity file 
                 contains also the full scattering matrix (True) or only dust opacities (False)
+        
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
        
         # Check the input keywords and if single strings are given convert them to lists
@@ -3153,83 +3472,124 @@ class radmc3dDustOpac():
                
                 rfile.close()
             else:
-                try:
-                    rfile = open('dustkappa_'+ext[i]+'.inp', 'r')
-                except:
-                    print 'ERROR'
-                    print ' No dustkappa_'+ext[i]+'.inp file was found'
-                    return -1
+                if not old:
+                    try:
+                        rfile = open('dustkappa_'+ext[i]+'.inp', 'r')
+                    except:
+                        print 'ERROR'
+                        print ' No dustkappa_'+ext[i]+'.inp file was found'
+                        return -1
 
-                self.ext.append(ext[i])
+                    self.ext.append(ext[i])
 
-                # Read the file format
-                iformat = int(rfile.readline())
-                if (iformat<1)|(iformat>3):
-                    print 'ERROR'
-                    print 'Unknown file format in the dust opacity file'
-                    rfile.close()
-                    return -1
+                    # Read the file format
+                    iformat = int(rfile.readline())
+                    if (iformat<1)|(iformat>3):
+                        print 'ERROR'
+                        print 'Unknown file format in the dust opacity file'
+                        rfile.close()
+                        return -1
 
 
-                # Read the number of wavelengths in the file
-                dum = rfile.readline()
-                self.nwav.append(int(dum))
-                self.nfreq.append(int(dum))
-                self.idust.append(idust[i])
-                idu = len(self.nwav)-1
+                    # Read the number of wavelengths in the file
+                    dum = rfile.readline()
+                    self.nwav.append(int(dum))
+                    self.nfreq.append(int(dum))
+                    self.idust.append(idust[i])
+                    idu = len(self.nwav)-1
 
-                # If only the absorption coefficients are specified
-                if iformat==1:
-                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                    for ilam in range(self.nwav[idu]):
-                        dum = rfile.readline().split()
-                        wav[ilam] = float(dum[0])
-                        kabs[ilam] = float(dum[1])
-                    self.wav.append(wav)
-                    self.freq.append(cc/wav*1e4)
-                    self.kabs.append(kabs)
-                    self.ksca.append([-1])
-                    self.phase_g.append([-1])
-                # If the absorption and scattering coefficients are specified
-                elif iformat==2:
-                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                    ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                    for ilam in range(self.nwav[idu]):
-                        dum = rfile.readline().split()
-                        wav[ilam] = float(dum[0])
-                        kabs[ilam] = float(dum[1])
-                        ksca[ilam] = float(dum[2]) 
-                    self.wav.append(wav)
-                    self.freq.append(cc/wav*1e4)
-                    self.kabs.append(kabs)
-                    self.ksca.append(ksca)
-                    self.phase_g.append([-1])
-                
-                # If the absorption and scattering coefficients and also the scattering phase function are specified
-                elif iformat==3:
-                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                    ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                    phase_g = np.zeros(self.nwav[idu], dtype=np.float64)
-                    for ilam in range(self.nwav[idu]):
-                        dum = rfile.readline().split()
-                        wav[ilam] = float(dum[0])
-                        kabs[ilam] = float(dum[1])
-                        ksca[ilam] = float(dum[2])
-                        phase_g[ilam] = float(dum[3]) 
+                    # If only the absorption coefficients are specified
+                    if iformat==1:
+                        wav = np.zeros(self.nwav[idu], dtype=np.float64)
+                        kabs = np.zeros(self.nwav[idu], dtype=np.float64)
+                        for ilam in range(self.nwav[idu]):
+                            dum = rfile.readline().split()
+                            wav[ilam] = float(dum[0])
+                            kabs[ilam] = float(dum[1])
+                        self.wav.append(wav)
+                        self.freq.append(cc/wav*1e4)
+                        self.kabs.append(kabs)
+                        self.ksca.append([-1])
+                        self.phase_g.append([-1])
+                    # If the absorption and scattering coefficients are specified
+                    elif iformat==2:
+                        wav = np.zeros(self.nwav[idu], dtype=np.float64)
+                        kabs = np.zeros(self.nwav[idu], dtype=np.float64)
+                        ksca = np.zeros(self.nwav[idu], dtype=np.float64)
+                        for ilam in range(self.nwav[idu]):
+                            dum = rfile.readline().split()
+                            wav[ilam] = float(dum[0])
+                            kabs[ilam] = float(dum[1])
+                            ksca[ilam] = float(dum[2]) 
+                        self.wav.append(wav)
+                        self.freq.append(cc/wav*1e4)
+                        self.kabs.append(kabs)
+                        self.ksca.append(ksca)
+                        self.phase_g.append([-1])
                     
-                    self.wav.append(wav)
-                    self.freq.append(cc/wav*1e4)
-                    self.kabs.append(kabs)
-                    self.ksca.append(ksca)
-                    self.phase_g.append(phase_g)
-           
-                rfile.close()
+                    # If the absorption and scattering coefficients and also the scattering phase function are specified
+                    elif iformat==3:
+                        wav = np.zeros(self.nwav[idu], dtype=np.float64)
+                        kabs = np.zeros(self.nwav[idu], dtype=np.float64)
+                        ksca = np.zeros(self.nwav[idu], dtype=np.float64)
+                        phase_g = np.zeros(self.nwav[idu], dtype=np.float64)
+                        for ilam in range(self.nwav[idu]):
+                            dum = rfile.readline().split()
+                            wav[ilam] = float(dum[0])
+                            kabs[ilam] = float(dum[1])
+                            ksca[ilam] = float(dum[2])
+                            phase_g[ilam] = float(dum[3]) 
+                        
+                        self.wav.append(wav)
+                        self.freq.append(cc/wav*1e4)
+                        self.kabs.append(kabs)
+                        self.ksca.append(ksca)
+                        self.phase_g.append(phase_g)
+               
+                    rfile.close()
+                else:
+                    try:
+                        rfile = open('dustopac_'+ext[i]+'.inp', 'r')
+                    except:
+                        print 'ERROR'
+                        print ' No dustopac_'+ext[i]+'.inp file was found'
+                        return -1
+                 
+                    freq = np.fromfile('frequency.inp', count=-1, sep="\n", dtype=float)
+                    nfreq = int(freq[0])
+                    freq = freq[1:]
+
+                    self.ext.append(ext[i])
+                    dum   = rfile.readline().split()
+                    if int(dum[0])!=nfreq:
+                        print 'ERROR'
+                        print 'dustopac_'+ext[i]+'.inp contains a different number of frequencies than frequency.inp'
+                        return
+
+                    wav     = cc/freq*1e4
+                    kabs    = np.zeros(nfreq, dtype = float)
+                    ksca    = np.zeros(nfreq, dtype = float)
+
+                    dum     = rfile.readline()
+                    for ilam in range(nfreq):
+                        kabs[ilam] = float(rfile.readline())
+                    dum     = rfile.readline()
+                    for ilam in range(nfreq):
+                        ksca[ilam] = float(rfile.readline())
+                    
+                    rfile.close()
+
+                    self.wav.append(wav[::-1])
+                    self.freq.append(freq[::-1])
+                    self.kabs.append(kabs[::-1])
+                    self.ksca.append(ksca[::-1])
+                    self.phase_g.append([-1])
+
+
+                    
         return 0 
 #--------------------------------------------------------------------------------------------------------------------
-    def makeOpac(self, ppar=None, wav=None):
+    def makeOpac(self, ppar=None, wav=None, old=False):
         """Createst the dust opacities using a Mie code distributed with RADMC-3D.
         
         Parameters
@@ -3240,6 +3600,9 @@ class radmc3dDustOpac():
         
         wav   : ndarray, optional
                 Wavelength grid on which the mass absorption coefficients should be calculated
+    
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
 
     #
@@ -3257,6 +3620,11 @@ class radmc3dDustOpac():
             ppar['lnk_fname'] = [ppar['lnk_fname']]
 
         if len(ppar['lnk_fname'])>1:
+            if old:
+                print 'ERROR'
+                print 'Making old (RADMC) style opacities is not finished for more than one dust species'
+                exit() 
+
             ext = []
             for idust in range(len(ppar['lnk_fname'])):
                 
@@ -3341,7 +3709,6 @@ class radmc3dDustOpac():
                 print 'ERROR'
                 print ppar['lnk_fname'][0] + ' could not be opened'
                 return
-
             try:
                 w = []
                 n = []
@@ -3386,15 +3753,20 @@ class radmc3dDustOpac():
                 dum = sp.Popen('mv dustkappa_'+str(igs+1)+'.inp dustkappa_idust_1_igsize_'+str(igs+1)+'.inp', shell=True).wait()
                 ext.append('idust_1_igsize_'+str(igs+1))
                 therm.append(True)
+
+
 #            # Change the name of makedust's output 
 #            dum = sp.Popen('mv dustkappa_1.inp dustkappa_idust_1_igsize_1.inp', shell=True).wait()
 #            os.remove('opt_const.dat')
 
-            self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'])
-        
+            self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'], old=old)
+            if old:
+                self.makeopacRadmc2D(ext=ext)
+       
         # Clean up and remove dust.inp and frequency.inp
         os.remove('dust.inp')
-        os.remove('frequency.inp')
+        if not old:
+            os.remove('frequency.inp')
 # --------------------------------------------------------------------------------------------------
     def mixOpac(self, ppar=None, mixnames=[], mixspecs=[], mixabun=[], writefile=True):
         """Mixes dust opacities.
@@ -3662,7 +4034,7 @@ class radmc3dDustOpac():
 
         return {'ext':ext, 'therm':therm, 'scatmat':scatmat}
 # --------------------------------------------------------------------------------------------------
-    def  writeMasterOpac(self, ext=None, therm=None, scattering_mode_max=1):
+    def  writeMasterOpac(self, ext=None, therm=None, scattering_mode_max=1, old=True):
         """Writes the master opacity file 'dustopac.inp'. 
 
         Parameters
@@ -3674,6 +4046,9 @@ class radmc3dDustOpac():
         therm : list
                 List of integers specifying whether the dust grain is thermal or quantum heated
                 (0-thermal, 1-quantum)
+        
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
         """
 
         print 'Writing dustopac.inp'
@@ -3705,26 +4080,148 @@ class radmc3dDustOpac():
         # Separator
         wfile.write('%s\n'%'============================================================================')
 
-        for idust in range(len(ext)):
-            # Dust opacity will be read from a file
-            if scattering_mode_max<5:
-                wfile.write('%-15s %s\n'%('1', 'Way in which this dust species is read'))
-            else:
-                wfile.write('%-15s %s\n'%('10', 'Way in which this dust species is read'))
+        if not old:
+            for idust in range(len(ext)):
+                # Dust opacity will be read from a file
+                if scattering_mode_max<5:
+                    wfile.write('%-15s %s\n'%('1', 'Way in which this dust species is read'))
+                else:
+                    wfile.write('%-15s %s\n'%('10', 'Way in which this dust species is read'))
 
-            # Check if the dust grain is thermal or quantum heated
-            if therm:
-                if therm[idust]:
-                    wfile.write('%-15s %s\n'%('0', '0=Thermal grain, 1=Quantum heated'))
-            else:
-                wfile.write('%-15s %s\n'%('1', '0=Thermal grain, 1=Quantum heated'))
+                # Check if the dust grain is thermal or quantum heated
+                if therm:
+                    if therm[idust]:
+                        wfile.write('%-15s %s\n'%('0', '0=Thermal grain, 1=Quantum heated'))
+                else:
+                    wfile.write('%-15s %s\n'%('1', '0=Thermal grain, 1=Quantum heated'))
 
-            # Dustkappa filename extension
-            wfile.write('%s %s %s\n'%(ext[idust], '    ', 'Extension of name of dustkappa_***.inp file'))
-            # Separator
-            wfile.write('%s\n'%'----------------------------------------------------------------------------')
-            
+                # Dustkappa filename extension
+                wfile.write('%s %s %s\n'%(ext[idust], '    ', 'Extension of name of dustkappa_***.inp file'))
+                # Separator
+                wfile.write('%s\n'%'----------------------------------------------------------------------------')
+        else:
+            for idust in range(len(ext)):
+                # Dust opacity will be read from a file
+                wfile.write('%-15s %s\n'%('-1', 'Way in which this dust species is read (-1=File)'))
+
+                # Check if the dust grain is thermal or quantum heated
+                wfile.write('%-15s %s\n'%('0', '0=Thermal grain, 1=Quantum heated'))
+                # Dustkappa filename extension
+                wfile.write('%d %s %s\n'%((idust+1), '    ', 'Extension of name of dustopac_***.inp file'))
+                # Separator
+                wfile.write('%s\n'%'----------------------------------------------------------------------------')
+
         wfile.close()
+
+# --------------------------------------------------------------------------------------------------
+    def  makeopacRadmc2D(self, ext=None):
+        """
+        Creates dust opacities (dustopac_*.inp files) for the previous 2D version of radmc
+        It takes the input dust opacity files and interpolates them onto the used frequency grid
+
+        Parameters
+        ----------
+
+            ext : list
+                  List of dustkappa file name extensions, i.e. the input file name has to be named
+                  as dustkappa_ext[i].inp
+
+        """
+        cc = 29979245800.
+        
+        if type(ext).__name__=='str':
+            ext = [ext]
+       
+        # 
+        # Read the frequency.inp file
+        #
+        freq = np.fromfile('frequency.inp', count=-1, sep="\n", dtype=float)
+        nfreq = int(freq[0])
+        freq = freq[1:]
+        freq = freq[::-1]
+        wav  = cc/freq*1e4 
+        o    = self.readOpac(ext=ext)
+
+        #
+        # Check if the frequency grid is ordered in frequency or in wavelength
+        #
+        worder = False
+        if freq[-1]<freq[0]:
+            worder = True
+
+        for i in range(len(ext)):
+            kabs = np.zeros(nfreq, dtype=float)
+            ksca = np.zeros(nfreq, dtype=float)
+            ish  = (wav<self.wav[i][0])
+            ilo  = (wav>self.wav[i][-1])
+            ii   = ((wav>=self.wav[i][0])&(wav<=self.wav[i][-1])) 
+           
+            # 
+            # Do logarithmic interpolation for the overlapping wavelenght domain
+            #
+            kabs[ii] = 10.**np.interp(np.log10(wav[ii]), np.log10(self.wav[i]), np.log10(self.kabs[i]))
+            if len(self.ksca[i])>1:
+                ksca[ii] = 10.**np.interp(np.log10(wav[ii]), np.log10(self.wav[i]), np.log10(self.ksca[i]))
+
+            # 
+            # Do the long wavelength part
+            #
+            if ilo.__contains__(True):
+                x1  = np.log10(self.wav[i][-1])
+                x0  = np.log10(self.wav[i][-2])
+            
+                y1  = np.log10(self.kabs[i][-1])
+                y0  = np.log10(self.kabs[i][-2])
+                der = (y1-y0) / (x1-x0)
+                kabs[ilo] = 10.**(y1 + der*(np.log10(wav[ilo])-x1))
+
+                y1  = np.log10(self.ksca[i][-1])
+                y0  = np.log10(self.ksca[i][-2])
+                der = (y1-y0) / (x1-x0)
+                ksca[ilo] = 10.**(y1 + der*(np.log10(wav[ilo])-x1))
+
+            #
+            # Do the shorter wavelength
+            # 
+            if ish.__contains__(True):
+                kabs[ish] = self.kabs[0][0]
+                ksca[ish] = self.ksca[0][0]
+
+            #
+            # Now write the results to file
+            # 
+            fname = 'dustopac_'+("%d"%(i+1))+'.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return 
+            
+            print 'Writing '+fname
+
+            wfile = open(fname, 'w')
+            wfile.write("%d 1\n"%nfreq)
+            
+            wfile.write(" \n")
+            #
+            # Reverse the order of kabs,ksca as they are ordered in frequency in radmc 
+            #
+            if worder:
+                x = kabs[::-1]
+            else:
+                x = kabs
+            for ilam in range(nfreq):
+                wfile.write("%.7e\n"%x[ilam])
+            
+            wfile.write(" \n")
+            if worder:
+                x = ksca[::-1]
+            else:
+                x = ksca
+            for ilam in range(nfreq):
+                wfile.write("%.7e\n"%x[ilam])
+            wfile.close()
 #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # --------------------------------------------------------------------------------------------------
@@ -3750,7 +4247,7 @@ class radmc3dDustOpac():
         
         lnk_faname : str
                     Name of the file in which the optical constants are stored
-
+    
         Returns
         -------
 
@@ -4307,7 +4804,7 @@ class radmc3dPar():
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readOpac(ext=[''], idust=None, scatmat=None):
+def readOpac(ext=[''], idust=None, scatmat=None, old=False):
     """Reads the dust opacity files.
     This function is an interface to radmc3dDustOpac.readOpac()
 
@@ -4322,6 +4819,9 @@ def readOpac(ext=[''], idust=None, scatmat=None):
     scatmat: list
             If specified, its elements should be booleans indicating whether the opacity file 
             contains also the full scattering matrix (True) or only dust opacities (False)
+        
+    old   : bool, optional
+            If set to True the file format of the previous, 2D version of radmc will be used
     
     Returns
     -------
@@ -4330,13 +4830,13 @@ def readOpac(ext=[''], idust=None, scatmat=None):
 
 
     res = radmc3dDustOpac()
-    res.readOpac(ext=ext, idust=idust, scatmat=scatmat)
+    res.readOpac(ext=ext, idust=idust, scatmat=scatmat, old=old)
     
     return res
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True):
+def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True, old=False):
     """Reads the physical variables of the model (e.g. density, velocity, temperature).
 
     Parameters
@@ -4359,6 +4859,9 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
     
     ispec : str
             Name of the molecule in the 'molecule_ispec.inp' filename
+        
+    old   : bool, optional
+            If set to True the file format of the previous, 2D version of radmc will be used
 
     Returns
     -------
@@ -4366,8 +4869,8 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
     """
 
     res = radmc3dData()
-    if ddens: res.readDustDens(binary=binary)
-    if dtemp: res.readDustTemp(binary=binary)
+    if ddens: res.readDustDens(binary=binary, old=old)
+    if dtemp: res.readDustTemp(binary=binary, old=old)
     if gvel: res.readGasVel(binary=binary)
     if gtemp: res.readGasTemp(binary=binary)
     if vturb: res.readVTurb(binary=binary)
@@ -4436,7 +4939,7 @@ def writeDefaultParfile(model='', fname=''):
     dum.loadDefaults(model=model)
     dum.writeParfile()
 # --------------------------------------------------------------------------------------------------
-def readSpectrum(fname=''):
+def readSpectrum(fname='', old=True):
     """Reads the spectrum / SED
 
 
@@ -4444,6 +4947,9 @@ def readSpectrum(fname=''):
     -----------
     fname : str, optional
             Name of the file to be read
+        
+    old   : bool, optional
+            If set to True the file format of the previous, 2D version of radmc will be used
 
 
     Returns
@@ -4454,25 +4960,50 @@ def readSpectrum(fname=''):
         [Nwavelength,1] is the flux density
         
     """
-   
-    if fname.strip()=='':
-        fname = 'spectrum.out'
+  
+    if not old:
+        if fname.strip()=='':
+            fname = 'spectrum.out'
 
-    
-    rfile = open(fname, 'r')
-    # Read the format number
-    dum = rfile.readline()
-    # Read the number of wavelengths 
-    nwav = int(rfile.readline())
-    # Read a blank line
-    dum = rfile.readline()
-    
-    res = np.zeros([nwav, 2], dtype=np.float64)
-    for iwav in range(nwav):
-        dum = rfile.readline().split()
-        res[iwav,0] = float(dum[0])
-        res[iwav,1] = float(dum[1])
-    rfile.close()
+        rfile = open(fname, 'r')
+        # Read the format number
+        dum = rfile.readline()
+        # Read the number of wavelengths 
+        nwav = int(rfile.readline())
+        # Read a blank line
+        dum = rfile.readline()
+        
+        res = np.zeros([nwav, 2], dtype=np.float64)
+        for iwav in range(nwav):
+            dum = rfile.readline().split()
+            res[iwav,0] = float(dum[0])
+            res[iwav,1] = float(dum[1])
+        rfile.close()
+
+    else:
+        if fname.strip()=='':
+            fname = 'spectrum.dat'
+
+        try :
+            rfile = open(fname, 'r')
+        except:
+            print 'Error!' 
+            print fname+' could not be read!'
+            return 
+
+        # Read the number of wavelengths 
+        nwav = int(rfile.readline())
+        rfile.readline()
+        cc = 29979245800.
+       
+        res = np.zeros([nwav,2], dtype=float)
+        for iwav in range(nwav):
+            dum = rfile.readline().split()
+            res[iwav,0] = cc/float(dum[0])*1e4
+            res[iwav,1] = float(dum[1])
+
+        rfile.close()
+
     return res
 
 # --------------------------------------------------------------------------------------------------
