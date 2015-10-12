@@ -7,6 +7,7 @@ Tutorial
 
 .. _continuum-model:
 
+
 Continuum model 
 ===============
 
@@ -30,7 +31,7 @@ The :class:`~radmc3dPy.models` module contains all models (like a library). To c
 we can use the :meth:`~radmc3dPy.models.getModelNames` function::
 
     >>> models.getModelNames()
-    ['lines_nlte_lvg_1d_1', 'ppdisk', 'ppdisk_acc', 'simple_1', 'sphere1d_1', 'sphere2d_1', 'test_scattering_1']
+    ['lines_nlte_lvg_1d_1', 'ppdisk', 'simple_1', 'sphere1d_1', 'sphere2d_1', 'test_scattering_1']
 
 We can also get a brief description of any model with the  :meth:`~radmc3dPy.models.getModelDesc` function::
 
@@ -60,6 +61,7 @@ Then we can read the parameters from this file...::
     mstar                     = [1.0*ms]  # # Mass of the star(s)
     pstar                     = [0.0, 0.0, 0.0]  # # Position of the star(s) (cartesian coordinates)
     rstar                     = [2.0*rs]  # # Radius of the star(s)
+    staremis_type             = ["blackbody"]  # # Stellar emission type ("blackbody", "kurucz", "nextgen")
     tstar                     = [4000.0]  # # Effective temperature of the star(s) [K]
     # -------------------------------------------------------------------------------------------------------------------------
     # Block: Grid parameters
@@ -68,7 +70,7 @@ Then we can read the parameters from this file...::
     nw                        = [19, 50, 30]  # Number of points in the wavelength grid
     nx                        = [30,50]  # Number of grid points in the first dimension
     ny                        = [10,30,30,10]  # Number of grid points in the second dimension
-    nz                        = 30  # Number of grid points in the third dimension
+    nz                        = 0  # Number of grid points in the third dimension
     wbound                    = [0.1, 7.0, 25., 1e4]  # Boundraries for the wavelength grid
     xbound                    = [1.0*au,1.05*au, 100.0*au]  # Boundaries for the x grid
     xres_nlev                 = 3  # Number of refinement levels (spherical coordinates only
@@ -102,10 +104,10 @@ Then we can read the parameters from this file...::
     itempdecoup               = 1  # Enable for different dust components to have different temperatures
     lines_mode                = -1  # Line raytracing mode
     modified_random_walk      = 0  # Switched on (1) and off (0) modified random walk
-    nphot                     = long(1e5)  # Nr of photons for the thermal Monte Carlo
+    nphot                     = 1000000  # Nr of photons for the thermal Monte Carlo
     nphot_scat                = long(3e4)  # Nr of photons for the scattering Monte Carlo (for images)
     nphot_spec                = long(1e5)  # Nr of photons for the scattering Monte Carlo (for spectra)
-    rto_style                 = 1  # Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary
+    rto_style                 = 3  # Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary
     scattering_mode_max       = 1  # 0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering
     tgas_eq_tdust             = 1  # Take the dust temperature to identical to the gas temperature
     # -------------------------------------------------------------------------------------------------------------------------
@@ -113,18 +115,20 @@ Then we can read the parameters from this file...::
     # -------------------------------------------------------------------------------------------------------------------------
     bgdens                    = 1e-30  # Background density (g/cm^3)
     dusttogas                 = 0.01  # Dust-to-gas mass ratio
-    gap_drfact                = [0e0]  # Density reduction factor in the gap
-    gap_rin                   = [0e0*au]  # Inner radius of the gap
-    gap_rout                  = [0e0*au]  # Outer radius of the gap
+    gap_drfact                = [1e-5]  # Density reduction factor in the gap
+    gap_rin                   = [10.0*au]  # Inner radius of the gap
+    gap_rout                  = [40.*au]  # Outer radius of the gap
     gasspec_mol_dissoc_taulim = [1.0]  # Continuum optical depth limit below which all molecules dissociate
     gasspec_mol_freezeout_dfact = [1e-3]  # Factor by which the molecular abundance should be decreased in the frezze-out zone
     gasspec_mol_freezeout_temp = [19.0]  # Freeze-out temperature of the molecules in Kelvin
     gasspec_vturb             = 0.2e5  # Microturbulent line width
+    hpr_prim_rout             = 0.0  # Pressure scale height at rin
     hrdisk                    = 0.1  # Ratio of the pressure scale height over radius at hrpivot
     hrpivot                   = 100.0*au  # Reference radius at which Hp/R is taken
-    mdisk                     = 1e-4*ms  # Mass of the disk (either sig0 or mdisk should be set to zero or commented out)
+    mdisk                     = 9.9500000e+29  # Mass of the disk (either sig0 or mdisk should be set to zero or commented out)
     plh                       = 1./7.  # Flaring index
     plsig1                    = -1.0  # Power exponent of the surface density distribution as a function of radius
+    prim_rout                 = 0.0  # Outer boundary of the puffed-up inner rim in terms of rin
     rdisk                     = 100.0*au  # Outer radius of the disk
     rin                       = 1.0*au  # Inner radius of the disk
     sig0                      = 0.0  # Surface density at rdisk
@@ -237,6 +241,10 @@ Similar to RADMC-3D itself, it can also write Legacy VTK files (but currently on
 Diagnostic plots
 ----------------
 
+First let us import the matplotlib library to be able to make any graphics. ::
+    
+    >>> import matplotlib.pylab as plb 
+
 .. _continuum-model-diagnostic-plots-dust-density-contours:
 
 Dust density contours
@@ -245,7 +253,7 @@ Dust density contours
 :class:`~radmc3dPy.analyze.radmc3dData` stores not only the physical variables as data attributes, but also the wavelength and spatial grids 
 (:attr:`radmc3dData.grid <radmc3dPy.analyze.radmc3dData>` attribute, which is an instance of the :class:`~radmc3dPy.analyze.radmc3dGrid` class). 
 So we can make 2D density contour plot. ::
-    
+     
     >>> c = plb.contourf(data.grid.x/natconst.au, np.pi/2.-data.grid.y, np.log10(data.rhodust[:,:,0,0].T), 30)
     >>> plb.xlabel('r [AU]')
     >>> plb.ylabel(r'$\pi/2-\theta$')

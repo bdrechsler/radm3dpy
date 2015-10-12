@@ -1,7 +1,6 @@
 include doc/html/*
 include doc/html/_images/*
 include doc/html/_static/*
-include radmc3dPy/models/*.py
 include radmc3dPy/*.py
 include python_examples/datafiles/*
 include python_examples/run_lines_nlte_lvg_1d_1/*
@@ -13,6 +12,13 @@ include python_examples/run_spher1d_1/*
 include python_examples/run_spher2d_1/*
 include python_examples/run_test_scattering_1/*
 
+include radmc3dPy/models/lines_nlte_lvg_1d_1.py
+include radmc3dPy/models/ppdisk.py
+include radmc3dPy/models/simple_1.py
+include radmc3dPy/models/sphere1d_1.py
+include radmc3dPy/models/sphere2d_1.py
+include radmc3dPy/models/template.py
+include radmc3dPy/models/test_scattering_1.py
+
 exclude radmc3dPy/crd_trans_vec.py
 exclude radmc3dPy/makeopac.py
-

@@ -20,7 +20,7 @@ As of now radmc3dPy provides functionality to
 * write fits files with CASA-compatible fits headers
 * do simple image manipulations
     * calculation of moment maps for line channel maps
-    * convolve image with 2D gaussian beams
+    * convolve image with a 2D Gaussian or an Airy-type psf
     * add coronographic masks
 * calculate interferometric visibilities of images for given projected baselines and position angles
 
@@ -28,13 +28,13 @@ As of now radmc3dPy provides functionality to
 Copyright
 ---------
 
-radmc3dPy was developed by Attila Juhasz at the Leiden Observatory between 2011 and 2014. 
+radmc3dPy was developed by Attila Juhasz at the Leiden Observatory between 2011 and 2014 and from 2014 at the Institute of Astronomy in Cambridge. 
 
 Disclaimer
 ----------
 I/We reject all responsibility for the use of this package. The package is provided as-is, and we are not responsible for any damage to hardware or software, 
 nor for incorrect results that may result from the software. The package is still in development and it may contain bugs. In case of any bug, please, contact
-the author of the package (Attila Juhasz <juhasz@strw.leidenuniv.nl>).  
+the author of the package (Attila Juhasz <juhasz@ast.cam.ac.uk>).  
 
 Requirements
 ------------
@@ -44,12 +44,12 @@ radmc3dPy requires the following packages to be installed:
 * `Numpy <http://www.numpy.org>`_ v1.6.2 or later
 * `SciPy <http://www.scipy.org>`_ 0.11.0 or later
 * `matplotlib <http://matplotlib.org>`_ 1.2.0 or later
-* `AstroPy <http://www.astropy.org>`_ v0.3 or `Pyfits <http://www.stsci.edu/institute/software_hardware/pyfits>`_ v3.0.7 
+* `AstroPy <http://www.astropy.org>`_ v0.3 or later or `Pyfits <http://www.stsci.edu/institute/software_hardware/pyfits>`_ v3.0.7 
 
 Download
 --------
 
-The latest version of radmc3dPy (0.27) can be downloaded from :download:`here <radmc3dPy-0.27.tar.gz>`
+The latest version of radmc3dPy (0.28) can be downloaded from :download:`here <radmc3dPy-0.28.tar.gz>`
 
 
 Contents

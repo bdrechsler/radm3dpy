@@ -92,7 +92,7 @@ def getDefaultParams():
     ['plh', '1./7.', ' Flaring index'],
     ['plsig1', '-1.0', ' Power exponent of the surface density distribution as a function of radius'],
     ['sig0', '0.0', ' Surface density at rdisk'],
-    ['mdisk', '1e-4*ms', ' Mass of the disk (either sig0 or mdisk should be set to zero or commented out)'],
+    ['mdisk', '1e-3*ms', ' Mass of the disk (either sig0 or mdisk should be set to zero or commented out)'],
     ['bgdens', '1e-30', ' Background density (g/cm^3)'],
     ['srim_rout', '0.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
     ['srim_plsig', '0.0', 'Power exponent of the density reduction inside of srim_rout*rin'],

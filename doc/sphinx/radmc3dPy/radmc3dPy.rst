@@ -67,6 +67,14 @@ radmc3dPy.setup module
     :undoc-members:
     :show-inheritance:
 
+radmc3dPy.staratm module
+------------------------
+
+.. automodule:: radmc3dPy.staratm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

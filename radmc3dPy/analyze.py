@@ -268,7 +268,7 @@ class radmc3dGrid():
 
                     else:
                         ppar['ny'] = ppar['ny']
-                        nyi = [i for i in ppar['ny']] #ppar['ny']+1
+                        nyi = [i+1 for i in ppar['ny']] #ppar['ny']+1
                     
                     if ppar['ny'][0]==0:
                         self.act_dim[1] = 0
@@ -291,6 +291,7 @@ class radmc3dGrid():
                 else:
                     self.act_dim[2] = 0
                     nzi = [0]
+
 
         if (crd_sys=='car'):
 #
@@ -485,21 +486,22 @@ class radmc3dGrid():
             # Refinement of the inner edge of the grid
             # This has to be done properly
             if ppar.has_key('xres_nlev'):
-                ri_ext = np.array([self.xi[0], self.xi[ppar['xres_nspan']]])
-                for i in range(ppar['xres_nlev']):
-                    dum_ri = ri_ext[0] + (ri_ext[1]-ri_ext[0]) * np.arange(ppar['xres_nstep']+1, dtype=np.float64) / float(ppar['xres_nstep'])
-                    #print ri_ext[0:2]/au
-                    #print dum_ri/au
-                    ri_ext_old = np.array(ri_ext)
-                    ri_ext = np.array(dum_ri)
-                    ri_ext = np.append(ri_ext,ri_ext_old[2:])
-                    
-                r_ext = (ri_ext[1:] + ri_ext[:-1]) * 0.5
+                if ppar['xres_nlev']>0:
+                    ri_ext = np.array([self.xi[0], self.xi[ppar['xres_nspan']]])
+                    for i in range(ppar['xres_nlev']):
+                        dum_ri = ri_ext[0] + (ri_ext[1]-ri_ext[0]) * np.arange(ppar['xres_nstep']+1, dtype=np.float64) / float(ppar['xres_nstep'])
+                        #print ri_ext[0:2]/au
+                        #print dum_ri/au
+                        ri_ext_old = np.array(ri_ext)
+                        ri_ext = np.array(dum_ri)
+                        ri_ext = np.append(ri_ext,ri_ext_old[2:])
+                        
+                    r_ext = (ri_ext[1:] + ri_ext[:-1]) * 0.5
 
-                self.xi = np.append(ri_ext, self.xi[ppar['xres_nspan']+1:])
-                self.x = np.append(r_ext, self.x[ppar['xres_nspan']:])
-                self.nx = self.x.shape[0]
-                self.nxi = self.xi.shape[0]
+                    self.xi = np.append(ri_ext, self.xi[ppar['xres_nspan']+1:])
+                    self.x = np.append(r_ext, self.x[ppar['xres_nspan']:])
+                    self.nx = self.x.shape[0]
+                    self.nxi = self.xi.shape[0]
                 
 #
 # Create the y axis
@@ -511,7 +513,8 @@ class radmc3dGrid():
                 if ybound[len(ybound)-1]!=np.pi/2.:
                     self.nyi = sum(nyi)+1
                     self.ny  = self.nyi-1
-                    self.yi  = ybound[0] + (ybound[1] - ybound[0])*(np.arange(nyi[0], dtype=np.float64)/float(nyi[0]))                
+                    self.yi  = ybound[0] + (ybound[1] - ybound[0])*(np.arange(nyi[0], dtype=np.float64)/float(nyi[0])) 
+
                     for ipart in range(1,len(nyi)-1):
                         # Now make sure that pi/2 will be a cell interface
                         # 
@@ -530,7 +533,7 @@ class radmc3dGrid():
 
                     ipart   = len(nyi)-1 
                     if len(nyi)==2:
-                        dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((np.arange(nyi[ipart], dtype=np.float64))/(float(nyi[ipart])-1.))
+                        dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((np.arange(nyi[ipart]+1, dtype=np.float64))/(float(nyi[ipart])))
                     else:
                         dum     = ybound[ipart] + (ybound[ipart+1] - ybound[ipart])*((np.arange(nyi[ipart], dtype=np.float64)+1.)/float(nyi[ipart]))
 
@@ -560,7 +563,7 @@ class radmc3dGrid():
 
 
 
-          
+        
                 
                 self.yi = np.append(self.yi, dum)
                 self.y  = 0.5*(self.yi[0:self.ny] + self.yi[1:self.ny+1])
@@ -583,12 +586,12 @@ class radmc3dGrid():
                 self.nzi = sum(nzi)
                 self.nz  = self.nzi-1
 
-                self.zi  = zbound[0] + (zbound[1] - zbound[0])*(np.arange(nzi[0], dtzpe=np.float64)/float(nzi[0]))                
+                self.zi  = zbound[0] + (zbound[1] - zbound[0])*(np.arange(nzi[0], dtype=np.float64)/float(nzi[0]))                
                 for ipart in range(1,len(nzi)-1):
-                    dum = zbound[ipart] + (zbound[ipart+1] - zbound[ipart])*(np.arange(nzi[ipart], dtzpe=np.float64)/float(nzi[ipart]))
+                    dum = zbound[ipart] + (zbound[ipart+1] - zbound[ipart])*(np.arange(nzi[ipart], dtype=np.float64)/float(nzi[ipart]))
                     self.zi = np.append(self.zi, dum)
                 ipart   = len(nzi)-1 
-                dum     = zbound[ipart] + (zbound[ipart+1] - zbound[ipart])*(np.arange(nzi[ipart], dtzpe=np.float64)/float(nzi[ipart]-1))
+                dum     = zbound[ipart] + (zbound[ipart+1] - zbound[ipart])*(np.arange(nzi[ipart], dtype=np.float64)/float(nzi[ipart]-1))
                 self.zi = np.append(self.zi, dum)
                 self.z  = 0.5*(self.zi[0:self.nz] + self.zi[1:self.nz+1])
             else:
@@ -881,14 +884,31 @@ class radmc3dGrid():
                 print '----------------------------------------------------------'
                 print 'ERROR'
                 print 'The r-dimension of a spherical grid is switched off'
-                print 'This model (ppdisk) is not perpared for such grid style'
                 print '----------------------------------------------------------'
             elif self.act_dim[1]==0:
-                print '----------------------------------------------------------'
-                print 'ERROR'
-                print 'The theta-dimension of a spherical grid is switched off'
-                print 'This model (ppdisk) is not perpared for such grid style'
-                print '----------------------------------------------------------'
+                #print '----------------------------------------------------------'
+                #print 'ERROR'
+                #print 'The theta-dimension of a spherical grid is switched off'
+                #print 'This model (ppdisk) is not perpared for such grid style'
+                #print '----------------------------------------------------------'
+
+                if self.act_dim[2]==0:
+                    vol = np.zeros([self.nx, self.ny, self.nz], dtype=np.float64)
+                    diff_r3   = self.xi[1:]**3 - self.xi[:-1]**3
+                    diff_cost = 2.0
+                    diff_phi  = 2.*np.pi
+                    for ix in range(self.nx):
+                        vol[ix,0,0] = 1./3. * diff_r3[ix] * diff_cost * diff_phi
+
+                else: 
+                    vol = np.zeros([self.nx, self.ny, self.nz], dtype=np.float64)
+                    diff_r3   = self.xi[1:]**3 - self.xi[:-1]**3
+                    diff_cost = 2.0
+                    diff_phi  = self.zi[1:] - self.zi[:-1] 
+                    for ix in range(self.nx):
+                        for iz in range(self.nz):
+                            vol[ix,0,iz] = 1./3. * diff_r3[ix] * diff_cost * diff_phi[iz]
+
             elif self.act_dim[2]==0:
                 vol = np.zeros([self.nx, self.ny, self.nz], dtype=np.float64)
                 diff_r3   = self.xi[1:]**3 - self.xi[:-1]**3
@@ -3655,9 +3675,9 @@ class radmc3dDustOpac():
                     print ppar['lnk_fname'][idust] + ' could not be read'
                     return
 
-                w = array(w, dtype=float)
-                n = array(n, dtype=float)
-                k = array(k, dtype=float)
+                w = np.array(w, dtype=float)
+                n = np.array(n, dtype=float)
+                k = np.array(k, dtype=float)
 
                 if float(w[0])>float(w[w.shape[0]-1]):
                     w = w[::-1]
@@ -3758,6 +3778,7 @@ class radmc3dDustOpac():
 #            # Change the name of makedust's output 
 #            dum = sp.Popen('mv dustkappa_1.inp dustkappa_idust_1_igsize_1.inp', shell=True).wait()
 #            os.remove('opt_const.dat')
+
 
             self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'], old=old)
             if old:
@@ -3911,7 +3932,7 @@ class radmc3dDustOpac():
                     ocsca = np.array(dcsca) * mixabun[i][j]
                     ogsym = np.array(gsym) * mixabun[i][j]
                     nwav0 = dw.shape[0]
-                    owav  = array(dw)
+                    owav  = np.array(dw)
                 else:
                     #
                     # Interpolate dust opacities to the wavelength grid of the first dust species
@@ -3930,7 +3951,7 @@ class radmc3dDustOpac():
                     der = np.log10(dcabs[nwav-1]/dcabs[nwav-2]) / np.log10(dw[nwav-1]/dw[nwav-2])
                     dum[ih] = 10.**(np.log10(dcabs[nwav-1]) + np.log10(owav[il]/dw[nwav-1]))
                  
-                    ocabs = ocabs + array(dum) * mixabun[i][j]
+                    ocabs = ocabs + np.array(dum) * mixabun[i][j]
                     
                     if oform==2:
                         # Do the inter-/extrapolation of for the scattering coefficients
@@ -3956,7 +3977,7 @@ class radmc3dDustOpac():
                         der = np.log10(gsym[nwav-1]/gsym[nwav-2]) / np.log10(dw[nwav-1]/dw[nwav-2])
                         dum[ih] = 10.**(np.log10(gsym[nwav-1]) + np.log10(owav[il]/dw[nwav-1]))
                        
-                        ogsym = ogsym + array(dum) * mixabun[i][j]
+                        ogsym = ogsym + np.array(dum) * mixabun[i][j]
 
 
        
@@ -4034,7 +4055,7 @@ class radmc3dDustOpac():
 
         return {'ext':ext, 'therm':therm, 'scatmat':scatmat}
 # --------------------------------------------------------------------------------------------------
-    def  writeMasterOpac(self, ext=None, therm=None, scattering_mode_max=1, old=True):
+    def  writeMasterOpac(self, ext=None, therm=None, scattering_mode_max=1, old=False):
         """Writes the master opacity file 'dustopac.inp'. 
 
         Parameters
@@ -4659,8 +4680,8 @@ class radmc3dPar():
         #
         # Code parameters
         #
-        self.setPar(['nphot', 'long(1e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
-        self.setPar(['nphot_scat','long(3e4)', '  Nr of photons for the scattering Monte Carlo (for images)', 'Code parameters'])
+        self.setPar(['nphot', 'long(3e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
+        self.setPar(['nphot_scat','long(3e5)', '  Nr of photons for the scattering Monte Carlo (for images)', 'Code parameters'])
         self.setPar(['nphot_spec','long(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)', 'Code parameters'])
         self.setPar(['scattering_mode_max','1', '  0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering', 'Code parameters'])
         self.setPar(['lines_mode', '-1', '  Line raytracing mode', 'Code parameters'])
@@ -4939,7 +4960,7 @@ def writeDefaultParfile(model='', fname=''):
     dum.loadDefaults(model=model)
     dum.writeParfile()
 # --------------------------------------------------------------------------------------------------
-def readSpectrum(fname='', old=True):
+def readSpectrum(fname='', old=False):
     """Reads the spectrum / SED
 
 

@@ -470,7 +470,7 @@ class radmc3dImage():
             hdulist[0].header.set('BUNIT', 'JY/BEAM', '')
             hdulist[0].header.set('BMAJ', self.fwhm[0]/3600., '')
             hdulist[0].header.set('BMIN', self.fwhm[1]/3600., '')
-            hdulist[0].header.set('BPA', self.pa, '')
+            hdulist[0].header.set('BPA', -self.pa, '')
 
         hdulist[0].header.set('BTYPE', 'INTENSITY', '')
         hdulist[0].header.set('BZERO', 0.0, '')
@@ -763,7 +763,6 @@ class radmc3dImage():
                             self.image[ix,iy,1,iwav] = float(dum[1])
                             self.image[ix,iy,2,iwav] = float(dum[2])
                             self.image[ix,iy,3,iwav] = float(dum[3])
-                            print '>>>>> ', iy, ix 
             #self.image = squeeze(self.image)
             rfile.close()
 

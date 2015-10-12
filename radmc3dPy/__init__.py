@@ -11,5 +11,5 @@ import natconst
 import models
 import staratm
 
-__version__ = "0.27.2"
+__version__ = "0.28.1"
 __all__ = ["analyze", "setup", "image", "crd_trans", "natconst", "models", "staratm"]
