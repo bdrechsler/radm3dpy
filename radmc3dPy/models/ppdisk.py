@@ -10,6 +10,16 @@ The density is given by
     * :math:`\Sigma` - surface density
     * :math:`H_{\\rm p}` - Pressure scale height
 
+There are two options for the functional form of surface density as a function of radius. For a simple
+power-law the surface density is given by
+
+    * :math:`\Sigma(r) = \\Sigma_0\\left(\\frac{r}{r_{\\rm out}}\\right)^p`
+
+alternatively the surface density can also have an exponential outer tapering:
+
+    * :math:`\Sigma(r) = \\Sigma_0\\left(\\frac{r}{r_{\\rm out}}\\right)^p\\exp{\\left\\{-\\left(\\frac{r}{r_{\\rm out}}\\right)^{2+p}\\right\\}}`
+
+
 The molecular abundance function takes into account dissociation and freeze-out of the molecules
 For photodissociation only the continuum (dust) shielding is taken into account in a way that
 whenever the continuum optical depth radially drops below a threshold value the molecular abundance
@@ -101,7 +111,7 @@ def getDefaultParams():
     ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
     ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
     ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
-    ['sigma_type', '0', ' Surface density type (0 - polynomial, 1 - viscous with exponential outer edge'],
+    ['sigma_type', '0', ' Surface density type (0 - polynomial, 1 - exponential outer edge (viscous self-similar solution)'],
     ['dusttogas', '0.01', ' Dust-to-gas mass ratio']]
 
 

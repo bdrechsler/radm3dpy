@@ -20,6 +20,14 @@ radmc3dPy.models.ppdisk module
     :undoc-members:
     :show-inheritance:
 
+radmc3dPy.models.ppdisk_acc module
+----------------------------------
+
+.. automodule:: radmc3dPy.models.ppdisk_acc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 radmc3dPy.models.simple_1 module
 --------------------------------
 

@@ -245,6 +245,10 @@ First let us import the matplotlib library to be able to make any graphics. ::
     
     >>> import matplotlib.pylab as plb 
 
+Let us also import numpy to be able to use arrays and mathematical functions. ::
+
+    >>> import numpy as np
+    
 .. _continuum-model-diagnostic-plots-dust-density-contours:
 
 Dust density contours
@@ -483,7 +487,7 @@ The results should look like this:
 
 We can also display the images using angular coordinates for the image axis (Note that in this case the distance in pc needs also to
 be passed)::
-    >>> image.plotImage(im, arcsec=True, dpc=140., log=True, maxlog=10, saturate=1e-5, bunit='fnu', cmap=plb.cm.gist_heat)
+    >>> image.plotImage(im, arcsec=True, dpc=140., log=True, maxlog=10, saturate=1e-5, bunit='snu', cmap=plb.cm.gist_heat)
     
 .. image:: screenshots/image_arcsec_log.png
     :align: center
@@ -497,7 +501,7 @@ Image manipulations
 It is also easy to convolve the image with an arbitrary 2D gaussian beam::
 
     >>> cim = im.imConv(fwhm=[0.06, 0.06], pa=0., dpc=140.)
-    >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=10, bunit='fnu', cmap=plb.cm.gist_heat)
+    >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=10, bunit='snu', cmap=plb.cm.gist_heat)
    
 .. image:: screenshots/image_arcsec_log_conv.png
     :align: center
@@ -506,7 +510,7 @@ It is also easy to convolve the image with an arbitrary 2D gaussian beam::
 The effect of a coronographic mask can also be simulated. The `cmask_rad` keyword of the :meth:`~radmc3dPy.image.plotImage` method sets the 
 intensity within the given radius to zero.:: 
 
-    >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=2.5, bunit='fnu', cmask_rad=0.17, cmap=plb.cm.gist_heat)
+    >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=2.5, bunit='snu', cmask_rad=0.17, cmap=plb.cm.gist_heat)
 
 .. image:: screenshots/image_arcsec_log_conv_mask.png
     :align: center
@@ -538,7 +542,7 @@ CO molecules is around 19K and the 40K used here is only for illustration purpos
 The :meth:`~radmc3dPy.setup.problemSetupGas` method takes one mandatory argument, the name of the model. 
 Let us now see the gas structure in the disk. First we need to read the gas density::
 
-    >>> sdata = analyze.readData(gdens=True, ispec='co')
+    >>> data = analyze.readData(gdens=True, ispec='co')
 
 The :meth:`~radmc3dPy.analyze.readData` method reads the content of the ``molecule_co.inp`` and puts it into the 
 :attr:`radmc3dData.ndens_mol <radmc3dPy.analyze.radmc3dData>` attribute. When reading gas density with the :meth:`~radmc3dPy.analyze.readData` method
@@ -554,7 +558,7 @@ We can now make contour plots to display a vertical slice of the disk::
 
 We can also overplot the dust temperature to check whether freeze-out really happens at 40K as we specified::
 
-    >>> sdata.readDustTemp()
+    >>> data.readDustTemp()
     >>> sc = plb.contour(data.grid.x/natconst.au, np.pi/2.-data.grid.y, data.dusttemp[:,:,0,0].T, [40.],  colors='w', linestyles='solid')
     >>> splb.clabel(c, inline=1, fontsize=10)
 
