@@ -101,6 +101,7 @@ def getDefaultParams():
     ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
     ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
     ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
+    ['sigma_type', '0', ' Surface density type (0 - polynomial, 1 - viscous with exponential outer edge'],
     ['dusttogas', '0.01', ' Dust-to-gas mass ratio']]
 
 
@@ -241,13 +242,39 @@ def getGasDensity(grid=None, ppar=None):
     # Calculate sigma from sig0, rdisk and plsig1
     if ppar.has_key('sig0'):
         if ppar['sig0'] != 0.:
-            dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
+            if ppar.has_key('sigma_type'):
+                if ppar['sigma_type']==0:
+                    dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                else:
+                    expterm = np.exp( -(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                    dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) * expterm #np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+
+
+                    #plb.loglog(rcyl.flatten(), dum1.flatten())
+                    #dum = raw_input()
+                    #exit()
+
+
+            else:
+                dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
 
             if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
                 if (ppar['srim_rout']!=0.):
-                    # Adding the smoothed inner rim
-                    sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                    dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                    
+                    if ppar.has_key('sigma_type'):
+                        if ppar['sigma_type']==0:
+                            # Adding the smoothed inner rim
+                            sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                        else:
+                            #sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                            sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**(-ppar['plsig1']) * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                    else:
+                        # Adding the smoothed inner rim
+                        sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                        dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+
 
                     p    = -5.0
                     dum  = (dum1**p + dum2**p)**(1./p)
@@ -261,10 +288,32 @@ def getGasDensity(grid=None, ppar=None):
             for iz in range(grid.nz):
                 sigma[:,:,iz] = dum
         else:
-            dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
-          
+            #dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+            if ppar.has_key('sigma_type'):
+                if ppar['sigma_type']==0:
+                    dum1 =1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                else:
+                    dum1 = 1.0 * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+            else:
+                dum1 =1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+
             if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
                 if (ppar['srim_rout']!=0.):
+
+                    if ppar.has_key('sigma_type'):
+                        if ppar['sigma_type']==0:
+                            # Adding the smoothed inner rim
+                            sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                        else:
+                            #sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                            sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**(-ppar['plsig1']) * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                    else:
+                        # Adding the smoothed inner rim
+                        sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                        dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+
                     # Adding the smoothed inner rim
                     sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
                     dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
@@ -281,9 +330,16 @@ def getGasDensity(grid=None, ppar=None):
             for iz in range(grid.nz):
                 sigma[:,:,iz] = dum
 
-        for iy in range(grid.ny):
-            ii = (rcyl[iy,:]<ppar['rin'])|(rcyl[iy,:]>ppar['rdisk'])
-            sigma[ii,iy,:] = 0.0
+       
+        if ppar.has_key('sigma_type'):
+            if ppar['sigma_type']==0:
+                for iy in range(grid.ny):
+                    ii = (rcyl[iy,:]<ppar['rin'])|(rcyl[iy,:]>ppar['rdisk'])
+                    sigma[ii,iy,:] = 0.0
+        else:
+            for iy in range(grid.ny):
+                ii = (rcyl[iy,:]<ppar['rin'])|(rcyl[iy,:]>ppar['rdisk'])
+                sigma[ii,iy,:] = 0.0
 
     z0 = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
     rho = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)

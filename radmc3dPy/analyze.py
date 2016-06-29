@@ -26,7 +26,7 @@ import radmc3dPy.crd_trans  as crd_trans
 from staratm import StellarAtm
 
 
-class radmc3dGrid():
+class radmc3dGrid(object):
     """ Class for spatial and frequency grid used by RADMC-3D.
 
     Attributes
@@ -933,7 +933,7 @@ class radmc3dGrid():
 
         return vol
 # --------------------------------------------------------------------------------------------------
-class radmc3dData():
+class radmc3dData(object):
     """RADMC-3D data class.
         Reading and writing dust density/temperature, gas density/temperature/velocity,
         generating a legacy vtk file for visualization.
@@ -2035,7 +2035,7 @@ class radmc3dData():
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def getSigmaDust(self, idust=0):
+    def getSigmaDust(self, idust=-1):
         """Calculates the dust surface density.
         
         Parameters
@@ -2093,7 +2093,7 @@ class radmc3dData():
         self.sigmagas = dum / np.squeeze(surf)
 
 # --------------------------------------------------------------------------------------------------
-class radmc3dRadSources():
+class radmc3dRadSources(object):
     """Class of the radiation sources.
     Currently discrete stars and continuous starlike source, the latter only in spherical coordinates.
 
@@ -2469,6 +2469,7 @@ class radmc3dRadSources():
                 print 'Error!' 
                 print fname+' cannot be opened!'
                 return 
+
 
             wfile.write("%d\n"%self.grid.nfreq)
             wfile.write(" \n")
@@ -3239,7 +3240,7 @@ class radmc3dRadSources():
         wfile.close()
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-class radmc3dDustOpac():
+class radmc3dDustOpac(object):
     """
     Class to handle dust opacities.
 
@@ -3640,10 +3641,10 @@ class radmc3dDustOpac():
             ppar['lnk_fname'] = [ppar['lnk_fname']]
 
         if len(ppar['lnk_fname'])>1:
-            if old:
-                print 'ERROR'
-                print 'Making old (RADMC) style opacities is not finished for more than one dust species'
-                exit() 
+            #if old:
+                #print 'ERROR'
+                #print 'Making old (RADMC) style opacities is not finished for more than one dust species'
+                #exit() 
 
             ext = []
             for idust in range(len(ppar['lnk_fname'])):
@@ -3718,7 +3719,10 @@ class radmc3dDustOpac():
                     return
             
             therm = [True for i in range(len(ext))]
-            self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'])
+            self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'], old=old)
+           
+            if old:
+                self.makeopacRadmc2D(ext=ext)
 
         else:
             # makedust needs the lnk file to be sorted in wavelength so create a dummy file 
@@ -4152,7 +4156,7 @@ class radmc3dDustOpac():
         
         if type(ext).__name__=='str':
             ext = [ext]
-       
+      
         # 
         # Read the frequency.inp file
         #
@@ -4310,7 +4314,7 @@ class radmc3dDustOpac():
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-class radmc3dPar():
+class radmc3dPar(object):
     """Parameter class for a RADMC-3D model.
 
     

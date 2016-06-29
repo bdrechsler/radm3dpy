@@ -41,7 +41,7 @@ import sys, os
 
 
 # **************************************************************************************************
-class radmc3dImage():
+class radmc3dImage(object):
     """
     RADMC-3D image class
 
@@ -650,7 +650,7 @@ class radmc3dImage():
         return dum.sum(2)
 
 # --------------------------------------------------------------------------------------------------
-    def readImage(self, fname=None, binary=False):
+    def readImage(self, fname=None, binary=False, old=False):
         """Reads an image calculated by RADMC-3D 
      
         Parameters
@@ -659,46 +659,21 @@ class radmc3dImage():
         fname   : str, optional
                  File name of the radmc3d output image (if omitted 'image.out' is used)
         
+        old     : bool
+                 If set to True it reads old radmc-2d style image        
+        Options
+        -------
+        
         binary  : bool
-                 False - the image format is formatted ASCII if True - C-compliant binary
+                 False - the image format is formatted ASCII if True - C-compliant binary (omitted if old=True)
+
         """
 # --------------------------------------------------------------------------------------------------
         pc   = 3.08572e18
 
-        if binary:
+        if old==True:
             if (fname==None): 
-                fname = 'image.bout'
-
-           
-            dum        = np.fromfile(fname, count=4, dtype=int)
-            iformat    = dum[0]
-            self.nx    = dum[1]
-            self.ny    = dum[2]
-            self.nfreq = dum[3]
-            self.nwav  = self.nfreq 
-            dum        = np.fromfile(fname, count=-1, dtype=np.float64)
-
-            self.sizepix_x = dum[4]
-            self.sizepix_y = dum[5]
-            self.wav       = dum[6:6+self.nfreq]
-            self.freq      = 2.99792458e10 / self.wav * 1e4
-
-            if iformat==1:
-                self.stokes    = False
-                self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, self.ny, self.nx])
-                self.image     = np.swapaxes(self.image,0,2)
-            elif iformat==3:
-                self.stokes    = True
-                self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, 4, self.ny, self.nx])
-                self.image     = np.swapaxes(self.image,0,3)
-                self.image     = np.swapaxes(self.image,1,2)
-
-        else:
-
-# Look for the image file
-
-            if (fname==None): 
-                fname = 'image.out'
+                fname = 'image.dat'
 
             try:
                 rfile = open(fname, 'r')
@@ -706,65 +681,128 @@ class radmc3dImage():
                 print 'ERROR!'
                 print 'No '+fname+' file has been found!'
                 return -1
-        
-            dum = ''
-        
-# Format number
-            iformat = int(rfile.readline())
+            
+            dum = rfile.readline().split()
+            self.nx = int(dum[0])
+            self.ny = int(dum[1])
+            self.nfreq = int(dum[2])
+            self.nwav  = self.nfreq
 
-# Nr of pixels
-            dum = rfile.readline()
-            dum = dum.split()
-            self.nx  = int(dum[0])
-            self.ny  = int(dum[1])
-# Nr of frequencies
-            self.nfreq = int(rfile.readline())
-            self.nwav  = self.nfreq 
-# Pixel sizes
-            dum = rfile.readline()
-            dum = dum.split()
+            dum = rfile.readline().split()
             self.sizepix_x = float(dum[0])
             self.sizepix_y = float(dum[1])
-# Wavelength of the image
-            self.wav = []
-            for iwav in range(self.nwav):
-                self.wav.append(float(rfile.readline()))
-            self.wav = np.array(self.wav)
-            self.freq = 2.99792458e10 / self.wav * 1e4
-      
-# If we have a normal total intensity image
-            if iformat==1:
-                self.stokes = False
+            self.wav       = np.zeros(self.nwav,dtype=float)-1.
+            self.freq      = np.zeros(self.nwav,dtype=float)-1.
             
-                self.image = np.zeros([self.nx,self.ny,self.nwav], dtype=np.float64)
-                for iwav in range(self.nwav):
-# Blank line
-                    dum = rfile.readline()
-                    for iy in range(self.nx):
-                        for ix in range(self.ny):
-                            self.image[ix,iy,iwav] = float(rfile.readline())
-                            #self.image[iy,ix,iwav] = float(rfile.readline())
+            self.stokes    = False
+            self.image = np.zeros([self.nx,self.ny,self.nwav], dtype=np.float64)
+            for iwav in range(self.nwav):
+                dum = rfile.readline()
+                for iy in range(self.nx):
+                    for ix in range(self.ny):
+                        self.image[ix,iy,iwav] = float(rfile.readline())
+
+        else:
+            if binary:
+                if (fname==None): 
+                    fname = 'image.bout'
+
                
+                dum        = np.fromfile(fname, count=4, dtype=int)
+                iformat    = dum[0]
+                self.nx    = dum[1]
+                self.ny    = dum[2]
+                self.nfreq = dum[3]
+                self.nwav  = self.nfreq 
+                dum        = np.fromfile(fname, count=-1, dtype=np.float64)
+
+                self.sizepix_x = dum[4]
+                self.sizepix_y = dum[5]
+                self.wav       = dum[6:6+self.nfreq]
+                self.freq      = 2.99792458e10 / self.wav * 1e4
+
+                if iformat==1:
+                    self.stokes    = False
+                    self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, self.ny, self.nx])
+                    self.image     = np.swapaxes(self.image,0,2)
+                elif iformat==3:
+                    self.stokes    = True
+                    self.image     = np.reshape(dum[6+self.nfreq:], [self.nfreq, 4, self.ny, self.nx])
+                    self.image     = np.swapaxes(self.image,0,3)
+                    self.image     = np.swapaxes(self.image,1,2)
+
+            else:
+
+    # Look for the image file
+
+                if (fname==None): 
+                    fname = 'image.out'
+
+                try:
+                    rfile = open(fname, 'r')
+                except:
+                    print 'ERROR!'
+                    print 'No '+fname+' file has been found!'
+                    return -1
+            
+                dum = ''
+            
+    # Format number
+                iformat = int(rfile.readline())
+
+    # Nr of pixels
+                dum = rfile.readline()
+                dum = dum.split()
+                self.nx  = int(dum[0])
+                self.ny  = int(dum[1])
+    # Nr of frequencies
+                self.nfreq = int(rfile.readline())
+                self.nwav  = self.nfreq 
+    # Pixel sizes
+                dum = rfile.readline()
+                dum = dum.split()
+                self.sizepix_x = float(dum[0])
+                self.sizepix_y = float(dum[1])
+    # Wavelength of the image
+                self.wav = []
+                for iwav in range(self.nwav):
+                    self.wav.append(float(rfile.readline()))
+                self.wav = np.array(self.wav)
+                self.freq = 2.99792458e10 / self.wav * 1e4
+          
+    # If we have a normal total intensity image
+                if iformat==1:
+                    self.stokes = False
+                
+                    self.image = np.zeros([self.nx,self.ny,self.nwav], dtype=np.float64)
+                    for iwav in range(self.nwav):
+    # Blank line
+                        dum = rfile.readline()
+                        for iy in range(self.nx):
+                            for ix in range(self.ny):
+                                self.image[ix,iy,iwav] = float(rfile.readline())
+                                #self.image[iy,ix,iwav] = float(rfile.readline())
+                   
+                    #self.image = squeeze(self.image)
+                    rfile.close()
+
+    # If we have the full stokes image
+                elif iformat==3:
+                    self.stokes = True
+                    self.image = np.zeros([self.nx,self.ny,4,self.nwav], dtype=np.float64)
+                    for iwav in range(self.nwav):
+    # Blank line
+                        dum = rfile.readline()
+                        for iy in range(self.nx):
+                            for ix in range(self.ny):
+                                dum = rfile.readline().split()
+                                imstokes = [float(i) for i in dum]
+                                self.image[ix,iy,0,iwav] = float(dum[0])
+                                self.image[ix,iy,1,iwav] = float(dum[1])
+                                self.image[ix,iy,2,iwav] = float(dum[2])
+                                self.image[ix,iy,3,iwav] = float(dum[3])
                 #self.image = squeeze(self.image)
                 rfile.close()
-
-# If we have the full stokes image
-            elif iformat==3:
-                self.stokes = True
-                self.image = np.zeros([self.nx,self.ny,4,self.nwav], dtype=np.float64)
-                for iwav in range(self.nwav):
-# Blank line
-                    dum = rfile.readline()
-                    for iy in range(self.nx):
-                        for ix in range(self.ny):
-                            dum = rfile.readline().split()
-                            imstokes = [float(i) for i in dum]
-                            self.image[ix,iy,0,iwav] = float(dum[0])
-                            self.image[ix,iy,1,iwav] = float(dum[1])
-                            self.image[ix,iy,2,iwav] = float(dum[2])
-                            self.image[ix,iy,3,iwav] = float(dum[3])
-            #self.image = squeeze(self.image)
-            rfile.close()
 
 # Conversion from erg/s/cm/cm/Hz/ster to Jy/pixel
         
@@ -924,7 +962,6 @@ class radmc3dImage():
         res.pa          = pa
         res.dpc         = dpc
 
-
         return res
 
 # --------------------------------------------------------------------------------------------------
@@ -1025,6 +1062,7 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None,  fwhm=None, pa=None, 
 
     elif (psfType.strip().lower()=='airy'):
 
+
         # Check whether scipy was successfully imported
         if not spc:
             print 'ERROR'
@@ -1043,6 +1081,7 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None,  fwhm=None, pa=None, 
             for ix in range(nx):
                 r   = np.sqrt(x2[ix] + y2)
                 u   = np.pi/wav_m * tdiam_prim * r
+
                 if u.__contains__(0.):
                     ii = (u==0.)
                     u[ii]=1e-5
@@ -1062,7 +1101,7 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None,  fwhm=None, pa=None, 
     return res
 
 # --------------------------------------------------------------------------------------------------
-def readImage(fname=None, binary=False):
+def readImage(fname=None, binary=False, old=False):
     """Reads an image calculated by RADMC-3D.
        This function is an interface to radmc3dImage.readImage().
      
@@ -1071,12 +1110,17 @@ def readImage(fname=None, binary=False):
         fname   : str, optional
                  File name of the radmc3d output image (if omitted 'image.out' is used)
         
+        old     : bool
+                 If set to True it reads old radmc-2d style image        
+        Options
+        -------
+        
         binary  : bool
-                 False - the image format is formatted ASCII if True - C-compliant binary
+                 False - the image format is formatted ASCII if True - C-compliant binary (omitted if old=True)
     """
 
     dum = radmc3dImage()
-    dum.readImage(fname=fname, binary=binary)
+    dum.readImage(fname=fname, binary=binary, old=old)
     return dum
 
 # ***************************************************************************************************************
@@ -1293,6 +1337,9 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     cbar = plb.colorbar(implot)
     cbar.set_label(cb_label)
     plb.show()
+
+    return {'implot':implot, 'cbar':cbar}
+
 # ***************************************************************************************************************
 
 def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None, pointau=None, \

@@ -49,7 +49,7 @@ radmc3dPy requires the following packages to be installed:
 Download
 --------
 
-The latest version of radmc3dPy (0.28) can be downloaded from :download:`here <radmc3dPy-0.28.tar.gz>`
+The latest version of radmc3dPy (0.28.1) can be downloaded from :download:`here <radmc3dPy-0.28.1.tar.gz>`
 
 
 Contents

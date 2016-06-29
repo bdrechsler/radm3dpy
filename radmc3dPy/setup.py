@@ -656,7 +656,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
     # Write the lines.inp the main control file for the line RT
     writeLinesInp(ppar=ppar)
 # --------------------------------------------------------------------------------------------------
-def writeRadmcInp(modpar=None):
+def writeRadmcInp(modpar=None, nphot=None):
     """Writes the radmc.inp master command file for the 2D version of radmc
 
     Parameters
@@ -664,9 +664,14 @@ def writeRadmcInp(modpar=None):
     ppar   : dictionary
              Contains all parameters of a radmc run.
 
+    nphot  : int
+             Number of photons used for the MC simulation
     """
 
-    ppar = modpar.ppar
+    if nphot==None:
+        ppar = modpar.ppar
+        nphot = ppar['nphot']
+
     fname = 'radmc.inp'
     try :
         wfile = open(fname, 'w')
@@ -675,7 +680,7 @@ def writeRadmcInp(modpar=None):
         print fname+' cannot be opened!'
         return 
 
-    wfile.write("nphot       =    %d\n"%(ppar['nphot']))
+    wfile.write("nphot       =    %d\n"%(nphot))
     wfile.write("iseed       =    -17933201\n")
     wfile.write("imethod     =    2\n")
     wfile.write("ifast       =    0\n")

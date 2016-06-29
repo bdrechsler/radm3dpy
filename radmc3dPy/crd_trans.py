@@ -47,21 +47,21 @@ def ctrans_sph2cart(crd=[0,0,0], reverse=False):
     ----------
     crd      : ndarray
                Three element array containing the input
-               coordinates [x,y,z] or [r,phi,theta] by default
+               coordinates [x,y,z] or [r,theta,phi] by default
                the coordinates assumed to be in the cartesian system
     
     reverse  : bool
                If True calculates the inverse trasnformation
-               (cartesian -> spherical). In this case crd should be [r,phi,theta]
+               (cartesian -> spherical). In this case crd should be [r,theta,phi]
 
     Returns
     -------
-    Returns a three element array containg the output coordinates [r,phi,theta] or [x,y,z]
+    Returns a three element array containg the output coordinates [r,theta,phi] or [x,y,z]
     """
     if (reverse==False):
         r     = crd[0]
-        phi   = crd[1]
-        theta = crd[2] + 1e-50
+        theta = crd[1] + 1e-50
+        phi   = crd[2]
 
         x = np.sin(theta) * np.cos(phi) * r
         y = np.sin(theta) * np.sin(phi) * r
@@ -81,7 +81,7 @@ def ctrans_sph2cart(crd=[0,0,0], reverse=False):
 
         if (y<0.): phi = 2.0 * np.pi - phi
         
-        crdout = [r, phi, theta]
+        crdout = [r, theta, phi]
         
 
     return crdout
@@ -93,7 +93,7 @@ def vtrans_sph2cart(crd=[0,0,0], v=[0,0,0], reverse=False):
     ----------
     crd     : ndarray
               Three element array containing the input
-              coordinates [x,y,z] or [r,phi,theta] by default
+              coordinates [x,y,z] or [r,theta,phi] by default
               the coordinates assumed to be in the cartesian system
 
     v       : ndarray
@@ -118,12 +118,12 @@ def vtrans_sph2cart(crd=[0,0,0], v=[0,0,0], reverse=False):
 
     if (reverse==False):
         r      = crd[0]
-        phi    = crd[1]
-        theta  = crd[2]
+        theta  = crd[1]
+        phi    = crd[2]
         
         vr     = v[0]
-        vphi   = v[1]
-        vtheta = v[2]
+        vtheta = v[1]
+        vphi   = v[2]
         
         vx     = vr*np.sin(theta)*np.cos(phi) - vphi*np.sin(phi) + vtheta*np.cos(theta)*np.cos(phi)
         vy     = vr*np.sin(theta)*np.sin(phi) + vphi*np.cos(phi) + vtheta*np.cos(theta)*np.sin(phi)
@@ -133,18 +133,39 @@ def vtrans_sph2cart(crd=[0,0,0], v=[0,0,0], reverse=False):
 
     else:
         
-        crd_sph = ctrans_sph2cart(crd, reverse=True)
-        r       = crd_sph[0]
-        phi     = crd_sph[1]
-        theta   = crd_sph[2]
+       # crd_sph = ctrans_sph2cart(crd, reverse=True)
+        #r       = crd_sph[0]
+        #theta   = crd_sph[1]
+        #phi     = crd_sph[2]
         
-        a       = [[np.sin(theta)*np.cos(phi), -np.sin(phi), np.cos(theta)*np.cos(phi)],\
-                   [np.sin(theta)*np.sin(phi), np.cos(phi), np.cos(theta)*np.sin(phi)],\
-                   [np.cos(theta), 0., -np.sin(theta)]]
+        #a       = [[np.sin(theta)*np.cos(phi), -np.sin(phi), np.cos(theta)*np.cos(phi)],\
+                   #[np.sin(theta)*np.sin(phi), np.cos(phi), np.cos(theta)*np.sin(phi)],\
+                   #[np.cos(theta), 0., -np.sin(theta)]]
+        
+        #a       = [[np.sin(theta)*np.cos(phi), np.cos(theta)*np.cos(phi), -np.sin(phi)],\
+                   #[np.sin(theta)*np.sin(phi), np.cos(theta)*np.sin(phi), np.cos(phi)],\
+                   #[np.cos(theta), -np.sin(theta),0.]]
 
-        a       = np.array(a, dtype=np.float64)
 
-        vout = la.solve(a,v)
+        #a       = np.array(a, dtype=np.float64)
+
+        #vout = np.linalg.solve(a,v)
+
+
+        #
+        # New stuff
+        #
+        vout = np.zeros(3, dtype=float)
+        r    = np.sqrt((crd**2).sum())
+        rc   = np.sqrt(crd[0]**2 + crd[1]**2)
+
+        # Vr
+        vout[0] = (crd * v).sum()/r             
+        # Vtheta
+        vout[1] = (crd[2]*(crd[0]*v[0] + crd[1]*v[1]) - v[2]*rc**2) / (r*rc)
+        # Vphi
+        vout[2] = (crd[0]*v[1] - crd[1]*v[0])/rc
+
 
     return vout
 
