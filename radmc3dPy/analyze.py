@@ -20,7 +20,9 @@ except:
     print ' display images'
 
 import subprocess as sp
-import sys, os, copy
+import sys
+import os 
+import copy 
 from radmc3dPy.natconst import *
 import radmc3dPy.crd_trans  as crd_trans 
 from staratm import StellarAtm
@@ -5190,4 +5192,299 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
             print rho_new[ir,data.grid.ny/2-1,ip,ispec]
 
     return rho_new
+# --------------------------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------------------------
+def plotSpectrum(a,ev=False,kev=False,hz=False,micron=False,jy=False,lsun=False,
+                lnu=False,nulnu=False,fnu=False,nufnu=False,dpc=1.e0,
+                oplot=False,xlg=False,ylg=False,obs=False,
+                mol=None,ilin=None):
+   """Plot the spectrum / SED 
+
+   Parameters
+   ----------
+   ev              = True --> frequency in electronvolt (default=Hz)
+
+   kev             = True --> frequency in kiloelectronvolt (default=Hz)
+
+   micron          = True --> wavelength in micron (default=Hz)
+
+   jy              = True --> Flux in Jansky
+
+   lnu             = True --> L_nu (default L_nu)
+
+   nulnu           = True --> nu*L_nu (default F_nu)
+
+   lsun            = True --> nu*L_nu in units of solar luminosity
+
+   dpc             = Distance of observer in units of parsec
+                     Default: 1 pc
+
+   oplot           = True --> Plot without refreshing subplot
+
+   xlg             = True --> logarithmic x-axis
+
+   ylg             = True --> logarithmic y-axis
+
+   obs             = True --> Treat the spectrum as an observation
+                              (i.e. do not scale with dpc^(-2))
+
+   mol             = (optional) Molecule data (see radmc3dMolecule class)
+                     This is required if you want to plot a line spectrum
+                     with on the x-axis the radial velocity in km/s
+
+   ilin            = (if set) the index of the line (of mol; starting,
+                     as in RADMC-3D, with the index 1) which shall act
+                     as the 0 km/s wavelength reference. If ilin is set
+                     the x axis will be in km/s (overriding other settings)
+
+   """
+   #
+   # Basic
+   #
+   lam    = a[:,0]
+   fluxnu = a[:,1]
+   #
+   # Calculate frequency in Hz
+   #
+   cc    = 2.9979245800000e10     # Light speed             [cm/s]
+   freq  = 1e4*cc/lam
+   #
+   # Default: frequency in Hz
+   #
+   xcoord = freq
+   xtitle = '$\lambda [\mu\mathrm{m}]$'
+   #
+   # If ev: electronvolt
+   #
+   if ev:
+       xcoord = 4.13568842841e-15 * freq
+       xtitle = '$h\\nu [\mathrm{eV}]$'
+   #
+   # If kev: kiloelectronvolt
+   #
+   if kev:
+       xcoord = 4.13568842841e-18 * freq
+       xtitle = '$h\\nu [\mathrm{KeV}]$'
+   #
+   # If micron
+   #
+   if micron:
+       xcoord = lam
+       xtitle = '$h\\nu [\mathrm{KeV}]$'
+   #
+   # Plot nuFnu or Fnu (same with Lnu)? And what about Fnu vs Lnu?
+   #
+   # Default:
+   sed=True
+   ylum=False
+   # The flags:
+   if jy:
+       sed=False
+   if fnu:
+       sed=False
+       ylum=False
+   if lnu:
+       sed=False
+       ylum=True
+   if nulnu:
+       sed=True
+       ylum=True
+   if fnu:
+       sed=False
+       ylum=False
+   if nufnu:
+       sed=True
+       ylum=False
+   if jy:
+       ylum=False
+   if lsun:
+       ylum=True
+       sed=True
+   #
+   # If ilin is set, then override the above and use instead the line
+   # as a reference and use km/s as x-axis
+   #
+   if ilin is not None:
+       if mol is None:
+           print "Error in plotSpectrum(): if you specify ilin, you must give a molecule with mol=..."
+           return
+       else:
+           freq0  = mol.freq[ilin-1]
+           xcoord = 2.9979245800000e+10*(freq0-freq)/freq0/1.e5
+           xtitle = '$\Delta v [\mathrm{km/h}]$'
+   #
+   # Which plot to make? Lum or flux?
+   #
+   if not ylum:
+       #
+       # Plot spectrum as flux at a certain distance
+       #
+       if not obs:
+           distfact = 1.0 / (dpc**2)
+       else:
+           distfact = 1.0
+       #
+       # Set the vertical axis name
+       #
+       if not jy:
+           if not sed:
+               lumfact=1.0
+               ytitle='$F_{\\nu}\; [\mathrm{erg}\,\mathrm{cm}^{-2}\,\mathrm{Hz}^{-1}\, \mathrm{s}^{-1}]$'
+           else:
+               lumfact=1.0*freq
+               ytitle='$\\nu F_{\\nu}\; [\mathrm{erg}\,\mathrm{cm}^{-2}\,\mathrm{s}^{-1}]$'
+       else:
+           if not sed:
+               lumfact=1e+23
+               ytitle='$F_{\\nu} [Jy]$'
+           else:
+               lumfact=1e+23*freq
+               ytitle='$\\nu F_{\\nu} [JyHz]$'
+   else:
+       #
+       # Plot spectrum as luminosity
+       #
+       if not obs:
+           distfact = 1.1965280793e38   # = 4*pi*(1 parsec)^2 = 1.19d38 cm^2
+       else:
+           distfact = dpc**2 * 1.1965280793e38
+
+       if not sed:
+           lumfact=1.e0
+           ytitle='L_{\\nu}\; [\mathrm{erg}\,\mathrm{Hz}^{-1}\, \mathrm{s}^{-1}]'
+       else:
+           if not lsun:
+               lumfact = 1.0*freq
+               ytitle  = '\\nu L_{\\nu}\; [\mathrm{erg}\, \mathrm{s}^{-1}]'
+           else:
+               lumfact = freq * 2.5956986e-34
+               ytitle  = '\\nu L_{\\nu}\; [L_{\odot}]'
+
+   #
+   # The data on the y axis
+   #
+   ycoord = distfact*lumfact*fluxnu
+   #
+   # If not oplot, then reset the subplot and set the axes
+   #
+   if not oplot:
+       plt.cla()
+       if xlg:
+           plt.xscale('log')
+       if ylg:
+           plt.yscale('log')
+       plt.xlabel(xtitle)
+       plt.ylabel(ytitle)
+   #
+   # Now plot
+   #
+   plt.plot(xcoord,ycoord)
+
+
+# --------------------------------------------------------------------------------------------------
+#
+# --------------------------------------------------------------------------------------------------
+class radmc3dMolecule(object):
+   """
+   RADMC-3D molecule class
+   Based on the Leiden LAMDA database, but is in principle generic
+
+   NOTE: For now only the levels and lines are included, not the 
+         collision rates. 
+
+   Attributes
+   ----------
+   name            = The name as listed in the molecule file
+   molweight       = Molecular weight in units of proton mass
+   nlev            = Nr of energy levels
+   nlin            = Nr of lines
+   energycminv     = Energy[ilev] of level ilev in 1/cm
+   energy          = Energy[ilev] of level ilev in erg
+   wgt             = Statistical weight[ilev] of level ilev
+   jrot            = Quantum rotational J[ilev] of level ilev
+   iup             = ilev of upper level of line ilin (starting with 0)
+   ilow            = ilev of lower level of line ilin (starting with 0)
+   aud             = Einstein A up low of line ilin in 1/second
+   freq            = Frequency of line ilin in Hz
+   lam             = Wavelength of line ilin in micron
+
+   """
+
+   def __init__(self):
+       self.name        = ""
+       self.molweight   = 0.0
+       self.nlev        = 0
+       self.nlin        = 0
+       self.energycminv = 0.0
+       self.energy      = 0.0
+       self.wgt         = 0.0
+       self.jrot        = 0.0
+       self.iup         = 0
+       self.ilow        = 0
+       self.aud         = 0.0
+       self.freq        = 0.0
+       self.lam         = 0.0
+
+   # --------------------------------------------------------------------------------------------------
+   def read(self,mol):
+       """Read the molecule_<mol>.inp file
+
+       The file format is the format of the Leiden LAMDA molecular database
+
+       Parameters
+       ----------
+       mol             = molecule name (e.g. 'co')
+
+       """
+
+       filename = 'molecule_'+mol+'.inp'
+       with open(filename,'r') as f:
+           dum             = f.readline()
+           dum             = f.readline().split()
+           self.name       = dum[0]
+           dum             = f.readline()
+           self.molweight  = float(f.readline())
+           dum             = f.readline()
+           self.nlev       = int(f.readline())
+           dum             = f.readline()
+           self.energycminv= np.zeros(self.nlev)
+           self.energy     = np.zeros(self.nlev)
+           self.wgt        = np.zeros(self.nlev)
+           self.jrot       = np.zeros(self.nlev)
+           for i in range(self.nlev):
+               dum                 = f.readline().split()
+               self.energycminv[i] = float(dum[1])
+               self.energy[i]      = float(dum[1])*1.9864847851996e-16  # const=h*c
+               self.wgt[i]         = float(dum[2])
+               self.jrot[i]        = float(dum[3])
+           dum             = f.readline()
+           self.nlin       = int(f.readline())
+           dum             = f.readline()
+           self.iup        = np.zeros(self.nlin)
+           self.ilow       = np.zeros(self.nlin)
+           self.aud        = np.zeros(self.nlin)
+           self.freq       = np.zeros(self.nlin)
+           self.lam        = np.zeros(self.nlin)
+           for i in range(self.nlin):
+               dum            = f.readline().split()
+               self.iup[i]    = int(dum[1])   # Use as index: [iup-1]
+               self.ilow[i]   = int(dum[2])   # Use as index: [ilow-1]
+               self.aud[i]    = float(dum[3])
+               self.freq[i]   = float(dum[4])*1e9
+               self.lam[i]    = 2.9979245800000e+14/self.freq[i]
+
+# --------------------------------------------------------------------------------------------------
+def readMol(mol):
+   """ Wrapper around the radmc3dMolecule.read() method
+
+       Parameters
+       ----------
+       mol             = molecule name (e.g. 'co')
+
+   """
+
+   m = radmc3dMolecule()
+   m.read(mol)
+   return m
 
