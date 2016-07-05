@@ -1464,7 +1464,16 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
         print ' sizeau keyword is not set'
         return -1
 
-    com = 'radmc3d image' 
+    
+    #
+    # Kees' fix for the case when a locally compiled radmc3d exists in the current directory
+    #
+    com = ''
+    if os.path.isfile('radmc3d'):
+        com = com + './'
+    com = com + 'radmc3d image' 
+
+    #com = 'radmc3d image' 
     com = com + ' npix ' + str(int(npix))
     com = com + ' incl ' + str(incl)
     com = com + ' sizeau ' + str(sizeau)

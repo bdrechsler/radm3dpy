@@ -5203,37 +5203,54 @@ def plotSpectrum(a,ev=False,kev=False,hz=False,micron=False,jy=False,lsun=False,
 
    Parameters
    ----------
-   ev              = True --> frequency in electronvolt (default=Hz)
+   a               : ndarray
+                    A 2D array of size [Nfreq,2] returned by readSpectrum(). 
+                    [:,0] - wavelength in micrometer, or for line data the velocity in km/s
+                    [:,1] - flux density in erg/s/cm/cm/Hz
+   ev              : bool
+                    True --> frequency in electronvolt (default=Hz)
 
-   kev             = True --> frequency in kiloelectronvolt (default=Hz)
+   kev             : bool 
+                    True --> frequency in kiloelectronvolt (default=Hz)
 
-   micron          = True --> wavelength in micron (default=Hz)
+   micron          : bool
+                    True --> wavelength in micron (default=Hz)
 
-   jy              = True --> Flux in Jansky
+   jy              : bool
+                    True --> Flux in Jansky
 
-   lnu             = True --> L_nu (default L_nu)
+   lnu             : bool
+                    True --> L_nu (default L_nu)
 
-   nulnu           = True --> nu*L_nu (default F_nu)
+   nulnu           : bool
+                    True --> nu*L_nu (default F_nu)
 
-   lsun            = True --> nu*L_nu in units of solar luminosity
+   lsun            : bool
+                    True --> nu*L_nu in units of solar luminosity
 
-   dpc             = Distance of observer in units of parsec
-                     Default: 1 pc
+   dpc             : bool
+                    Distance of observer in units of parsec (Default: 1 pc)
 
-   oplot           = True --> Plot without refreshing subplot
+   oplot           : bool
+                    True --> Plot without refreshing subplot
 
-   xlg             = True --> logarithmic x-axis
+   xlg             : bool
+                    True --> logarithmic x-axis
 
-   ylg             = True --> logarithmic y-axis
+   ylg             : bool
+                    True --> logarithmic y-axis
 
-   obs             = True --> Treat the spectrum as an observation
+   obs             : bool
+                    True --> Treat the spectrum as an observation
                               (i.e. do not scale with dpc^(-2))
 
-   mol             = (optional) Molecule data (see radmc3dMolecule class)
+   mol             : bool
+                    (optional) Molecule data (see radmc3dMolecule class)
                      This is required if you want to plot a line spectrum
                      with on the x-axis the radial velocity in km/s
 
-   ilin            = (if set) the index of the line (of mol; starting,
+   ilin            : bool
+                    (if set) the index of the line (of mol; starting,
                      as in RADMC-3D, with the index 1) which shall act
                      as the 0 km/s wavelength reference. If ilin is set
                      the x axis will be in km/s (overriding other settings)
@@ -5383,7 +5400,7 @@ def plotSpectrum(a,ev=False,kev=False,hz=False,micron=False,jy=False,lsun=False,
 
 
 # --------------------------------------------------------------------------------------------------
-#
+# Kees' addition to read molecular datafiles in Leiden format
 # --------------------------------------------------------------------------------------------------
 class radmc3dMolecule(object):
    """
@@ -5395,19 +5412,32 @@ class radmc3dMolecule(object):
 
    Attributes
    ----------
-   name            = The name as listed in the molecule file
-   molweight       = Molecular weight in units of proton mass
-   nlev            = Nr of energy levels
-   nlin            = Nr of lines
-   energycminv     = Energy[ilev] of level ilev in 1/cm
-   energy          = Energy[ilev] of level ilev in erg
-   wgt             = Statistical weight[ilev] of level ilev
-   jrot            = Quantum rotational J[ilev] of level ilev
-   iup             = ilev of upper level of line ilin (starting with 0)
-   ilow            = ilev of lower level of line ilin (starting with 0)
-   aud             = Einstein A up low of line ilin in 1/second
-   freq            = Frequency of line ilin in Hz
-   lam             = Wavelength of line ilin in micron
+   name            : str
+                    The name as listed in the molecule file
+   molweight       : float
+                    Molecular weight in units of proton mass
+   nlev            : int
+                    Nr of energy levels
+   nlin            : int
+                    Nr of lines
+   energycminv     : float
+                    Energy[ilev] of level ilev in 1/cm
+   energy          : float
+                    Energy[ilev] of level ilev in erg
+   wgt             : float
+                    Statistical weight[ilev] of level ilev
+   jrot            : float
+                    Quantum rotational J[ilev] of level ilev
+   iup             : int 
+                    ilev of upper level of line ilin (starting with 0)
+   ilow            : int
+                    ilev of lower level of line ilin (starting with 0)
+   aud             : float
+                    Einstein A up low of line ilin in 1/second
+   freq            : float
+                    Frequency of line ilin in Hz
+   lam             : float
+                    Wavelength of line ilin in micron
 
    """
 
@@ -5427,64 +5457,79 @@ class radmc3dMolecule(object):
        self.lam         = 0.0
 
    # --------------------------------------------------------------------------------------------------
-   def read(self,mol):
+   def read(self,mol=''):
        """Read the molecule_<mol>.inp file
 
        The file format is the format of the Leiden LAMDA molecular database
 
        Parameters
        ----------
-       mol             = molecule name (e.g. 'co')
+       mol             : str
+                        molecule name (e.g. 'co')
 
        """
 
        filename = 'molecule_'+mol+'.inp'
-       with open(filename,'r') as f:
-           dum             = f.readline()
-           dum             = f.readline().split()
-           self.name       = dum[0]
-           dum             = f.readline()
-           self.molweight  = float(f.readline())
-           dum             = f.readline()
-           self.nlev       = int(f.readline())
-           dum             = f.readline()
-           self.energycminv= np.zeros(self.nlev)
-           self.energy     = np.zeros(self.nlev)
-           self.wgt        = np.zeros(self.nlev)
-           self.jrot       = np.zeros(self.nlev)
-           for i in range(self.nlev):
-               dum                 = f.readline().split()
-               self.energycminv[i] = float(dum[1])
-               self.energy[i]      = float(dum[1])*1.9864847851996e-16  # const=h*c
-               self.wgt[i]         = float(dum[2])
-               self.jrot[i]        = float(dum[3])
-           dum             = f.readline()
-           self.nlin       = int(f.readline())
-           dum             = f.readline()
-           self.iup        = np.zeros(self.nlin)
-           self.ilow       = np.zeros(self.nlin)
-           self.aud        = np.zeros(self.nlin)
-           self.freq       = np.zeros(self.nlin)
-           self.lam        = np.zeros(self.nlin)
-           for i in range(self.nlin):
-               dum            = f.readline().split()
-               self.iup[i]    = int(dum[1])   # Use as index: [iup-1]
-               self.ilow[i]   = int(dum[2])   # Use as index: [ilow-1]
-               self.aud[i]    = float(dum[3])
-               self.freq[i]   = float(dum[4])*1e9
-               self.lam[i]    = 2.9979245800000e+14/self.freq[i]
+       try:
+           f = open(filename, 'r')
+       except Exception as e:
+           print e
+           return False
+        
+       
+       print 'Reading '+filename+'...'
+       #with open(filename,'r') as f:
+       dum             = f.readline()
+       dum             = f.readline().split()
+       self.name       = dum[0]
+       dum             = f.readline()
+       self.molweight  = float(f.readline())
+       dum             = f.readline()
+       self.nlev       = int(f.readline())
+       dum             = f.readline()
+       self.energycminv= np.zeros(self.nlev)
+       self.energy     = np.zeros(self.nlev)
+       self.wgt        = np.zeros(self.nlev)
+       self.jrot       = np.zeros(self.nlev)
+       for i in range(self.nlev):
+           dum                 = f.readline().split()
+           self.energycminv[i] = float(dum[1])
+           self.energy[i]      = float(dum[1])*1.9864847851996e-16  # const=h*c
+           self.wgt[i]         = float(dum[2])
+           self.jrot[i]        = float(dum[3])
+       dum             = f.readline()
+       self.nlin       = int(f.readline())
+       dum             = f.readline()
+       self.iup        = np.zeros(self.nlin)
+       self.ilow       = np.zeros(self.nlin)
+       self.aud        = np.zeros(self.nlin)
+       self.freq       = np.zeros(self.nlin)
+       self.lam        = np.zeros(self.nlin)
+       for i in range(self.nlin):
+           dum            = f.readline().split()
+           self.iup[i]    = int(dum[1])   # Use as index: [iup-1]
+           self.ilow[i]   = int(dum[2])   # Use as index: [ilow-1]
+           self.aud[i]    = float(dum[3])
+           self.freq[i]   = float(dum[4])*1e9
+           self.lam[i]    = 2.9979245800000e+14/self.freq[i]
+        
+       f.close()
 
+       return True
 # --------------------------------------------------------------------------------------------------
-def readMol(mol):
+def readMol(mol=''):
    """ Wrapper around the radmc3dMolecule.read() method
 
        Parameters
        ----------
-       mol             = molecule name (e.g. 'co')
+       mol             : str
+                        molecule name (e.g. 'co')
 
    """
 
    m = radmc3dMolecule()
-   m.read(mol)
-   return m
+   if m.read(mol) == True:
+       return m
+   else:
+       return
 
