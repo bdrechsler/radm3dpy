@@ -1322,6 +1322,35 @@ class radmc3dData(object):
                 self.tauy = self.tauy + dum['tauy']
 
 # --------------------------------------------------------------------------------------------------
+    def getGasMass(self, mweight=2.3, rhogas=False):
+        """Calculates the gas mass in radmc3dData.ndens_mol or radmc3dData.rhogas
+
+        Parameters
+        ----------
+            mweight   : float
+                        Molecular weight [atomic mass unit / molecule, i.e. same unit as mean molecular weight]
+
+        Options
+        -------
+            rhogas    : bool
+                        If True the gas mass will be calculated from radmc3dData.rhogas, while if set to False
+                        the gas mass will be calculated from radmc3dData.ndens_mol. The mweight parameter is only
+                        required for the latter. 
+
+        Returns
+        -------
+            A single float being the gas mass in gramm
+        """
+
+        vol = self.grid.getCellVolume()
+        gmass = -1.
+        if not rhogas:
+            gmass = (vol * self.ndens_mol[:,:,:,0] * mweight*mp).sum()
+        else:
+            gmass = (vol * self.rhogas[:,:,:,0]).sum()
+
+        return gmass
+# --------------------------------------------------------------------------------------------------
     def getDustMass(self, idust=-1):
         """Calculates the dust mass in radmc3dData.rhodust
 
