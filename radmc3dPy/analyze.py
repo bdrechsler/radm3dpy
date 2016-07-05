@@ -1322,6 +1322,31 @@ class radmc3dData(object):
                 self.tauy = self.tauy + dum['tauy']
 
 # --------------------------------------------------------------------------------------------------
+    def getDustMass(self, idust=-1):
+        """Calculates the dust mass in radmc3dData.rhodust
+
+        Parameters
+        ----------
+            idust   : int
+                      Dust index whose dust should be calculated. If it is set to -1 (default) the total
+                      dust mass is calculated summing up all dust species
+
+        Returns
+        -------
+            A single float being the dust mass in gramm
+        """
+
+        vol = self.grid.getCellVolume()
+        dmass = -1.
+        if idust>0:
+            dmass = (vol * self.rhodust[:,:,:,idust]).sum()
+        else:
+            dmass = 0.
+            for i in range(self.rhodust.shape[3]):
+                dmass += (vol * self.rhodust[:,:,:,i]).sum()
+
+        return dmass
+# --------------------------------------------------------------------------------------------------
     def readDustDens(self, fname='', binary=True, old=False):
         """Reads the dust density.
 
