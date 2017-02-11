@@ -5262,28 +5262,40 @@ class radmc3dMolecule(object):
    ----------
    name            : str
                     The name as listed in the molecule file
+
    molweight       : float
                     Molecular weight in units of proton mass
+   
    nlev            : int
                     Nr of energy levels
+   
    nlin            : int
                     Nr of lines
+   
    energycminv     : float
                     Energy[ilev] of level ilev in 1/cm
+   
    energy          : float
                     Energy[ilev] of level ilev in erg
+   
    wgt             : float
                     Statistical weight[ilev] of level ilev
+   
    jrot            : float
                     Quantum rotational J[ilev] of level ilev
+   
    iup             : int 
                     ilev of upper level of line ilin (starting with 0)
+   
    ilow            : int
                     ilev of lower level of line ilin (starting with 0)
+   
    aud             : float
                     Einstein A up low of line ilin in 1/second
+   
    freq            : float
                     Frequency of line ilin in Hz
+   
    lam             : float
                     Wavelength of line ilin in micron
 
@@ -6042,6 +6054,4 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
     plb.ylabel(y_label)
     
     return {'ax':ax, 'cb':cbar}
-     
-
 

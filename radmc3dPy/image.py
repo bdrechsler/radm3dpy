@@ -483,7 +483,8 @@ class radmc3dImage(object):
         if fitsheadkeys:
             if len(fitsheadkeys.keys())>0:
                 for ikey in fitsheadkeys.keys():
-                    hdulist[0].header.update(ikey, fitsheadkeys[ikey], '')
+                    #hdulist[0].header.update(ikey, fitsheadkeys[ikey], '')
+                    hdulist[0].header.set(ikey, fitsheadkeys[ikey], '')
 
         if os.path.exists(fname):
             print fname+' already exists'
