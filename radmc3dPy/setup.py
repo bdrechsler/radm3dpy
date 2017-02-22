@@ -89,6 +89,15 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, **kw
     if not ppar:
         print 'problem_params.inp was not found'
         return 
+
+    if 1 in ppar['act_dim']:
+        if old:
+            print 'ERROR'
+            print 'problemSetupDust was called with the old switch, meaning to create a model setup'
+            print 'for the predecessor radmc code, and with the AMR activated'
+            print 'radmc does not support mesh refinement'
+            return
+
 # --------------------------------------------------------------------------------------------
 # If there is any additional keyword argument (**kwargs) then check
 #   if there is such key in the ppar dictionary and if is change its value that of
@@ -133,16 +142,17 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, **kw
 # --------------------------------------------------------------------------------------------
 # Create the grid
 # --------------------------------------------------------------------------------------------
-    grid = analyze.radmc3dGrid()
+    #
+    # Check if AMR is activated or not
+    #
+    if 1 in ppar['act_dim']:
+        grid = analyze.radmc3dTree()
+    else:
+        grid = analyze.radmc3dGrid()
     # Wavelength grid
     grid.makeWavelengthGrid(ppar=ppar)
     # Spatial grid
     grid.makeSpatialGrid(ppar=ppar)
-
-#    from matplotlib.pylab import plot
-    #plot(np.pi/2.-grid.y, 'ko-')
-    #dum = raw_input()
-    #exit()
 
 # --------------------------------------------------------------------------------------------
 # Dust opacity

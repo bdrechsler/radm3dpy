@@ -19,6 +19,7 @@ except:
     print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
     print ' display images'
 
+from matplotlib.colors import LogNorm
 import subprocess as sp
 import sys
 import os 
@@ -26,6 +27,1098 @@ import copy
 from radmc3dPy.natconst import *
 import radmc3dPy.crd_trans  as crd_trans 
 from staratm import StellarAtm
+from multiprocessing import Pool
+from functools import partial
+
+class radmc3dTree(object):
+    """
+    Octree-like object with switchable resolution in each dimension
+
+    Attributes
+    ----------
+
+    xi                : ndarray
+                        Base grid cell interface grid in the first dimension
+
+    yi                : ndarray
+                        Base grid cell interface grid in the second dimension
+
+    zi                : ndarray
+                        Base grid cell interface grid in the third dimension
+
+    xc                : ndarray
+                        Base grid cell center grid in the first dimension
+
+    yc                : ndarray
+                        Base grid cell center grid in the second dimension
+
+    zc                : ndarray
+                        Base grid cell center grid in the third dimension
+
+    x                 : ndarray
+                        Tree cell center array in the first dimension
+
+    y                 : ndarray
+                        Tree cell center array in the second dimension
+
+    z                 : ndarray
+                        Tree cell center array in the tird dimension
+    
+    dx                : ndarray
+                        Tree cell halfwidth array in the first dimension
+
+    dy                : ndarray
+                        Tree cell halfwidth array in the second dimension
+
+    dz                : ndarray
+                        Tree cell halfwidth array in the third dimension
+
+    leafID            : ndarray
+                        Leaf index array,  mapping between a full tree and an array containing only the leaves
+
+    isLeaf            : ndarray
+                        Boolean array for the cell type (True - leaf, False - branch)
+
+    level             : ndarray
+                        Level array (base grid is level 0)
+
+    parentID          : ndarray
+                        Array containing the index of the parent cell (currently unused, only needed if we go up in the tree)
+
+    childID           : list
+                        List of children indices. Each list element is an ndarray with nChild elements containing the child indices
+    
+    act_dim           : list
+                        A three element array to indicate which dimension is active, i.e. which dimensions are the cells resolved (0 - inactive, 1 - active)
+
+    nCell             : int
+                        Nr of cells (both branch and leaf) in the tree
+
+    nxRoot            : int
+                        Nr of cells in the base grid in the first dimension
+    
+    nyRoot            : int
+                        Nr of cells in the base grid in the second dimension
+    
+    nzRoot            : int
+                        Nr of cells in the base grid in the third dimension
+    
+    nLeaf             : int
+                        Nr of leaf cells (i.e. true, unresolved grid cells)
+                        
+    nBranch           : int
+                        Nr of branches (i.e. resolved cells)
+ 
+    nChild            : int
+                        Nr of children (i.e. 8, 4, or 2 for 3, 2, 1 active dimensions, respectively)
+
+    levelMax          : int
+                        Highest actual level in the tree (Base grid has a level of 0 and the level increases)
+
+    levelMaxLimit     : int
+                        Highest allowed level in the tree (only used in tree building)
+
+    crd_sys           : {'car', 'sph'}
+                        Coordinate system type cartesian or spherical
+
+
+    """
+    def __init__(self):
+    
+        #
+        # Arrays for the base grid (redundant information but improves speed and the memory overhead is not that large)
+        #
+        self.xi                = np.zeros(0, dtype=np.float64)
+        self.yi                = np.zeros(0, dtype=np.float64)
+        self.zi                = np.zeros(0, dtype=np.float64)
+        self.xc                = np.zeros(0, dtype=np.float64)
+        self.yc                = np.zeros(0, dtype=np.float64)
+        self.zc                = np.zeros(0, dtype=np.float64)
+        #
+        # Grid cell center arrays 
+        #
+        self.x                 = np.zeros(0, dtype=np.float64)
+        self.y                 = np.zeros(0, dtype=np.float64)
+        self.z                 = np.zeros(0, dtype=np.float64)
+        #
+        # Grid cell half(!)widths (this is in principle also redundant information as the only relevant information is the 
+        #   cell width in the base grid, which is a single float for each dimension. The cell width at any level can be simply
+        #   calculated as cellwidth_base * 2^level. I still need to check how the performance would be affected if I'd calculate
+        #   the cell width on the fly instead of storing it in an array
+        #
+        self.dx                = np.zeros(0, dtype=np.float64)
+        self.dy                = np.zeros(0, dtype=np.float64)
+        self.dz                = np.zeros(0, dtype=np.float64)
+        #
+        # Leaf index array - mapping between a full array and an array containing only leaves
+        #
+        self.leafID            = np.zeros(0, dtype=np.int)
+        #
+        # Boolean array for the cell type (True - leaf, False - branch)
+        #
+        self.isLeaf            = np.zeros(0, dtype=bool)
+        #
+        # Level array (base grid is level 0)
+        #
+        self.level             = np.zeros(0, dtype=np.int)
+        #
+        # Array containing the index of the parent cell (currently unused, only needed if we go up in the tree)
+        #
+        self.parentID          = np.zeros(0, dtype=np.int)
+        #
+        # List of children indices
+        #
+        self.childID           = []
+        #
+        # Number of cells in the whole tree and for the base grid
+        #
+        self.nCell             = 0
+        self.nxRoot            = 0
+        self.nyRoot            = 0
+        self.nzRoot            = 0
+        #
+        # Highest actual level in the tree (Base grid has a level of 0 and the level increases)
+        #
+        self.levelMax          = 0
+        #
+        # Highest allowed level in the tree (only used in tree building) 
+        #
+        self.levelMaxLimit     = 0
+        #
+        # Nr of branches (i.e. resolved cells)
+        #
+        self.nBranch           = 0
+        #
+        # Nr of leaf cells (i.e. true, unresolved grid cells)
+        #
+        self.nLeaf             = 0
+        #
+        # Coordinate sytem and active (resolvable) dimensions
+        #
+        self.crd_sys           = 'car'
+        self.act_dim           = [1,1,1]
+        self.nChild            = 0
+        #
+        # Stuff used for tree building
+        #
+        self.model             = None
+        #
+        # Variable meant to be used internally only
+        #
+        self.cellIDCur         = -1
+        
+
+        self.nwav  = -1
+        self.nfreq = -1
+        self.wav   = -1
+        self.freq  = -1
+
+    def _getContainerLeafIDRec(self, crd=(), cellID=-1):
+        """
+        Recursive function to find the tree index of a leaf that contains a given coordinate
+
+        Parameters:
+        -----------
+        crd         : tuple
+                      List/tuple/ndarray containing the tree dimensional coordinates of the point 
+
+        cellID      : int
+                      Cell index
+        """
+
+        xmin = self.x[cellID] - self.dx[cellID]
+        xmax = self.x[cellID] + self.dx[cellID]
+        ymin = self.y[cellID] - self.dy[cellID]
+        ymax = self.y[cellID] + self.dy[cellID]
+        zmin = self.z[cellID] - self.dz[cellID]
+        zmax = self.z[cellID] + self.dz[cellID]
+
+        if self.isLeaf[cellID]:
+            if (((crd[0]>=xmin) & (crd[0]<xmax)) &
+                ((crd[1]>=ymin) & (crd[1]<ymax)) &
+                ((crd[2]>=zmin) & (crd[2]<zmax))):
+                return cellID
+            else:
+                return None
+        else:
+            for i in range(self.nChild):
+                dum = self._getContainerLeafIDRec(crd, self.childID[cellID][i])
+                if dum is not None:
+                    break
+            return dum
+
+    def getContainerLeafID(self, crd=()):
+        """
+        Finds the tree index of a leaf that contains a given coordinate
+
+        Parameters:
+        -----------
+        crd         : tuple
+                      List/tuple/ndarray containing the tree dimensional coordinates of the point 
+        """
+
+        leafID = -1
+
+        if (crd[0]<self.xi[0])|(crd[0]>self.xi[-1]):
+            return leafID
+        if (crd[1]<self.yi[0])|(crd[1]>self.yi[-1]):
+            return leafID
+        if (crd[2]<self.zi[0])|(crd[2]>self.zi[-1]):
+            return leafID
+     
+        ix = np.searchsorted(self.xi, crd[0])
+        iy = np.searchsorted(self.yi, crd[1])
+        iz = np.searchsorted(self.zi, crd[2])
+       
+        if self.xi[ix]!=crd[0]:
+            ix -= 1
+        if self.yi[iy]!=crd[1]:
+            iy -= 1
+        if self.zi[iz]!=crd[2]:
+            iz -= 1
+  
+        if crd[0]==self.xi[-1]:
+            ix = self.nxRoot-1
+        if crd[1]==self.yi[-1]:
+            iy = self.nyRoot-1
+        if crd[2]==self.zi[-1]:
+            iz = self.nzRoot-1
+      
+        ind    = iz*self.nyRoot*self.nxRoot + iy*self.nxRoot + ix
+        leafID = self._getContainerLeafIDRec(crd, ind)
+    
+        return leafID
+# --------------------------------------------------------------------------------------------------
+    def makeWavelengthGrid(self, wbound=None, nw=None, ppar=None):
+        """Creates the wavelength/frequency grid.
+
+        Parameters
+        ----------
+
+        wbound : list 
+                 Contains the wavelength boundaries of the wavelength grid (should contain at least two elements)
+
+        nw     : list 
+                 Contains len(wbound)-1 elements containing the number of wavelengths between the bounds
+                 set by wbound
+        
+        ppar   : dictionary, optional
+                 Contains all input parameters with the parameter names as keys  
+        """
+        
+        if ppar:
+            if not wbound: wbound = ppar['wbound']
+            if not nw: nw = ppar['nw']
+
+        if (wbound==None)|(nw==None):
+            if (ppar==None): 
+                print 'ERROR!'
+                print 'Either the boundaries or the number of gridpoints has not be specified in the wavelength grid'
+                return
+            
+        self.nwav = nw[0]
+        self.wav  = wbound[0] * (wbound[1]/wbound[0])**(np.arange(nw[0], dtype=np.float64) / nw[0])
+
+        for ipart in range(1,len(nw)-1): 
+            dum      = wbound[ipart] * (wbound[ipart+1]/wbound[ipart])**(np.arange(nw[ipart], dtype=np.float64) / nw[ipart])
+            self.wav = np.append(self.wav, dum)
+
+        ipart      = len(nw)-1
+        dum        = wbound[ipart] * (wbound[ipart+1]/wbound[ipart])**(np.arange(nw[ipart], dtype=np.float64) / (nw[ipart]-1.))
+        self.wav   = np.append(self.wav, dum)
+        self.nwav  = self.wav.shape[0]
+        cc = 29979245800.
+        self.freq  = cc / self.wav * 1e4
+        self.nfreq = self.nwav
+
+    def readGrid(self):
+        """
+        Reads the spatial and wavelength grids from files
+        """
+        self.readWavelengthGrid()
+        self.readSpatialGrid()
+
+# --------------------------------------------------------------------------------------------------
+    def readWavelengthGrid(self, fname=''):
+        """
+        Function to read the wavelength/frequency grid
+
+        Parameters:
+        -----------
+
+        fname       : str, optional
+                      Name of the file to read the wavelength grid from (if not specified wavelenth_micron.inp will be used)
+
+        """
+        # 
+        # Read the frequency grid 
+        #
+
+        try :
+            rfile = open('wavelength_micron.inp', 'r')
+        except:
+            print 'Error!' 
+            print 'wavelength_micron.inp was not found!'
+            return 
+
+        self.nwav = int(rfile.readline())
+        self.nfreq = self.nwav
+        self.wav  = np.zeros(self.nwav, dtype=np.float64)
+
+        for i in range(self.nwav): self.wav[i] = float(rfile.readline())
+
+        self.freq = cc / self.wav * 1e4
+
+        rfile.close()
+# --------------------------------------------------------------------------------------------------
+    def writeWavelengthGrid(self, fname='', old=False):
+        """Wriites the wavelength grid to a file (e.g. wavelength_micron.inp).
+
+        Parameters
+        ----------
+        
+        fname  : str, optional
+                 File name into which the wavelength grid should be written. If omitted 'wavelength_micron.inp' will be used
+        
+        old    : bool, optional
+                 If set to True the file format of the previous, 2D version of radmc will be used
+        """
+       
+        if not old:
+            if fname=='':
+                fname = 'wavelength_micron.inp'
+
+            print 'Writing '+fname
+            wfile = open(fname, 'w')
+            wfile.write('%d\n'%self.nwav)
+            for ilam in range(self.nwav):
+                wfile.write('%.9e\n'%self.wav[ilam])
+            wfile.close()
+        else:
+            if fname=='':
+                fname='frequency.inp'
+            try :
+                wfile = open(fname, 'w')
+            except:
+                print 'Error!' 
+                print fname+' cannot be opened!'
+                return 
+           
+            print 'Writing '+fname
+            wfile.write("%d\n"%self.nfreq)
+            wfile.write(" \n")
+            #
+            # Reverse the order of the frequency grid as it is ordered in frequency in radmc
+            #
+            freq = self.freq[::-1]
+            for i in range(self.nfreq):
+                wfile.write("%.7e\n"%freq[i])
+            
+            wfile.close()             
+   
+    def putNode(self, crd=(), cellsize=(), level=None, parentID=-1, cellID=None):
+        """
+        Function to put the data of a single node into the tree. This funcion assumes that all the arrays
+        have already been allocated for the tree so input cell indices must refer to already existing array elements.
+
+        Parameters:
+        -----------
+        crd      : tuple
+                   Cell center coordinates of the node
+
+        cellsize : tuple
+                   Full size of the cell in each dimension
+
+        level    : int
+                   Level of the cell in the tree
+
+        parentID : int
+                   Tree index of the parent cell
+
+        cellID   : int
+                   Tree index of the cell to be added
+        """
+ 
+        #
+        # Add the cell centre and cell half width to the arrays
+        #
+        self.x[cellID] = crd[0]
+        self.y[cellID] = crd[1]
+        self.z[cellID] = crd[2]
+        
+        self.dx[cellID] = cellsize[0]*0.5
+        self.dy[cellID] = cellsize[1]*0.5
+        self.dz[cellID] = cellsize[2]*0.5
+
+        self.isLeaf[cellID]   = True
+        self.level[cellID]    = level
+        self.parentID[cellID] = parentID
+        self.childID.append(np.zeros(self.nChild, dtype=np.int))
+
+        return
+
+    def resolveNodes(self, rsIDs=None):
+        """
+        Resolve multiple nodes simultaneously and add the children of the resolved node to the tree arrays extending
+        the tree array
+
+        Parameters:
+        -----------
+        rsIDs       : list  
+                      List/tuple/array of indices of the resolvable cell in the tree array
+        """
+
+        ncell         = rsIDs.shape[0]
+        self.nLeaf   -= ncell
+        self.nBranch += ncell
+        self.nLeaf   += ncell*self.nChild
+
+        x             = np.zeros(ncell*self.nChild, dtype=np.float64)
+        y             = np.zeros(ncell*self.nChild, dtype=np.float64)
+        z             = np.zeros(ncell*self.nChild, dtype=np.float64)
+        dx            = np.zeros(ncell*self.nChild, dtype=np.float64)
+        dy            = np.zeros(ncell*self.nChild, dtype=np.float64)
+        dz            = np.zeros(ncell*self.nChild, dtype=np.float64)
+        isLeaf        = np.zeros(ncell*self.nChild, dtype=bool)
+        level         = np.zeros(ncell*self.nChild, dtype=np.int)
+        parentID      = np.zeros(ncell*self.nChild, dtype=np.int)
+        ind           = np.arange(ncell,  dtype=np.int)*self.nChild
+        pid           = np.arange(self.x.shape[0], dtype=np.int)
+        nx            = self.x.shape[0]
+
+        #
+        # Generate the cell center offsets for a proper octree
+        #
+        if self.nChild == 8:
+            xc_offset = np.array([-0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dx[rsIDs][0]
+            yc_offset = np.array([-0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dy[rsIDs][0]
+            zc_offset = np.array([-0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5], dtype=np.float64)*self.dz[rsIDs][0]
+     
+        #
+        # If we are resolving only two dimensions
+        #
+        elif self.nChild == 4:
+
+            if self.act_dim[0]==0:
+                xc_offset = np.array([0., 0., 0., 0.], dtype=np.float64)
+                yc_offset = np.array([-0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dy[rsIDs][0]
+                zc_offset = np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dz[rsIDs][0]
+            elif self.act_dim[1]==0:
+                xc_offset = np.array([-0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dx[rsIDs][0]
+                yc_offset = np.array([0., 0., 0., 0.], dtype=np.float64)
+                zc_offset = np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dz[rsIDs][0]
+            elif self.act_dim[2]==0:
+                xc_offset = np.array([-0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dx[rsIDs][0]
+                yc_offset = np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dy[rsIDs][0]
+                zc_offset = np.array([0., 0., 0., 0.], dtype=np.float64)
+
+        #
+        # Generate the cell center offsets if only two dimensions are resolved
+        #
+        elif self.nChild == 2:
+
+            if self.act_dim[0] == 1:
+                xc_offset = np.array([-0.5, 0.5], dtype=np.float64)*self.dx[rsIDs][0]
+                yc_offset = np.array([0., 0.], dtype=np.float64)
+                zc_offset = np.array([0., 0.], dtype=np.float64)
+            
+            if self.act_dim[1] == 1:
+                xc_offset = np.array([0., 0.], dtype=np.float64)
+                yc_offset = np.array([-0.5, 0.5], dtype=np.float64)*self.dy[rsIDs][0]
+                zc_offset = np.array([0., 0.], dtype=np.float64)
+
+            if self.act_dim[2] == 1:
+                xc_offset = np.array([0., 0.], dtype=np.float64)
+                yc_offset = np.array([0., 0.], dtype=np.float64)
+                zc_offset = np.array([-0.5, 0.5], dtype=np.float64)*self.dz[rsIDs][0]
+        
+        #
+        # Generate the cell center offsets if only one dimension is resolved
+        #
+        for i in range(self.nChild):
+            x[ind+i]        = self.x[rsIDs] + xc_offset[i]
+            y[ind+i]        = self.y[rsIDs] + yc_offset[i]
+            z[ind+i]        = self.z[rsIDs] + zc_offset[i]
+            if self.act_dim[0] == 1:
+                dx[ind+i]       = np.zeros(ncell, dtype=np.float64) + self.dx[rsIDs][0]*0.5
+            else:
+                dx[ind+i]       = np.zeros(ncell, dtype=np.float64) + self.dx[rsIDs][0]
+
+            if self.act_dim[1] == 1:
+                dy[ind+i]       = np.zeros(ncell, dtype=np.float64) + self.dy[rsIDs][0]*0.5
+            else:
+                dy[ind+i]       = np.zeros(ncell, dtype=np.float64) + self.dy[rsIDs][0]
+
+            if self.act_dim[2] == 1:
+                dz[ind+i]       = np.zeros(ncell, dtype=np.float64) + self.dz[rsIDs][0]*0.5
+            else:
+                dz[ind+i]       = np.zeros(ncell, dtype=np.float64) + self.dz[rsIDs][0]
+
+            isLeaf[ind+i]   = np.ones(ncell,  dtype=bool)
+            level[ind+i]    = np.zeros(ncell, dtype=np.int) + self.level[rsIDs][0] + 1
+            parentID[ind+i] = rsIDs
+
+
+
+        childID = []
+        cid     = np.arange(self.nChild, dtype=np.int)
+        for i in range(ncell*self.nChild):
+            childID.append(cid)
+        
+        
+        #
+        # Add the child cells to the tree
+        #
+        self.x        = np.append(self.x, x)
+        self.y        = np.append(self.y, y)
+        self.z        = np.append(self.z, z)
+        self.dx       = np.append(self.dx, dx)
+        self.dy       = np.append(self.dy, dy)
+        self.dz       = np.append(self.dz, dz)
+        self.isLeaf   = np.append(self.isLeaf, isLeaf)
+        self.level    = np.append(self.level, level)
+        self.parentID = np.append(self.parentID, parentID)
+        self.childID.extend(childID)
+        
+        #
+        # Now add the child indices to the parents
+        #
+        for i in range(ncell):
+            ind = rsIDs[i]
+            self.childID[ind] = cid + nx + i*self.nChild
+            self.isLeaf[ind] = False 
+        #
+        # Update the array length variables
+        #
+        self.nCell = self.x.shape[0]
+        self.cID   = np.arange(self.nCell, dtype=np.int)
+
+        return
+
+    def makeSpatialGrid(self,ppar=None, levelMaxLimit=None, decisionFunction=None, model='', **kwargs):
+        """
+        Function to create an octree-like AMR grid
+
+        Parameters:
+        -----------
+
+        ppar             : dictionary
+                            Dictionary containing all input parameters of the model (from the problem_params.inp file)
+        
+        model            : str
+                            Name of the model to be used in the tree building
+        
+        decisionFunction : function
+                            A user defined function that decides whether the 
+
+        levelMaxLimit    : int, optional
+                            Highest allowable level of the tree. If not specified levelMaxLimit should be set in 
+                            in the problem_params.inp file
+
+        """
+        
+        if decisionFunction == None:
+            print 'ERROR'
+            print 'Tree cannot be built as the decisionFunction has not been specified'
+            print ' It is required to decide when a node / cell should be resolved'
+            return
+
+        if levelMaxLimit is None:
+            if not 'levelMaxLimit' in ppar.keys():
+                print 'ERROR'
+                print 'levelMaxLimit is not specified but it is required for an octree AMR mesh generation'
+                return
+            else:
+                self.levelMaxLimit = ppar['levelMaxLimit']
+        else:
+            self.levelMaxLimit = levelMaxLimit
+        self.crd_sys = ppar['crd_sys']
+        self.act_dim = ppar['act_dim']
+        
+        #
+        # Generate the base grid
+        #
+        self.xi = xbound[0] + np.arange(nx+1, dtype=float)/float(nx) * (xbound[1] - xbound[0])
+        self.yi = ybound[0] + np.arange(ny+1, dtype=float)/float(ny) * (ybound[1] - ybound[0])
+        self.zi = zbound[0] + np.arange(nz+1, dtype=float)/float(nz) * (zbound[1] - zbound[0])
+        self.xc  = 0.5 * (self.xi[1:] + self.xi[:-1])
+        self.yc  = 0.5 * (self.yi[1:] + self.yi[:-1])
+        self.zc  = 0.5 * (self.zi[1:] + self.zi[:-1])
+       
+        cellsize_x = self.xi[1] - self.xi[0]
+        cellsize_y = self.yi[1] - self.yi[0]
+        cellsize_z = self.zi[1] - self.zi[0]
+        self.nxRoot = nx
+        self.nyRoot = ny
+        self.nzRoot = nz
+        
+        self.levelMaxLimit = levelMaxLimit
+        self.levelMax      = 0
+    
+        ind = 0
+        for iz in range(nz):
+            for iy in range(ny):
+                for ix in range(nx):
+                    #
+                    # Add nodes to the tree
+                    #
+                    self.x        = np.append(self.x, self.xc[ix])
+                    self.y        = np.append(self.y, self.yc[iy])
+                    self.z        = np.append(self.z, self.zc[iz])
+                    
+                    self.dx       = np.append(self.dx, cellsize_x*0.5)
+                    self.dy       = np.append(self.dy, cellsize_y*0.5)
+                    self.dz       = np.append(self.dz, cellsize_z*0.5)
+
+                    self.isLeaf   = np.append(self.isLeaf, True)
+                    self.level    = np.append(self.level, level)
+                    self.parentID = np.append(self.parentID, parentID) 
+                    self.childID.append(np.zeros(self.nChild, dtype=np.int))
+
+                    self.nLeaf += 1 
+                    ind += 1
+        self.nCell = self.x.shape[0]
+   
+        #
+        # Now build the tree
+        #
+        if 1 in self.act_dim:
+            self.nChild = 2**(np.array(self.act_dim, dtype=int).sum())
+      
+        if self.nChild > 0:
+            print 'Adaptive Mesh Refinement (AMR) is active'
+        txt = 'Active dimensions : '
+        for i in range(3):
+            if self.act_dim[i] == 1:
+                txt += ("%d "%i)
+        print txt
+
+        #
+        # Set the model
+        #
+        self.setModel(model)
+        
+        #
+        # Now go level by level and check which cells are to be resolved and resolve what's necessary
+        #
+        for ilev in range(self.levelMaxLimit):
+            print "Resolving level " + ("%d"%ilev)
+            #
+            # Select the cells at the current level
+            #
+            cID = np.arange(self.x.shape[0], dtype=int)
+            ii  = (self.level == ilev)
+            
+            #
+            # Check which cells to resolve
+            #
+            resolve = decisionFunction(self.x[ii], self.y[ii], self.z[ii], self.dx[ii][0], self.dy[ii][0], self.dz[ii][0], ppar=ppar, **kwargs)
+            jj = (resolve == True) & (self.level[ii] < self.levelMaxLimit)
+            
+            #
+            # If there are some to resolve do so 
+            #
+            if True in jj:
+                ncell2resolve = cID[ii][jj].shape[0]
+                print 'Cells to resolve at this level : ', ncell2resolve
+                self.resolveNodes(rsIDs=cID[ii][jj])
+                self.levelMax += 1
+            else:
+                print 'No cells to resolve at this level'
+        
+        #
+        # Print out some statistics
+        #
+        print 'Tree building done'
+        print 'Maximum tree depth : ', self.levelMax
+        print 'Nr of branches     : ', self.nBranch
+        print 'Nr of leaves       : ', self.nLeaf
+        ncells_fullgrid = self.nChild**self.levelMax * self.nxRoot*self.nyRoot*self.nzRoot
+        cell_fraction =  (self.nLeaf + self.nBranch) / ncells_fullgrid
+        print self.nCell, self.nLeaf + self.nBranch
+        print 'Using '+("%.3f"%(cell_fraction*100))+'% memory of a full grid at max resolution'
+
+        return
+    
+    def setModel(self, model=''): 
+        """
+        Sets the model to be used for tree building
+
+        Parameters:
+        -----------
+        model       : str
+                      Name of the model
+        """
+
+        try:
+            self.model = __import__(model)
+        except:
+            try:
+                self.model  = __import__('radmc3dPy.models.'+model, fromlist=['']) 
+            except:
+                print 'ERROR'
+                print ' '+model+'.py could not be imported'
+                print ' The model files should either be in the current working directory or'
+                print ' in the radmc3d python module directory'
+                return
+    
+    def _selfCheckCounterRec(self, cellID=None):
+        """
+        Recursive function for consistency check of the tree
+        """
+        
+        if self.isLeaf[cellID]:
+            self.counter[0] += 1
+            if self.childID[cellID].max() > self.counter[2]:
+                self.counter[2] = self.childID[cellID].max()
+        else:
+            self.counter[1] += 1
+            for i in range(self.nChild):
+                self._selfCheckCounterRec(cellID=self.childID[cellID][i])
+
+        return
+        
+    def selfCheck(self):
+        """
+        Performs a self-check of the tree allocation and report it to the screen
+        """
+
+        self.counter = np.zeros([3], dtype=np.int)
+        nRoot = self.nxRoot * self.nyRoot * self.nzRoot
+        for i in range(nRoot):
+            self._selfCheckCounterRec(cellID=i)
+       
+        print 'Tree consistency check'
+        print 'Tree depth      : ' + ("%d"%self.levelMax)
+        print 'Nr of leaves    : ' + ("%d"%self.counter[0]) + " should be " + ("%d"%self.nLeaf)
+        print 'Nr of branches  : ' + ("%d"%self.counter[1]) + " should be " + ("%d"%self.nBranch)
+        print 'Nr of cells     : ' + ("%d"%self.nCell) + " should be " + ("%d"%(self.nBranch+self.nLeaf))
+        print 'Leaf array      : ' + ("%d"%self.isLeaf.shape[0])
+        print 'Level array     : ' + ("%d"%self.level.shape[0])
+        print 'ParentID array  : ' + ("%d"%self.parentID.shape[0])
+        print 'ChildID list    : ' + ("%d"%len(self.childID))
+        print 'Max childID     : ' + ("%d"%self.counter[2])
+        print 'x array         : ' + ("%d"%self.x.shape[0])
+        print 'y array         : ' + ("%d"%self.y.shape[0])
+        print 'z array         : ' + ("%d"%self.z.shape[0])
+        print 'dx array        : ' + ("%d"%self.dx.shape[0])
+        print 'dy array        : ' + ("%d"%self.dy.shape[0])
+        print 'dz array        : ' + ("%d"%self.dz.shape[0])
+
+        return
+
+    def _generateLeafIDRec(self, cellID=None):
+        """
+        Recursive function to generate the leaf indices 
+        """
+
+        if self.isLeaf[cellID]:
+            self.cellIDCur  += 1
+            self.leafID[cellID] = self.cellIDCur
+        else:
+            for i in range(self.nChild):
+                self._generateLeafIDRec(self.childID[cellID][i])
+
+    def generateLeafID(self):
+        """
+        Function to generate the cell index mapping from arrays containing the full tree and those containing only the leaves
+        """
+      
+        print 'Generating leaf indices'
+        self.leafID = np.zeros(self.nCell,dtype=np.int)
+        self.cellIDCur  = -1
+        nRoot = self.nxRoot * self.nyRoot * self.nzRoot
+        for i in range(nRoot):
+            self._generateLeafIDRec(i)
+        
+        print 'Done'
+    
+    def writeSpatialGrid(self, fname=''):
+        """
+        Writes the wavelength grid to a file (e.g. amr_grid.inp).
+
+        Parameters
+        ----------
+        
+        fname : str, optional
+                File name into which the spatial grid should be written. If omitted 'amr_grid.inp' will be used. 
+        
+        """
+
+        if fname=='':
+            fname = 'amr_grid.inp'
+
+        print 'Writing '+fname
+        wfile = open(fname, 'w')
+        wfile.write('%d\n'%1)                    # Format number
+        
+        wfile.write('\n')
+        
+        wfile.write('%d\n'%1)                    # AMR self.style (0=regular, 1 - Octree, 10 - Layered)
+        if self.crd_sys=='car':
+            wfile.write('%d\n'%0)                # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
+        if self.crd_sys=='sph':
+            wfile.write('%d\n'%100)              # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
+        if self.crd_sys=='cyl':
+            wfile.write('%d\n'%200)              # Coordinate system (0-99 cartesian, 100-199 spherical, 200-299 cylindrical)
+        wfile.write('%d\n'%0)                    # Gridinfo
+        
+        wfile.write('\n')
+        
+        wfile.write('%d %d %d \n'%(self.act_dim[0], self.act_dim[1], self.act_dim[2]))       # Which dimension is active
+        wfile.write('%d %d %d \n'%(self.nxRoot,self.nyRoot,self.nzRoot))    # Grid size (x,y,z or r,phi,theta, or r,phi,z)
+        
+        wfile.write('\n')
+        
+        wfile.write('%d %d %d \n'%(self.levelMax, self.nLeaf, self.nBranch+self.nLeaf)) # Max. refinement level, Nr of leaves and Nr of branches
+        wfile.write('\n')
+        for i in range(self.nxRoot+1): wfile.write('%.9e\n'%self.xi[i])
+        wfile.write('\n')
+        for i in range(self.nyRoot+1): wfile.write('%.9e\n'%self.yi[i])
+        wfile.write('\n')
+        for i in range(self.nzRoot+1): wfile.write('%.9e\n'%self.zi[i])
+        wfile.write('\n')
+        wfile.write('\n')
+
+        nRoot = self.nxRoot * self.nyRoot * self.nzRoot
+        for i in range(nRoot):
+            self._writeOcTreeNodeTypeRec(cellID=i, wfile=wfile)
+        wfile.close()
+
+        return
+
+    def _writeOcTreeNodeTypeRec(self, cellID=None, wfile=None):
+        """
+        Recursive function to write the node type to file
+        
+        Parameters:
+        -----------
+
+        cellID      : int
+                      Tree index of the cell to be written
+
+        wfile       : file
+                      File object to write to
+        """
+        if self.isLeaf[cellID]:
+            wfile.write("0\n")
+        else:
+            wfile.write("1\n")
+            for i in range(self.childID[cellID].shape[0]):
+                self._writeOcTreeNodeType(cellID=self.childID[cellID][i], wfile=wfile)
+        
+        return
+    
+    
+    def readSpatialGrid(self, fname=''):
+        """
+        Reads the spatial grid from amr_grid.inp
+        
+        Parameters
+        ----------
+
+        fname : str, optional
+                File name from which the spatial grid should be read. If omitted 'amr_grid.inp' will be used. 
+
+        """
+
+        if fname=='':
+            fname = 'amr_grid.inp'
+
+        try:
+            rfile       = open(fname, 'r')
+        except IOError:
+            print fname+' cannot be opened'
+            return
+        else:
+            print 'Reading '+fname
+
+        form        = float(rfile.readline())
+        dum = rfile.readline()
+        grid_style  = float(rfile.readline())
+        if int(grid_style) != 1:
+            print 'ERROR'
+            print 'Unsupported AMR style in the amr_grid.inp file. Currently only Octree AMR is supported.'
+            return 
+
+        crd_system  = int(rfile.readline())
+        if crd_system<100:
+            self.crd_sys = 'car'
+        elif ((crd_system>=100)&(crd_system<200)):
+            self.crd_sys = 'sph'
+        elif ((crd_system>=200)&(crd_system<300)):
+            self.crd_sys = 'cyl'
+        else:
+            rfile.close()
+            print 'ERROR'
+            print ' unsupported coordinate system in the amr_grid.inp file'
+            print crd_system
+            return
+
+        grid_info   = float(rfile.readline())
+
+        dum = rfile.readline()
+
+        dum                        = rfile.readline().split()
+        self.act_dim               = [int(dum[i]) for i in range(len(dum))]
+        if 1 in self.act_dim:
+            self.nChild = 2**(np.array(self.act_dim, dtype=int).sum())
+        dum                        = rfile.readline().split()
+        self.nxRoot,self.nyRoot,self.nzRoot    = int(dum[0]), int(dum[1]), int(dum[2])
+        
+        dum = rfile.readline()
+       
+        dum         = rfile.readline().split()
+        levelMax, nLeaf, nCell = int(dum[0]), int(dum[1]), int(dum[2])
+        nBranch = nCell - nLeaf
+        dum = rfile.readline()
+
+        self.levelMax = 0
+        self.nLeaf    = 0
+        self.nBranch  = 0
+
+        self.x          = np.zeros(nCell, dtype=np.float64)
+        self.y          = np.zeros(nCell, dtype=np.float64)
+        self.z          = np.zeros(nCell, dtype=np.float64)
+        self.dx         = np.zeros(nCell, dtype=np.float64)
+        self.dy         = np.zeros(nCell, dtype=np.float64)
+        self.dz         = np.zeros(nCell, dtype=np.float64)
+        
+        self.isLeaf     = np.ones(nCell, dtype=bool)
+        self.level      = np.zeros(nCell, dtype=np.int)
+        self.parentID   = np.zeros(nCell, dtype=np.int)
+        self.childID    = []
+         
+        #
+        # First of all read the base grid
+        #
+        self.xi           = np.zeros(self.nxRoot+1, dtype=np.float64)
+        self.yi           = np.zeros(self.nyRoot+1, dtype=np.float64)
+        self.zi           = np.zeros(self.nzRoot+1, dtype=np.float64)
+       
+        for i in range(self.nxRoot+1): self.xi[i] = float(rfile.readline())
+        dum = rfile.readline()
+        for i in range(self.nyRoot+1): self.yi[i] = float(rfile.readline())
+        dum = rfile.readline()
+        for i in range(self.nzRoot+1): self.zi[i] = float(rfile.readline())
+       
+        dum = rfile.readline()
+        dum = rfile.readline()
+
+        self.xc = (self.xi[0:self.nxRoot] +  self.xi[1:self.nxRoot+1]) * 0.5
+        self.yc = (self.yi[0:self.nyRoot] +  self.yi[1:self.nyRoot+1]) * 0.5
+        self.zc = (self.zi[0:self.nzRoot] +  self.zi[1:self.nzRoot+1]) * 0.5
+        
+        dx = self.xi[1] - self.xi[0]
+        dy = self.yi[1] - self.yi[0]
+        dz = self.zi[1] - self.zi[0]
+
+        self.cellIDCur = 0
+        for iz in range(self.nzRoot):
+            for iy in range(self.nyRoot):
+                for ix in range(self.nxRoot):
+                    self.putNode(crd=(self.xc[ix], self.yc[iy], self.zc[iz]), cellsize=(dx, dy, dz), level=0, parentID=-1, \
+                            cellID=self.cellIDCur)
+                    self.cellIDCur += 1
+                    self.nLeaf     += 1 
+
+        nRoot = self.nxRoot * self.nyRoot * self.nzRoot
+        for i in range(nRoot):
+            self._readGridNodeTypeOcTreeRec(cellID=i, rfile=rfile)
+        #
+        # Now read which of the cells should be resolved
+        #
+        rfile.close()
+        self.nCell = self.nLeaf + self.nBranch
+        self.generateLeafID()
+
+        #self.selfCheck()
+        return
+
+    def _readGridNodeTypeOcTreeRec(self, cellID=None, rfile=None):
+        """
+        Recursive function to write the node type to file
+        
+        Parameters:
+        -----------
+
+        cellID      : int
+                      Tree index of the cell to be read
+
+        wfile       : file
+                      File object to read from
+
+        """
+        dum = int(rfile.readline())
+        if dum == 1:
+
+            self.nLeaf   -= 1
+            self.nBranch += 1
+            self.nLeaf   += self.nChild
+            if (self.levelMax < self.level[cellID]+1):
+                self.levelMax = self.level[cellID]+1
+                print 'Tree depth : ', self.levelMax
+           
+            #
+            # Generate the cell center offsets for a proper octree
+            #
+            if self.nChild == 8:
+                xc_offset = np.array([-0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dx[cellID]
+                yc_offset = np.array([-0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dy[cellID]
+                zc_offset = np.array([-0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5], dtype=np.float64)*self.dz[cellID]
+            #
+            # If we are resolving only two dimensions
+            #
+            elif self.nChild == 4:
+
+                if self.act_dim[0]==0:
+                    xc_offset = np.array([0., 0., 0., 0.], dtype=np.float64)
+                    yc_offset = np.array([-0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dy[cellID]
+                    zc_offset = np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dz[cellID]
+                elif self.act_dim[1]==0:
+                    xc_offset = np.array([-0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dx[cellID]
+                    yc_offset = np.array([0., 0., 0., 0.], dtype=np.float64)
+                    zc_offset = np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dz[cellID]
+                elif self.act_dim[2]==0:
+                    xc_offset = np.array([-0.5, 0.5, -0.5, 0.5], dtype=np.float64)*self.dx[cellID]
+                    yc_offset = np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float64)*self.dy[cellID]
+                    zc_offset = np.array([0., 0., 0., 0.], dtype=np.float64)
+
+            #
+            # Generate the cell center offsets if only two dimensions are resolved
+            #
+            elif self.nChild == 2:
+
+                if self.act_dim[0] == 1:
+                    xc_offset = np.array([-0.5, 0.5], dtype=np.float64)*self.dx[cellID]
+                    yc_offset = np.array([0., 0.], dtype=np.float64)
+                    zc_offset = np.array([0., 0.], dtype=np.float64)
+                
+                if self.act_dim[1] == 1:
+                    xc_offset = np.array([0., 0.], dtype=np.float64)
+                    yc_offset = np.array([-0.5, 0.5], dtype=np.float64)*self.dy[cellID]
+                    zc_offset = np.array([0., 0.], dtype=np.float64)
+
+                if self.act_dim[2] == 1:
+                    xc_offset = np.array([0., 0.], dtype=np.float64)
+                    yc_offset = np.array([0., 0.], dtype=np.float64)
+                    zc_offset = np.array([-0.5, 0.5], dtype=np.float64)*self.dz[cellID]
+            
+            self.isLeaf[cellID]  = False
+            self.childID[cellID] = np.zeros(self.nChild, dtype=np.int)
+            for i in range(self.nChild):
+                    self.childID[cellID][i] = self.cellIDCur
+                    dx = self.dx[cellID] * (2.0 - self.act_dim[0])
+                    dy = self.dy[cellID] * (2.0 - self.act_dim[1])
+                    dz = self.dz[cellID] * (2.0 - self.act_dim[2])
+
+                    self.putNode(crd=(self.x[cellID]+xc_offset[i], self.y[cellID]+yc_offset[i], self.z[cellID]+zc_offset[i]), \
+                            cellsize=(dx, dy, dz), level=self.level[cellID]+1, 
+                            parentID=cellID, cellID=self.cellIDCur)
+                    self.cellIDCur         += 1
+                    self._readGridNodeTypeOcTreeRec(cellID=self.childID[cellID][i], rfile=rfile)
+
+        return
 
 
 class radmc3dGrid(object):
@@ -102,14 +1195,15 @@ class radmc3dGrid(object):
         self.nxi   = -1
         self.nyi   = -1
         self.nzi   = -1
-        self.nwav  = -1
-        self.nfreq = -1
         self.x     = -1
         self.y     = -1
         self.z     = -1
         self.xi    = -1
         self.yi    = -1
         self.zi    = -1
+        
+        self.nwav  = -1
+        self.nfreq = -1
         self.wav   = -1
         self.freq  = -1
 
@@ -992,7 +2086,7 @@ class radmc3dData(object):
         if grid:
             self.grid = copy.deepcopy(grid)
         else:
-            self.grid = radmc3dGrid()
+            self.grid = None
 
         self.rhodust   = -1
         self.dusttemp  = -1
@@ -1008,7 +2102,10 @@ class radmc3dData(object):
         self.sigmadust = -1
         self.sigmagas  = -1
 # --------------------------------------------------------------------------------------------------
-    def _scalarfieldWriter(self, data=None, fname='', binary=True):
+
+    
+# --------------------------------------------------------------------------------------------------
+    def _scalarfieldWriter(self, data=None, fname='', binary=True, octree=False):
         """Writes a scalar field to a file.
 
         Parameters
@@ -1023,58 +2120,80 @@ class radmc3dData(object):
         binary : bool
                 If True the file will be in binary format, if False the file format is formatted ASCII text
         
+        octree : bool
+                If True data will be written for an octree model (data should be a 1D numpy array)
+        
         """
 
         wfile = open(fname, 'w')
         if binary:
-            if len(data.shape)==3:
-                hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
-            elif len(data.shape)==4:
-                hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  data.shape[3]], dtype=int)
-            hdr.tofile(wfile)
-            # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
-            # array always in C-order while we need Fortran-order to be written
-            if len(data.shape)==4:
-                data = np.swapaxes(data,0,3)
-                data = np.swapaxes(data,1,2)
-                data.tofile(wfile)
-            elif len(data.shape)==3:
-                data = np.swapaxes(data,0,2)
-                data.tofile(wfile)
-            else:
-                print 'ERROR'
-                print 'Unknown array shape  : '
-                print data.shape
+            if octree:
+                print 'Octree binary format is not yet supported'
                 return
+            else:
+                if len(data.shape)==3:
+                    hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+                elif len(data.shape)==4:
+                    hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz,  data.shape[3]], dtype=int)
+                hdr.tofile(wfile)
+                # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
+                # array always in C-order while we need Fortran-order to be written
+                if len(data.shape)==4:
+                    data = np.swapaxes(data,0,3)
+                    data = np.swapaxes(data,1,2)
+                    data.tofile(wfile)
+                elif len(data.shape)==3:
+                    data = np.swapaxes(data,0,2)
+                    data.tofile(wfile)
+                else:
+                    print 'ERROR'
+                    print 'Unknown array shape  : '
+                    print data.shape
+                    return
         else:
-            
-            if len(data.shape)==3:
-                hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+            if octree:
+                if len(data.shape) == 1:
+                    hdr = np.array([1, grid.nLeaf, 1], dtype=np.int)
+                elif len(data.shape) == 2:
+                    hdr = np.array([1, grid.nLeaf, data.shape[1]], dtype=np.int)
+                else:
+                    print 'For octree type grid field variables should be stored in a 1D or 2D arrays with the second'
+                    print 'dimension being the dust species'
+                    print 'The data array to be written has a shape of ', data.shape
+                    print 'No data has been written'
+                    return
+                
                 hdr.tofile(wfile, sep=" ", format="%d\n")
-                # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
-                # array always in C-order while we need Fortran-order to be written
-                data = np.swapaxes(data,0,2)
-                data.tofile(wfile, sep=" ", format="%.9e\n")
+                data.flatten(order='f').tofile(wfile, sep=" ", format="%.9\n")
 
-
-            elif len(data.shape)==4:
-                hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
-                hdr.tofile(wfile, sep=" ", format="%d\n")
-                # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
-                # array always in C-order while we need Fortran-order to be written
-                data = np.swapaxes(data,0,3)
-                data = np.swapaxes(data,1,2)
-                data.tofile(wfile, sep=" ", format="%.9e\n")
             else:
-                print 'ERROR'
-                print 'Unknown array shape  : '
-                print data.shape
-                return
+                if len(data.shape)==3:
+                    hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+                    hdr.tofile(wfile, sep=" ", format="%d\n")
+                    # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
+                    # array always in C-order while we need Fortran-order to be written
+                    data = np.swapaxes(data,0,2)
+                    data.tofile(wfile, sep=" ", format="%.9e\n")
+
+
+                elif len(data.shape)==4:
+                    hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
+                    hdr.tofile(wfile, sep=" ", format="%d\n")
+                    # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
+                    # array always in C-order while we need Fortran-order to be written
+                    data = np.swapaxes(data,0,3)
+                    data = np.swapaxes(data,1,2)
+                    data.tofile(wfile, sep=" ", format="%.9e\n")
+                else:
+                    print 'ERROR'
+                    print 'Unknown array shape  : '
+                    print data.shape
+                    return
             
         wfile.close()
 
 # --------------------------------------------------------------------------------------------------
-    def _scalarfieldReader(self, fname='', binary=True):
+    def _scalarfieldReader(self, fname='', binary=True, octree=False):
         """Reads a scalar field from file.
 
         Parameters
@@ -1085,7 +2204,10 @@ class radmc3dData(object):
         
         binary : bool
                 If True the file is in binary format, if False the file format is formatted ASCII text
-        
+       
+        octree : bool
+                If True data will be read from an octree model and will be stored in a 1D numpy array 
+
         Returns
         -------
         
@@ -1093,51 +2215,61 @@ class radmc3dData(object):
         """
 
         if binary:
-            # hdr[0] = format number
-            # hdr[1] = data precision (4=single, 8=double)
-            # hdr[2] = nr of cells
-            # hdr[3] = nr of dust species
-            hdr = np.fromfile(fname, count=4, dtype=int)
-            if hdr[2]!=(self.grid.nx*self.grid.ny*self.grid.nz):
-                print ' ERROR'
-                print ' Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                print npoints
-                print hdr[2]
+            if octree:
+                print 'Binary octree format is not yet supported'
                 return
-
-            if hdr[1]==8:
-                data = np.fromfile(fname, count=-1, dtype=np.float64)
-            elif hdr[1]==4:
-                data = np.fromfile(fname, count=-1, dtype=float)
             else:
-                print 'ERROR'
-                print 'Unknown datatype in '+fname
-                return
-            
+                # hdr[0] = format number
+                # hdr[1] = data precision (4=single, 8=double)
+                # hdr[2] = nr of cells
+                # hdr[3] = nr of dust species
+                hdr = np.fromfile(fname, count=4, dtype=int)
+                if hdr[2]!=(self.grid.nx*self.grid.ny*self.grid.nz):
+                    print ' ERROR'
+                    print ' Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                    print npoints
+                    print hdr[2]
+                    return
 
-            if data.shape[0]==(hdr[2]+3):
-                data = np.reshape(data[3:], [1, self.grid.nz,self.grid.ny,self.grid.nx])
-            elif data.shape[0]==(hdr[2]*hdr[3]+4):
-                data = np.reshape(data[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+                if hdr[1]==8:
+                    data = np.fromfile(fname, count=-1, dtype=np.float64)
+                elif hdr[1]==4:
+                    data = np.fromfile(fname, count=-1, dtype=float)
+                else:
+                    print 'ERROR'
+                    print 'Unknown datatype in '+fname
+                    return
+                
 
-            
-            #data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
-            # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC-3D
-            # uses Fortran-order
-            data = np.swapaxes(data,0,3)
-            data = np.swapaxes(data,1,2)
+                if data.shape[0]==(hdr[2]+3):
+                    data = np.reshape(data[3:], [1, self.grid.nz,self.grid.ny,self.grid.nx])
+                elif data.shape[0]==(hdr[2]*hdr[3]+4):
+                    data = np.reshape(data[4:], [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+
+                
+                #data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+                # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC-3D
+                # uses Fortran-order
+                data = np.swapaxes(data,0,3)
+                data = np.swapaxes(data,1,2)
 
         else:
-            rfile = -1
-            try :
-                rfile = open(fname, 'r')
-            except:
+            if not os.path.isfile(fname):
                 print 'Error!' 
                 print fname+' was not found!'
-                
-             
-            if (rfile!=(-1)):
+                return -1
 
+            if octree:
+                hdr = np.fromfile(fname, count=3, sep="\n", dtype=int)
+                if hdr[1] != self.grid.nLeaf:
+                    print 'Error!'
+                    print 'Number of cells in '+fname+' is different from that in amr_grid.inp'
+                    print hdr[1], self.grid.nLeaf
+                    return -1
+                data = np.fromfile(fname, count=-1, sep="\n", dtype=np.float64)[3:]
+                data = data.reshape([hdr[1], hdr[2]], order='f')
+            
+            else:
                 hdr = np.fromfile(fname, count=3, sep="\n", dtype=int)
                 
                 if ((self.grid.nx * self.grid.ny * self.grid.nz)!=hdr[1]):
@@ -1154,12 +2286,8 @@ class radmc3dData(object):
                     # uses Fortran-order
                     data = np.swapaxes(data,0,3)
                     data = np.swapaxes(data,1,2)
-            
-            else:
-                data = -1
+        
 
-            if rfile!=(-1):
-                rfile.close()
         return data
 
 # --------------------------------------------------------------------------------------------------
@@ -1376,25 +2504,32 @@ class radmc3dData(object):
 
         return dmass
 # --------------------------------------------------------------------------------------------------
-    def readDustDens(self, fname='', binary=True, old=False):
+    def readDustDens(self, fname='', binary=True, old=False, octree=False):
         """Reads the dust density.
 
         Parameters
         ----------
         
-        fname : str, optional
-                Name of the file that contains the dust density. If omitted 'dust_density.inp' is used
-                (or if binary=True the 'dust_density.binp' is used).
+        fname   : str, optional
+                  Name of the file that contains the dust density. If omitted 'dust_density.inp' is used
+                  (or if binary=True the 'dust_density.binp' is used).
         
-        binary : bool, optional 
-                If true the data will be read in binary format, otherwise the file format is ascii
+        binary  : bool, optional 
+                  If true the data will be read in binary format, otherwise the file format is ascii
         
-        old   : bool, optional
-                If set to True the file format of the previous, 2D version of radmc will be used
+        old     : bool, optional
+                  If set to True the file format of the previous, 2D version of radmc will be used
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
-   
-        if (self.grid.nx==-1):
-            self.grid.readGrid(old=old)
+  
+        if self.grid is None:
+            if octree:
+                self.grid = radmc3dTree()
+            else:
+                self.grid = radmc3dGrid()
+                self.grid.readGrid(old=old)
             
         print 'Reading dust density'
 
@@ -1410,7 +2545,7 @@ class radmc3dData(object):
                 if fname=='':
                     fname = 'dust_density.inp'
                 
-            self.rhodust = self._scalarfieldReader(fname=fname, binary=binary)
+            self.rhodust = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         # 
         # Read the output of the previous 2d version of the code
         #
@@ -1441,17 +2576,20 @@ class radmc3dData(object):
             rfile.close()
             
 # --------------------------------------------------------------------------------------------------
-    def readDustTemp(self, fname='', binary=True, old=False):
+    def readDustTemp(self, fname='', binary=True, old=False, octree=False):
         """Reads the dust temperature.
 
         Parameters
         ----------
         
-        fname : str, optional
-                Name of the file that contains the dust temperature. 
+        fname   : str, optional
+                  Name of the file that contains the dust temperature. 
         
-        binary : bool, optional 
-                If true the data will be read in binary format, otherwise the file format is ascii
+        binary  : bool, optional 
+                  If true the data will be read in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
        
 
@@ -1468,7 +2606,7 @@ class radmc3dData(object):
                 if fname=='':
                     fname = 'dust_temperature.dat'
                 
-            self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary)
+            self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         else:
             try :
                 rfile = open('dusttemp_final.dat', 'r')
@@ -1590,18 +2728,21 @@ class radmc3dData(object):
 
             rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def readVTurb(self, fname='', binary=True):
+    def readVTurb(self, fname='', binary=True, octree=False):
         """Reads the turbulent velocity field. 
         
         Parameters
         ----------
         
-        fname : str, optional 
-                Name of the file that contains the turbulent velocity field
-                If omitted 'microturbulence.inp' (if binary=True 'microturbulence.binp') is used.
+        fname   : str, optional 
+                  Name of the file that contains the turbulent velocity field
+                  If omitted 'microturbulence.inp' (if binary=True 'microturbulence.binp') is used.
         
-        binary : bool 
-                If true the data will be read in binary format, otherwise the file format is ascii
+        binary  : bool 
+                  If true the data will be read in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
         
         if (self.grid.nx==-1):
@@ -1616,22 +2757,25 @@ class radmc3dData(object):
             if fname=='':
                 fname = 'microturbulence.inp'
             
-        self.vturb = self._scalarfieldReader(fname=fname, binary=binary)
+        self.vturb = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+        if octree:
+            self.vturb = np.squeeze(self.vturb)
        
 # --------------------------------------------------------------------------------------------------
-    def readGasDens(self,ispec='',binary=True):
+    def readGasDens(self,ispec='',binary=True, octree=False):
         """Reads the gas density.
 
         Parameters
         ----------
         
-        ispec : str 
-                File name extension of the 'numberdens_ispec.inp' (or if binary=True 'numberdens_ispec.binp') file.
+        ispec   : str 
+                  File name extension of the 'numberdens_ispec.inp' (or if binary=True 'numberdens_ispec.binp') file.
 
+        binary  : bool 
+                  If true the data will be read in binary format, otherwise the file format is ascii
 
-        binary : bool 
-                If true the data will be read in binary format, otherwise the file format is ascii
-
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
         
         if (self.grid.nx==-1):
@@ -1644,22 +2788,27 @@ class radmc3dData(object):
             fname = 'numberdens_'+ispec+'.inp'
             
         print 'Reading gas density ('+fname+')'
-        self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary)
+        self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+        if octree:
+            self.ndens_mol = np.squeeze(self.ndens_mol)
        
 # --------------------------------------------------------------------------------------------------
 
-    def readGasTemp(self, fname='', binary=True):
+    def readGasTemp(self, fname='', binary=True, octree=False):
         """Reads the gas temperature.
 
         Parameters
         ----------
         
-        fname : str,optional
-                Name of the file that contains the gas temperature. If omitted 'gas_temperature.inp' 
-                (or if binary=True 'gas_tempearture.binp') is used.
+        fname   : str,optional
+                  Name of the file that contains the gas temperature. If omitted 'gas_temperature.inp' 
+                  (or if binary=True 'gas_tempearture.binp') is used.
         
-        binary : bool
-                If true the data will be read in binary format, otherwise the file format is ascii
+        binary  : bool
+                  If true the data will be read in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
       
         if (self.grid.nx==-1):
@@ -1674,23 +2823,28 @@ class radmc3dData(object):
             if fname=='':
                 fname = 'gas_temperature.inp'
             
-        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary)
+        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary, octre=octree)
+        if octree:
+            self.gastemp = np.squeeze(self.gastemp)
 
 # --------------------------------------------------------------------------------------------------
-    def writeDustDens(self, fname='', binary=True, old=False):
+    def writeDustDens(self, fname='', binary=True, old=False, octree=False):
         """Writes the dust density.
 
         Parameters
         ----------
         
-        fname : str, optional
-                Name of the file into which the dust density should be written. If omitted 'dust_density.inp' is used.
+        fname   : str, optional
+                  Name of the file into which the dust density should be written. If omitted 'dust_density.inp' is used.
         
-        binary : bool
-                If true the data will be written in binary format, otherwise the file format is ascii
+        binary  : bool
+                  If true the data will be written in binary format, otherwise the file format is ascii
     
-        old   : bool, optional
-                If set to True the file format of the previous, 2D version of radmc will be used
+        old     : bool, optional
+                  If set to True the file format of the previous, 2D version of radmc will be used
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
       
         # 
@@ -1705,7 +2859,7 @@ class radmc3dData(object):
 
             print 'Writing '+fname
 
-            self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary)
+            self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary, octree=octree)
 
         # 
         # Write dust density for the previous 2D version of the code
@@ -1735,17 +2889,20 @@ class radmc3dData(object):
 
             wfile.close()
 # --------------------------------------------------------------------------------------------------
-    def writeDustTemp(self, fname='', binary=True):
+    def writeDustTemp(self, fname='', binary=True, octree=False):
         """Writes the dust density.
 
         Parameters
         ----------
         
-        fname : str, optional
+        fname   : str, optional
                 Name of the file into which the dust density should be written. If omitted 'dust_density.inp' is used.
         
-        binary : bool
-                If true the data will be written in binary format, otherwise the file format is ascii
+        binary  : bool
+                  If true the data will be written in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
         if fname=='':
             if binary:
@@ -1754,25 +2911,28 @@ class radmc3dData(object):
                 fname = 'dust_temperature.dat'
 
         print 'Writing '+fname
-        self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary, octree=octree)
     
 # --------------------------------------------------------------------------------------------------
-    def writeGasDens(self, fname='', ispec='',binary=True):
+    def writeGasDens(self, fname='', ispec='',binary=True, octree=False):
         """Writes the gas density.
 
         Parameters
         ----------
         
-        fname  : str, optional
-                 Name of the file into which the data will be written. If omitted "numberdens_xxx.inp" and
-                 "numberdens_xxx.binp" will be used for ascii and binary format, respectively (xxx is the name of the molecule).
+        fname   : str, optional
+                  Name of the file into which the data will be written. If omitted "numberdens_xxx.inp" and
+                  "numberdens_xxx.binp" will be used for ascii and binary format, respectively (xxx is the name of the molecule).
         
-        ispec  : str
-                 File name extension of the 'numberdens_ispec.inp' (if binary=True 'numberdens_ispec.binp') 
-                 file into which the gas density should be written
+        ispec   : str
+                  File name extension of the 'numberdens_ispec.inp' (if binary=True 'numberdens_ispec.binp') 
+                  file into which the gas density should be written
         
-        binary : bool
-                 If true the data will be written in binary format, otherwise the file format is ascii
+        binary  : bool
+                  If true the data will be written in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
         if ispec=='':
             print 'ERROR'
@@ -1787,11 +2947,11 @@ class radmc3dData(object):
                     fname = 'numberdens_'+ispec+'.inp'
 
             print 'Writing '+fname
-            self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary)
+            self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary, octree=octree)
         
        
 # --------------------------------------------------------------------------------------------------
-    def writeGasTemp(self, fname='', binary=True):
+    def writeGasTemp(self, fname='', binary=True, octree=False):
         """Writes the gas temperature.
 
         Parameters
@@ -1803,6 +2963,9 @@ class radmc3dData(object):
         
         binary : bool
                 If true the data will be written in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
         if fname=='':
             if binary:
@@ -1811,7 +2974,7 @@ class radmc3dData(object):
                 fname = 'gas_temperature.inp'
 
         print 'Writing '+fname
-        self._scalarfieldWriter(data=self.gastemp, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.gastemp, fname=fname, binary=binary, octree=octree)
    
 # --------------------------------------------------------------------------------------------------
     def writeGasVel(self, fname='', binary=True):
@@ -1860,18 +3023,21 @@ class radmc3dData(object):
             wfile.close()
         print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
-    def writeVTurb(self, fname='', binary=True):
+    def writeVTurb(self, fname='', binary=True, octree=False):
         """Writes the microturbulence file.
 
         Parameters
         ----------
         
-        fname : str, optional
-                Name of the file into which the turubulent velocity field should be written. 
-                If omitted 'microturbulence.inp' (if binary=True 'microturbuulence.binp') is used.
+        fname   : str, optional
+                  Name of the file into which the turubulent velocity field should be written. 
+                  If omitted 'microturbulence.inp' (if binary=True 'microturbuulence.binp') is used.
         
-        binary : bool
-                If true the data will be written in binary format, otherwise the file format is ascii
+        binary  : bool
+                  If true the data will be written in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
    
         if fname=='':
@@ -1881,7 +3047,7 @@ class radmc3dData(object):
                 fname = 'microturbulence.inp'
 
         print 'Writing '+fname
-        self._scalarfieldWriter(data=self.vturb, fname=fname, binary=binary)
+        self._scalarfieldWriter(data=self.vturb, fname=fname, binary=binary, octree=octree)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -2348,7 +3514,8 @@ class radmc3dRadSources(object):
 
         dum = rfile.readline().split()
         self.nstar = int(dum[0])
-        self.grid  = radmc3dGrid()
+        #self.grid  = radmc3dGrid()
+        self.grid  = readGrid(spatial=False)
         self.grid.nwav  = int(dum[1])
         self.grid.nfreq = self.grid.nwav
         self.rstar = []
@@ -4917,7 +6084,7 @@ def readOpac(ext=[''], idust=None, scatmat=None, old=False):
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True, old=False):
+def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True, old=False, octree=False):
     """Reads the physical variables of the model (e.g. density, velocity, temperature).
 
     Parameters
@@ -4950,11 +6117,17 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
     """
 
     res = radmc3dData()
-    if ddens: res.readDustDens(binary=binary, old=old)
-    if dtemp: res.readDustTemp(binary=binary, old=old)
-    if gvel: res.readGasVel(binary=binary)
-    if gtemp: res.readGasTemp(binary=binary)
-    if vturb: res.readVTurb(binary=binary)
+    if octree:
+        res.grid = radmc3dTree()
+        res.grid.readGrid()
+    else:
+        res.grid = radmc3dGrid()
+        res.grid.readGrid()
+    if ddens: res.readDustDens(binary=binary, old=old, octree=octree)
+    if dtemp: res.readDustTemp(binary=binary, old=old, octree=octree)
+    if gvel: res.readGasVel(binary=binary, octree=octree)
+    if gtemp: res.readGasTemp(binary=binary, octree=octree)
+    if vturb: res.readVTurb(binary=binary, octree=octree)
     if gdens:
         if not ispec:
             print 'ERROR'
@@ -4963,24 +6136,49 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
             print ' numberdens_gasspecname.inp'
             return 0
         else:
-            res.readGasDens(ispec=ispec,binary=binary)
+            res.readGasDens(ispec=ispec,binary=binary, octree=octree)
 
     return res
 
 # --------------------------------------------------------------------------------------------------
-def readGrid():
+def readGrid(sgrid=True, wgrid=True):
     """Reads the spatial and frequency grid.
     This function is an interface to radmc3dGrid.readGrid().
+    
+    Parameters:
+    -----------
+
+    sgrid       : bool
+                  If True the spatial grid will be read
+
+    wgrid       : bool
+                  If True the wavelength grid will be read
 
     Returns
     -------
 
-    Returns an instance of the radmc3dGrid class 
+    Returns an instance of the radmc3dGrid (for regular grid) or radmc3dTree (for octree AMR) class 
     """
 
-    grid = radmc3dGrid()
-    grid.readGrid()
-
+    #
+    # Check the grid type
+    #
+    hdr = np.fromfile('amr_grid.inp', count=7, sep="\n", dtype=np.int)
+    if hdr[1] == 0:
+        grid = radmc3dGrid()
+    elif hdr[1] == 1:
+        grid = radmc3dTree()
+    else:
+        print 'ERROR'
+        print 'Unsupported amr_style', hdr[1]
+        print 'Only regular (0) or octree-like (1) AMR styles are supported'
+        return 
+   
+    if wav:
+        grid.readWavelengthGrid()
+    if spatial:
+        grid.readSpatialGrid()
+    
     return grid
 
 # --------------------------------------------------------------------------------------------------
@@ -6054,4 +7252,558 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
     plb.ylabel(y_label)
     
     return {'ax':ax, 'cb':cbar}
+
+def gasdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=None, par=None):
+    """
+    Example function to be used as decision function for resolving cells in tree building. It calculates the gas density
+    at a random sample of coordinates within a given cell than take the ratio of the max/min density. If it is larger
+    than a certain threshold value it will return True (i.e. the cell should be resolved) if the density variation is less
+    than the threshold it returns False (i.e. the cell should not be resolved)
+
+    Parameters:
+    -----------
+
+    x       : ndarray
+              Cell centre coordinates of the cells in the first dimension
+    
+    y       : ndarray
+              Cell centre coordinates of the cells in the second dimension
+    
+    z       : ndarray
+              Cell centre coordinates of the cells in the third dimension
+    
+    dx      : ndarray
+              Half size of the cells in the first dimension
+    
+    dy      : ndarray
+              Half size of the cells in the second dimension
+    
+    dz      : ndarray
+              Half size of the cells in the third dimension
+    
+    model   : object
+              A radmc3dPy model (must contain a getGasDensity() function) 
+
+    ppar    : dictionary
+              All parameters of the problem (from the problem_params.inp file). It is not used here, but must be present 
+              for compatibility reasons.
+
+    par     : dictionary
+              Parameters used to decide whether the cell should be resolved. It should the following keywords; 'nsample', 
+              which sets the number of random points the gas desity is sampled at within the cell and 'threshold' that
+              sets the threshold value for max(gasdens)/min(gasdens) above which the cell should be resolved.
+    """
+    ncell   = x.shape[0]
+    rho     = np.zeros([ncell, nsample], dtype=np.float64)
+    for isample in range(par['nsample']):
+        xoffset  = (np.random.random_sample(ncell)-0.5)*dx*4.0
+        yoffset  = (np.random.random_sample(ncell)-0.5)*dy*4.0
+        zoffset  = (np.random.random_sample(ncell)-0.5)*dz*4.0
+        rho[:,isample] = model.getGasDensity(x=x+xoffset, y=y+yoffset, z=z+zoffset, ppar=ppar)
+
+    rho_max = rho.max(axis=1)
+    rho_min = rho.min(axis=1)
+    jj      = ((rho_max/rho_min)>par['threshold'])
+    
+    decision = np.zeros(ncell, dtype=bool)
+    if True in jj:
+        decision[jj] = True
+
+    return decision
+
+def findContainerLeafID(cellCRD=None, cellHW=None, xi=None, yi=None, zi=None, childID=None, isLeaf=None, nChild=None, crdList=None):
+    """
+    Function to find the tree index of a leaf cell containing a given point in space, i.e. if the following is true : 
+    xcell - dxcell <= xpoint < xcell + dxcell for each dimension. This function is to be used in multiprocessing.
+
+    Parameters:
+    -----------
+
+    cellCRD         : ndarray
+                      Array with dimensions [ncell, 3] containing the cell centre coordiantes of the tree
+
+    cellHW          : ndarray
+                      Array with dimensions [ncell, 3] containing the half width of cells in the tree
+
+    xi              : ndarray
+                      Array of cell interface indices in the base grid in the first dimension
+
+    yi              : ndarray
+                      Array of cell interface indices in the base grid in the second dimension
+    
+    zi              : ndarray
+                      Array of cell interface indices in the base grid in the third dimension
+
+    childID         : ndarray
+                      Child index array
+    
+    isLeaf          : ndarray
+                      Boolean array containing the node type for each cell (True - leaf, False - branch) 
+
+    nChild          : int
+                      Number of children (8,4,2 for 3,2,1 active dimensions)
+
+    crdList         : ndarray
+                      Array with dimensions [npoint, 3] containing the coordinates of the points whose container
+                      leaf is to be found
+
+    Returns:
+    --------
+    Tree index of the container leaf if it is found. If the point is outside of the base grid -1 is returned.
+
+    """
+
+    leafID = np.zeros(crdList.shape[0], dtype=np.int)-1
+
+    for i in range(crdList.shape[0]):
+        crd = crdList[i]
+        if (crd[0]<xi[0])|(crd[0]>xi[-1]):
+            return leafID
+        if (crd[1]<yi[0])|(crd[1]>yi[-1]):
+            return leafID
+        if (crd[2]<zi[0])|(crd[2]>zi[-1]):
+            return leafID
+
+     
+        ix = np.searchsorted(xi, crd[0])
+        iy = np.searchsorted(yi, crd[1])
+        iz = np.searchsorted(zi, crd[2])
+       
+        if xi[ix]!=crd[0]:
+            ix -= 1
+        if yi[iy]!=crd[1]:
+            iy -= 1
+        if zi[iz]!=crd[2]:
+            iz -= 1
+
+        nxRoot = xi.shape[0]-1
+        nyRoot = yi.shape[0]-1
+        nzRoot = zi.shape[0]-1
+
+        if crd[0]==xi[-1]:
+            ix = nxRoot-1
+        if crd[1]==yi[-1]:
+            iy = nyRoot-1
+        if crd[2]==zi[-1]:
+            iz = nzRoot-1
+      
+        ind       = iz*nyRoot*nxRoot + iy*nxRoot + ix
+        dum = findContainerLeafIDrec(cellCRD[:,0], cellCRD[:,1], cellCRD[:,2], cellHW[:,0], cellHW[:,1], cellHW[:,2], ChildID, isLeaf, nChild, crd, ind)
+        if dum is None:
+            leafID[i] = -1
+        else:
+            leafID[i] = dum
+
+    return leafID
+
+def findContainerLeafIDRec(x=None, y=None, z=None, dx=None, dy=None, dz=None, childID=None, isLeaf=None, nChild=None, \
+        crd=(), cellID=None):
+    """
+    Recursive function to find the leaf cell in the tree that contains a given point in space
+
+    Parameters:
+    -----------
+
+    x                 : ndarray
+                        Tree cell center array in the first dimension
+
+    y                 : ndarray
+                        Tree cell center array in the second dimension
+
+    z                 : ndarray
+                        Tree cell center array in the tird dimension
+    
+    dx                : ndarray
+                        Tree cell halfwidth array in the first dimension
+
+    dy                : ndarray
+                        Tree cell halfwidth array in the second dimension
+
+    dz                : ndarray
+                        Tree cell halfwidth array in the third dimension
+
+    childID           : list
+                        List of children indices. Each list element is an ndarray with nChild elements containing the child indices
+
+    isLeaf            : ndarray
+                        Boolean array for the cell type (True - leaf, False - branch)
+    
+    nChild            : int
+                        Nr of children (i.e. 8, 4, or 2 for 3, 2, 1 active dimensions, respectively)
+
+    crd               : ndarray
+                        Three element list/tuple/array containing the point coordinates
+
+    cellID            : int
+                        Index of cell to be tested
+    """
+        
+
+    xmin = treeCRDx[cellID] - treeDXx[cellID]
+    xmax = treeCRDx[cellID] + treeDXx[cellID]
+    ymin = treeCRDy[cellID] - treeDXy[cellID]
+    ymax = treeCRDy[cellID] + treeDXy[cellID]
+    zmin = treeCRDz[cellID] - treeDXz[cellID]
+    zmax = treeCRDz[cellID] + treeDXz[cellID]
+
+    if isLeaf[cellID]:
+        if (((crd[0]>=xmin) & (crd[0]<xmax)) &
+            ((crd[1]>=ymin) & (crd[1]<ymax)) &
+            ((crd[2]>=zmin) & (crd[2]<zmax))):
+            return cellID
+        else:
+            return None
+            
+    else:
+        for i in range(nChild):
+            dum = findContainerLeafIDrec(x, y, z, dx, dy, dz, childID, isLeaf, nChild, crd, childID[cellID][i])
+            if dum is not None:
+                break
+        
+        return dum
+
+def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, nproc=1):
+    """
+    Nearest neighbour inteprolation on an octree
+   
+    data        : radmc3dData
+                  Data container
+    
+    grid        : radmc3dTree
+                  An instance of a radmc3dTree containing the octree amr grid
+
+    x           : ndarray
+                  Coordiantes of the point to be interpolated on in the first dimension
+
+    y           : ndarray
+                  Coordiantes of the point to be interpolated on in the second dimension
+    
+    z           : ndarray
+                  Coordiantes of the point to be interpolated on in the third dimension
+
+    ddens       : bool
+                  True if dust density has to be interpolated
+
+    dtemp       : bool
+                  True if dust temperature has to be interpolated
+    
+    gdens       : bool
+                  True if molecular number density has to be interpolated
+
+    gtemp       : bool
+                  True if gas temperature has to be interpolated
+    
+    vturb       : bool
+                  True if turbulent velocity field has to be interpolated
+    
+    nproc       : int
+                  Number of processes to be used (for parallel computing) 
+
+    Returns:
+    --------
+    A dictionary with the interpolated fields 
+
+    """
+
+    if nproc == 1:
+        print "Nearest neighbour interpolation using "+("%d"%nproc)+' process'
+    else:
+        print "Nearest neighbour interpolation using "+("%d"%nproc)+' processes'
+    nx = x.shape[0]
+    ny = y.shape[0]
+    nz = z.shape[0]
+
+    npoint = nx*ny*nz
+    
+    if nproc > 1:
+        cellCRD = np.zeros([grid.nCell, 3], dtype=np.float64)
+        cellHW = np.zeros([grid.nCell, 3], dtype=np.float64)
+
+        cellCRD[:,0] = grid.x
+        cellCRD[:,1] = grid.y
+        cellCRD[:,2] = grid.z
+        cellHW[:,0]  = grid.dx
+        cellHW[:,1]  = grid.dy
+        cellHW[:,2]  = grid.dz
+        childID  = np.array(grid.childID)
+
+        chunkSize    = int(np.ceil(float(npoint)/nproc))
+        
+        crdList  = np.zeros([npoint, 3], dtype=np.float64)
+        for ind in range(npoint):
+            ix  = int(np.floor(ind/ny/nz))
+            iy  = int(np.floor((ind - ix*ny*nz) / nz))
+            iz  = int(ind - ix*ny*nz - iy*nz)
+            
+            crdList[ind,0] = x[ix]
+            crdList[ind,1] = y[iy]
+            crdList[ind,2] = z[iz]
+      
+        pool   = Pool(processes=nproc)
+        target = partial(findContainerLeafID, cellCRD, cellHW, grid.xi, grid.yi, grid.zi, childID, grid.isLeaf, grid.nChild)
+        res    = pool.map(target, crdList, chunksize=chunkSize)
+        res    = np.array(res)
+        pool.close()
+
+
+        idata  = {}
+
+        if ddens:
+            dummy_idata = np.zeros([nx,ny,nz,data.ndust], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata[ix,iy,iz,:] = data.rhodust[grid.leafID[res[ind]],:]
+                else:
+                    idata[ix,iy,iz,:] = 0
+            
+            idata['rhodust'] = dummy_idata
+
+        if dtemp:
+            dummy_idata = np.zeros([nx,ny,nz,data.ndust], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata[ix,iy,iz,:] = data.dusttemp[grid.leafID[res[ind]],:]
+                else:
+                    idata[ix,iy,iz,:] = 0
+            
+            idata['dusttemp'] = dummy_idata
+        
+        if gdens:
+            dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata[ix,iy,iz] = data.ndens_mol[grid.leafID[res[ind]]]
+                else:
+                    idata[ix,iy,iz] = 0
+            
+            idata['ndens_mol'] = dummy_idata
+        
+        if gtemp:
+            dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata[ix,iy,iz] = data.gastemp[grid.leafID[res[ind]]]
+                else:
+                    idata[ix,iy,iz] = 0
+            
+            idata['gastemp'] = dummy_idata
+
+        if vturb:
+            dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata[ix,iy,iz] = data.vturb[grid.leafID[res[ind]]]
+                else:
+                    idata[ix,iy,iz] = 0
+            
+            idata['vturb'] = dummy_idata
+
+    else:
+
+        idata  = {}
+        if ddens:
+            ndust = data.rhodust.shape[1]
+            idata['rhodust'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
+        if dtemp:
+            ndust = data.rhodust.shape[1]
+            idata['dusttemp'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
+        if gdens:
+            idata['ndens_mol'] = np.zeros([nx,ny,nz], dtype=np.float64)
+        if gtemp:
+            idata['gastemp'] = np.zeros([nx,ny,nz], dtype=np.float64)
+        if vturb:
+            idata['vturb'] = np.zeros([nx,ny,nz], dtype=np.float64)
+        
+        dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+
+        for ind in range(npoint):
+
+            ix  = int(np.floor(ind/ny/nz))
+            iy  = int(np.floor((ind - ix*ny*nz) / nz))
+            iz  = int(ind - ix*ny*nz - iy*nz)
+
+            cellID = grid.getContainerLeafID((x[ix], y[iy], z[iz]))
+          
+            if cellID is not None:
+                if ddens:
+                    idata['rhodust'][ix,iy,iz,:] = data.rhodust[grid.leafID[cellID]]
+                if dtemp:
+                    idata['dusttemp'][ix,iy,iz,:] = data.dusttemp[grid.leafID[cellID]]
+                if gdens:
+                    idata['ndens_mol'][ix,iy,iz] = data.ndens_mol[grid.leafID[cellID]]
+                if gtemp:
+                    idata['gastemp'][ix,iy,iz] = data.gastemp[grid.leafID[cellID]]
+                if vturb:
+                    idata['vturb'][ix,iy,iz] = data.vturb[grid.leafID[cellID]]
+
+        
+    return idata
+
+def plotAMRSlice(data=None, tree=None, plane='xy', crd3=0., xlim=(), ylim=(), nx=200, ny=200, log=False, vmin=None, vmax=None,\
+        ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, au=True, idust=None, nproc=1, **kwargs):
+    """
+
+    """
+    if tree is None:
+        if data.grid is None:
+            print 'ERROR'
+            print 'Spatial grid is not found as a member of the data class or was specified at input'
+            return
+        else:
+            tree = data.grid
+    # First check if there is anything to plot
+    nothing2plot = True
+    if ddens:
+        nothing2plot = False
+    if dtemp:
+        nothing2plot = False
+    if gdens:
+        nothing2plot = False
+    if gtemp:
+        nothing2plot = False
+    if vturb:
+        nothing2plot = False
+   
+    print ddens
+    if nothing2plot:
+        print 'No variable is specified to be plotted'
+        print 'No plot is made, returning'
+        return
+    
+    plot_x = xlim[0] + (xlim[1]-xlim[0]) * np.arange(nx, dtype=float) / float(nx-1)
+    plot_y = ylim[0] + (ylim[1]-ylim[0]) * np.arange(ny, dtype=float) / float(ny-1)
+    plot_z = np.array([crd3])
+
+    plane = plane.lower()
+
+    swapDim = False
+    if 'x' in plane:
+        # xy plane
+        if 'y' in plane:
+            if tree.crd_sys == 'car':
+                xlabel = r'$x$ [cm]'
+                ylabel = r'$y$ [cm]'
+            else:
+                xlabel = '$r$ [cm]'
+                ylabel = '$\theta$ [rad]'
+                
+            if plane == 'yx':
+                swapDim = True
+                if tree.crd_sys == 'car':
+                    xlabel = r'$y$ [cm]'
+                    ylabel = r'$x$ [cm]'
+                else:
+                    xlabel = '$\theta$ [rad]'
+                    ylabel = '$r$ [cm]'
+            idata = interpolateOctree(data, tree, x=plot_x, y=plot_y, z=plot_z, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+        # xz plane
+        elif 'z' in plane:
+            if tree.crd_sys == 'car':
+                xlabel = r'$x$ [cm]'
+                ylabel = r'$z$ [cm]'
+            else:
+                xlabel = '$r$ [cm]'
+                ylabel = '$\phi$ [rad]'
+            if plane == 'zx':
+                swapDim = True
+                if tree.crd_sys == 'car':
+                    xlabel = r'$z$ [cm]'
+                    ylabel = r'$x$ [cm]'
+                else:
+                    xlabel = '$\phi$ [rad]'
+                    ylabel = '$r$ [cm]'
+            idata = interpolateOctree(data, tree, x=plot_x, y=plot_z, z=plot_y, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+    # yz plane
+    else:
+        if tree.crd_sys == 'car':
+            xlabel = r'$y$ [cm]'
+            ylabel = r'$z$ [cm]'
+        else:
+            xlabel = '$\theta$ [rad]'
+            ylabel = '$\phi$ [rad]'
+        if plane == 'zy':
+            swapDim = True
+            if tree.crd_sys == 'car':
+                xlabel = r'$z$ [cm]'
+                ylabel = r'$y$ [cm]'
+            else:
+                xlabel = '$\phi$ [rad]'
+                ylabel = '$\theta$ [rad]'
+        idata = interpolateOctree(data, tree, x=plot_z, y=plot_x, z=plot_y, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+
+    print idata['rhodust'].min(), idata['rhodust'].max()
+
+    if ddens:
+        cblabel = r'$\rho_{\rm dust}$ [g/cm$^3$]'
+        if idust >= 0:
+            pdata = np.squeeze(idata['rhodust'][:,:,:,idust])
+        else:
+            pdata = np.squeeze(idata['rhodust'].sum(3))
+       
+    elif dtemp:
+        cblabel = r'T$_{\rm dust}$ [K]'
+        if idust >= 0:
+            pdata = np.squeeze(idata['dusttemp'][:,:,:,idust])
+        else:
+            pdata = np.squeeze(idata['dusttemp'].sum(3))
+    
+    elif gdens:
+        cblabel = r'$\n_{\rm mol}$ [mol/cm$^3$]'
+        pdata = np.squeeze(idata['ndens_mol'])
+    
+    elif gtemp:
+        cblabel = r'T$_{\rm gas}$ [K]'
+        pdata = np.squeeze(idata['gastemp'])
+    
+    elif vturb:
+        cblabel = r'v$_{\rm turb}$ [cm/s]'
+        pdata = np.squeeze(idata['vturb'])
+     
+    
+    if swapDim:
+        pdata = pdata.swapaxes(0,1) 
+        dum = np.array(plot_x)
+        plot_y = np.array(plot_x)
+        plot_x = dum
+      
+    pdata = pdata.clip(1e-90, 1e90)
+    if not vmin:
+        vmin = pdata.min()
+    if not vmax:
+        vmax = pdata.max()
+    #
+    # Now we can do the plotting
+    #
+    if log:
+        plb.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+    else: 
+        plb.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+
+    cb = plb.colorbar()
+    cb.set_label(cblabel)
+    plb.xlabel(xlabel)
+    plb.ylabel(ylabel)
+    plb.xlim(xlim[0], xlim[1])
+    plb.ylim(ylim[0], ylim[1])
+
 
