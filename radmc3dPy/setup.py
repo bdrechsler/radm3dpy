@@ -478,7 +478,13 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # --------------------------------------------------------------------------------------------
 # Create the grid
 # --------------------------------------------------------------------------------------------
-        grid = analyze.radmc3dGrid()
+        #
+        # Check if AMR is activated or not
+        #
+        if 1 in ppar['act_dim']:
+            grid = analyze.radmc3dTree()
+        else:
+            grid = analyze.radmc3dGrid()
     
         # Wavelength grid
         grid.makeWavelengthGrid(ppar=ppar)

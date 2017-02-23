@@ -1781,10 +1781,232 @@ class radmc3dGrid(object):
             for i in range(self.ny/2):
                 wfile.write("%.7e\n"%self.y[i])
             wfile.close()
-            
-
 # --------------------------------------------------------------------------------------------------
-    def readGrid(self, fname='', old=False):
+    def readWavelengthGrid(self, fname='', old=False):
+        """Reads the wavelength grid 
+        
+        Parameters
+        ----------
+
+        fname : str, optional
+                File name from which the spatial grid should be read. If omitted 'wavelength_micron.inp' will be used. 
+
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
+        """
+#
+# Natural constants
+#
+
+        cc = 29979245800.
+
+# 
+# Read the radmc3d format
+#
+        if not old:
+            if fname=='':
+                fname = 'wavelength_micron.inp'
+# 
+# Read the frequency grid 
+#
+
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print  fname+' was not found!'
+                return 
+
+            self.nwav = int(rfile.readline())
+            self.nfreq = self.nwav
+            self.wav  = np.zeros(self.nwav, dtype=np.float64)
+
+            for i in range(self.nwav): self.wav[i] = float(rfile.readline())
+
+            self.freq = cc / self.wav * 1e4
+
+            rfile.close()
+        
+#
+# Read the old radmc format
+#
+        else: 
+            if fname=='':
+                fname = 'frequency.inp'
+            try: 
+                rfile = open('frequency.inp')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+                return 
+
+            self.nfreq = int(rfile.readline())
+            self.nwav  = self.nfreq
+            dum = rfile.readline()
+            self.freq = np.zeros(self.nfreq, dtype=float)
+            self.wav  = np.zeros(self.nfreq, dtype=float)
+            for i in range(self.nfreq):
+                self.freq[i] = float(rfile.readline())
+                self.wav[i]  = cc/self.freq[i]*1e4
+            rfile.close()
+
+        return
+# --------------------------------------------------------------------------------------------------
+    def readSpatialGrid(self, fname='', old=False):
+        """Reads the spatial grid 
+        
+        Parameters
+        ----------
+
+        fname : str, optional
+                File name from which the spatial grid should be read. If omitted 'amr_grid.inp' will be used. 
+
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
+        """
+# 
+# Read the radmc3d format
+#
+        if not old:
+            if fname=='':
+                fname = 'amr_grid.inp'
+    # 
+    # Read the spatial grid 
+    #
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print 'amr_grid.inp was not found!'
+                return 
+        
+            form        = float(rfile.readline())
+            grid_style  = float(rfile.readline())
+            crd_system  = int(rfile.readline())
+            if crd_system<100:
+                self.crd_sys = 'car'
+            elif ((crd_system>=100)&(crd_system<200)):
+                self.crd_sys = 'sph'
+            elif ((crd_system>=200)&(crd_system<300)):
+                self.crd_sys = 'cyl'
+            else:
+                rfile.close()
+                print 'ERROR'
+                print ' unsupported coordinate system in the amr_grid.inp file'
+                print crd_system
+                return
+
+            grid_info   = float(rfile.readline())
+            dum         = rfile.readline().split()
+            self.act_dim = [int(dum[i]) for i in range(len(dum))]
+            dum         = rfile.readline().split()
+            self.nx,self.ny,self.nz    = int(dum[0]), int(dum[1]), int(dum[2])
+            self.nxi,self.nyi,self.nzi = self.nx+1, self.ny+1, self.nz+1
+
+            self.xi           = np.zeros(self.nx+1, dtype=np.float64)
+            self.yi           = np.zeros(self.ny+1, dtype=np.float64)
+            self.zi           = np.zeros(self.nz+1, dtype=np.float64)
+           
+            for i in range(self.nxi): self.xi[i] = float(rfile.readline())
+            for i in range(self.nyi): self.yi[i] = float(rfile.readline())
+            for i in range(self.nzi): self.zi[i] = float(rfile.readline())
+
+            if self.crd_sys=='car':
+                self.x = (self.xi[0:self.nx] +  self.xi[1:self.nx+1]) * 0.5
+                self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+                self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+            else: 
+                self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
+                self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+                self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+
+            rfile.close()
+        
+#
+# Read the old radmc format
+#
+        else:
+            self.crd_sys = 'sph'
+            self.act_dim = [1,1,0]
+        
+            #
+            # Read the radial grid
+            #
+            try: 
+                rfile = open('radius.inp')
+            except:
+                print 'Error!' 
+                print 'radius.inp was not found!'
+                return 
+
+            self.nx  = int(rfile.readline())
+            self.nxi = self.nx + 1
+            dum = rfile.readline()
+            self.x  = np.zeros(self.nx, dtype=float)
+            self.xi = np.zeros(self.nxi, dtype=float)
+            for i in range(self.nx):
+                self.x[i] = float(rfile.readline())
+            self.xi[1:-1] = 0.5 * (self.x[1:] + self.x[:-1])
+            self.xi[0]    = self.x[0] - (self.xi[1] - self.x[0])
+            self.xi[-1]   = self.x[-1] + (self.x[-1] - self.xi[-2])
+            rfile.close()
+
+            
+            #
+            # Read the poloidal angular grid
+            #
+            try: 
+                rfile = open('theta.inp')
+            except:
+                print 'Error!' 
+                print 'theta.inp was not found!'
+                return 
+
+    
+            ny = int(rfile.readline().split()[0])
+            self.ny = ny*2
+            self.nyi = self.ny+1
+            dum = rfile.readline()
+
+            self.y  = np.zeros(self.ny, dtype=float)
+            self.yi = np.zeros(self.nyi, dtype=float)
+            self.yi[0] = 0.
+            self.yi[-1] = np.pi
+            self.yi[ny] = np.pi*0.5
+
+            for i in range(self.ny/2):
+                 self.y[i]           = float(rfile.readline())
+                 self.y[self.ny-1-i] = np.pi-self.y[i]
+
+            self.yi[1:-1] = 0.5 * (self.y[1:] + self.y[:-1])
+            self.yi[ny] = np.pi*0.5
+            rfile.close()
+
+            #
+            # Create the azimuthal grid
+            #
+
+            self.nz = 1
+            self.zi = np.array([0., 2.*np.pi], dtype=float)
+
+        return
+# --------------------------------------------------------------------------------------------------
+    def readGrid(self, old=False):
+        """Reads the spatial (amr_grid.inp) and frequency grid (wavelength_micron.inp).
+        
+        Parameters
+        ----------
+
+        old   : bool, optional
+                If set to True the file format of the previous, 2D version of radmc will be used
+        """
+
+        self.readSpatialGrid(old=old)
+        self.readWavelengthGrid(old=old)
+
+        return
+# --------------------------------------------------------------------------------------------------
+    def readGridOld(self, fname='', old=False):
         """Reads the spatial (amr_grid.inp) and frequency grid (wavelength_micron.inp).
         
         Parameters
@@ -6174,9 +6396,9 @@ def readGrid(sgrid=True, wgrid=True):
         print 'Only regular (0) or octree-like (1) AMR styles are supported'
         return 
    
-    if wav:
+    if wgrid:
         grid.readWavelengthGrid()
-    if spatial:
+    if sgrid:
         grid.readSpatialGrid()
     
     return grid
