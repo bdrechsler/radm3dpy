@@ -16,7 +16,7 @@ from radmc3dPy.natconst import *
 import radmc3dPy.analyze as analyze
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, decisionFunction=None, **kwargs):
+def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, dfunc=None, dfpar=None, **kwargs):
     """
     Function to set up a dust model for RADMC-3D 
     
@@ -41,14 +41,19 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, deci
     old             : bool, optional
                       If set to True the input files for the old 2D version of radmc will be created
 
-    decisionFunction: function, optional
+    dfunc           : function, optional
                       Decision function for octree-like amr tree building. It should take linear arrays of 
                       cell centre coordinates (x,y,z) and cell half-widhts (dx,dy,dz) in all three dimensions,
                       a radmc3d model, a dictionary with all parameters from problem_params.inp and an other 
                       keyword argument (**kwargs). It should return a boolean ndarray of the same length as 
                       the input coordinates containing True if the cell should be resolved and False if not. 
                       An example for the implementation of such decision function can be found in radmc3dPy.analyze
-                      module (radmc3dPy.analyze.gdensMinMax()). 
+                      module (radmc3dPy.analyze.gdensMinMax()).
+
+    dfpar           : dictionary
+                      Dicionary of keyword arguments to be passed on to dfunc. These parameters will not be written
+                      to problem_params.inp. Parameters can also be passed to dfunc via normal keyword arguments 
+                      gathered in **kwargs, however all keyword arguments in **kwargs will be written to problem_params.inp
 
     **kwargs        : Any varible name in problem_params.inp can be used as a keyword argument.
                       At first all variables are read from problem_params.in to a dictionary called ppar. Then 
@@ -57,7 +62,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, deci
                       is changed to the value of the keyword argument. If no such key is found then the dictionary 
                       is simply extended by the keyword argument. Finally the problem_params.inp file is updated
                       with the new parameter values.
-                      Any additional keyword argument for the octree AMR mesh generation should also be passed here.
  
       
     Notes
@@ -156,8 +160,14 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, deci
     #
     if ppar['grid_style'] == 1:
         grid = analyze.radmc3dOctree()
+        
+        # Pass all parameters from dfpar to ppar
+        if dfpar is not None:
+            for ikey in dfpar.keys():
+                ppar[ikey] = dfpar[ikey]
+
         # Spatial grid
-        grid.makeSpatialGrid(ppar=ppar, decisionFunction=decisionFunction, model=model, **kwargs)
+        grid.makeSpatialGrid(ppar=ppar, dfunc=dfunc, model=model, **kwargs)
     else:
         grid = analyze.radmc3dGrid()
         # Spatial grid
@@ -351,7 +361,7 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, deci
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False, decisionFunction=None, **kwargs):
+def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False, dfunc=None, dfpar=None, **kwargs):
     """
     Function to set up a gas model for RADMC-3D 
     
@@ -381,7 +391,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
                       If True a separate gas_temperature.inp/gas_tempearture.binp file will be
                       written under the condition that the model contains a function get_gas_temperature() 
     
-    decisionFunction: function, optional
+    dfunc           : function, optional
                       Decision function for octree-like amr tree building. It should take linear arrays of 
                       cell centre coordinates (x,y,z) and cell half-widhts (dx,dy,dz) in all three dimensions,
                       a radmc3d model, a dictionary with all parameters from problem_params.inp and an other 
@@ -389,6 +399,11 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
                       the input coordinates containing True if the cell should be resolved and False if not. 
                       An example for the implementation of such decision function can be found in radmc3dPy.analyze
                       module (radmc3dPy.analyze.gdensMinMax()). 
+
+    dfpar           : dictionary
+                      Dicionary of keyword arguments to be passed on to dfunc. These parameters will not be written
+                      to problem_params.inp. Parameters can also be passed to dfunc via normal keyword arguments 
+                      gathered in **kwargs, however all keyword arguments in **kwargs will be written to problem_params.inp
 
     **kwargs        : Any varible name in problem_params.inp can be used as a keyword argument.
                       At first all variables are read from problem_params.in to a dictionary called ppar. Then 
@@ -516,8 +531,12 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
         #
         if ppar['grid_style'] == 1:
             grid = analyze.radmc3dOctree()
+            # Pass all parameters from dfpar to ppar
+            if dfpar is not None:
+                for ikey in dfpar.keys():
+                    ppar[ikey] = dfpar[ikey]
             # Spatial grid
-            grid.makeSpatialGrid(ppar=ppar, decisionFunction=decisionFunction, model=model, **kwargs)
+            grid.makeSpatialGrid(ppar=ppar, dfunc=dfunc, model=model, **kwargs)
         else:
             grid = analyze.radmc3dGrid()
             # Spatial grid

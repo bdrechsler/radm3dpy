@@ -1124,9 +1124,20 @@ def readImage(fname=None, binary=False, old=False):
     dum.readImage(fname=fname, binary=binary, old=old)
     return dum
 
+
+def rebin( a, newshape ):
+    '''Rebin an array to a new shape.
+    '''
+    assert len(a.shape) == len(newshape)
+    slices = [ slice(0,old, float(old)/new) for old,new in zip(a.shape,newshape) ]
+    coordinates = np.mgrid[slices]
+    indices = coordinates.astype('i')   #choose the biggest smaller integer index
+    return a[tuple(indices)]
+
 # ***************************************************************************************************************
 def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=None, saturate=None, bunit='norm', \
-        ifreq=0, cmask_rad=None, interpolation='nearest', cmap=plb.cm.gist_gray, stokes='I', **kwargs):
+        ifreq=0, cmask_rad=None, interpolation='nearest', cmap=plb.cm.gist_gray, stokes='I', 
+        poldir=False, pdcolor='w', pdnx=20, pdny=20, **kwargs):
     """Plots a radmc3d image.
     
 
@@ -1328,9 +1339,6 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     plb.delaxes()
     plb.delaxes()
 
-    #if (cmap==None): 
-        #cmap = cm.gist_gray
-#    implot = imshow(data, extent=ext, cmap=cm.gist_gray)
     implot = plb.imshow(data, extent=ext, cmap=cmap, interpolation=interpolation, **kwargs)
     plb.xlabel(xlab)
     plb.ylabel(ylab)
@@ -1338,6 +1346,33 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     cbar = plb.colorbar(implot)
     cbar.set_label(cb_label)
     plb.show()
+
+    #
+    # Plot the polarisation direction
+    # Thanks Kees!!
+    #
+    if poldir:
+        xr = rebin(x, [pdnx])
+        yr = rebin(y, [pdny])
+        xxr,yyr = np.meshgrid(xr,yr,indexing='ij')
+        qqr     = rebin(np.squeeze(image.image[:,:,1,ifreq]/image.image[:,:,0,ifreq].clip(1e-60)),[pdny,pdnx])
+        uur     = rebin(np.squeeze(image.image[:,:,2,ifreq]/image.image[:,:,0,ifreq].clip(1e-60)),[pdny,pdnx])
+        lpol    = np.sqrt(qqr**2 + uur**2).clip(1e-60)
+        qqr    /= lpol
+        uur    /= lpol
+        ang     = np.arccos(qqr)/2.0
+        ii      = (uur<0)
+        if True in ii:
+            ang[ii] = np.pi - ang[ii]
+        vx   = np.cos(ang)
+        vy   = np.sin(ang)
+        ii      = (lpol<1e-6)
+        vx[ii]  = 0.001
+        vy[ii]  = 0.001
+        q       = plb.quiver(xxr,yyr,vx,vy,
+          color=pdcolor,pivot='mid',scale=2.*np.max([pdnx,pdny]),
+          headwidth=1e-10,headlength=1e-10,headaxislength=1e-10)
+
 
     return {'implot':implot, 'cbar':cbar}
 
