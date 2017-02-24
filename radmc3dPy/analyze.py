@@ -30,7 +30,7 @@ from staratm import StellarAtm
 from multiprocessing import Pool
 from functools import partial
 
-class radmc3dTree(object):
+class radmc3dOctree(object):
     """
     Octree-like object with switchable resolution in each dimension
 
@@ -212,6 +212,37 @@ class radmc3dTree(object):
         self.nfreq = -1
         self.wav   = -1
         self.freq  = -1
+
+    def getCellVolume(self, fullTree=False):
+        """
+        Calculates the grid cell volume
+
+        Parameters:
+        -----------
+
+        fullTree    : bool, optional
+                      If True the cell volumes of the full tree (including both branches and leaves) will be calculated, while
+                      if set to False (default) the volume of only the leaf cells will be calculated
+
+        Returns:
+        --------
+        An linear ndarray containing the cell volumes
+        """
+        if self.crd_sys == 'car':
+            vol = (2.*self.dx)*(2.*self.dy)*(2.*self.dz)
+        else:
+            vol = 1./3.*(self.x+self.dx)**3 - (self.x-self.dx)**3 \
+                 * (np.cos(self.y-self.dy) - np.cos(self.y+self.dy))\
+                 * self.dz
+        
+        if not fullTree:
+            ii = (self.leafID >= 0)
+            dummy_vol = np.array(vol)
+            vol = np.zeros(self.nLeaf, dtype=np.float64)
+            vol[self.leafID[ii]] = dummy_vol[ii]
+
+        return vol
+
 
     def _getContainerLeafIDRec(self, crd=(), cellID=-1):
         """
@@ -595,7 +626,7 @@ class radmc3dTree(object):
 
         return
 
-    def makeSpatialGrid(self,ppar=None, levelMaxLimit=None, decisionFunction=None, model='', **kwargs):
+    def makeSpatialGrid(self, ppar=None, levelMaxLimit=None, decisionFunction=None, model='', **kwargs):
         """
         Function to create an octree-like AMR grid
 
@@ -612,8 +643,8 @@ class radmc3dTree(object):
                             A user defined function that decides whether the 
 
         levelMaxLimit    : int, optional
-                            Highest allowable level of the tree. If not specified levelMaxLimit should be set in 
-                            in the problem_params.inp file
+                            Highest allowable level of the tree. This keyword is optional. If not specified at input as
+                            a separate keyword, levelMaxLimit should be present in the problem_params.inp file.
 
         """
         
@@ -633,14 +664,20 @@ class radmc3dTree(object):
         else:
             self.levelMaxLimit = levelMaxLimit
         self.crd_sys = ppar['crd_sys']
-        self.act_dim = ppar['act_dim']
+        self.act_dim = [1,1,1]
+        if ppar['nx'] == 0:
+            self.act_dim[0] = 0 
+        if ppar['ny'] == 0:
+            self.act_dim[1] = 0 
+        if ppar['nz'] == 0:
+            self.act_dim[2] = 0 
         
         #
         # Generate the base grid
         #
-        self.xi = xbound[0] + np.arange(nx+1, dtype=float)/float(nx) * (xbound[1] - xbound[0])
-        self.yi = ybound[0] + np.arange(ny+1, dtype=float)/float(ny) * (ybound[1] - ybound[0])
-        self.zi = zbound[0] + np.arange(nz+1, dtype=float)/float(nz) * (zbound[1] - zbound[0])
+        self.xi = ppar['xbound'][0] + np.arange(ppar['nx'][0]+1, dtype=float)/float(ppar['nx'][0]) * (ppar['xbound'][1] - ppar['xbound'][0])
+        self.yi = ppar['ybound'][0] + np.arange(ppar['ny'][0]+1, dtype=float)/float(ppar['ny'][0]) * (ppar['ybound'][1] - ppar['ybound'][0])
+        self.zi = ppar['zbound'][0] + np.arange(ppar['nz'][0]+1, dtype=float)/float(ppar['nz'][0]) * (ppar['zbound'][1] - ppar['zbound'][0])
         self.xc  = 0.5 * (self.xi[1:] + self.xi[:-1])
         self.yc  = 0.5 * (self.yi[1:] + self.yi[:-1])
         self.zc  = 0.5 * (self.zi[1:] + self.zi[:-1])
@@ -648,17 +685,16 @@ class radmc3dTree(object):
         cellsize_x = self.xi[1] - self.xi[0]
         cellsize_y = self.yi[1] - self.yi[0]
         cellsize_z = self.zi[1] - self.zi[0]
-        self.nxRoot = nx
-        self.nyRoot = ny
-        self.nzRoot = nz
-        
-        self.levelMaxLimit = levelMaxLimit
+        self.nxRoot = ppar['nx'][0]
+        self.nyRoot = ppar['ny'][0]
+        self.nzRoot = ppar['nz'][0]
+       
         self.levelMax      = 0
     
         ind = 0
-        for iz in range(nz):
-            for iy in range(ny):
-                for ix in range(nx):
+        for iz in range(self.nzRoot):
+            for iy in range(self.nyRoot):
+                for ix in range(self.nxRoot):
                     #
                     # Add nodes to the tree
                     #
@@ -671,8 +707,8 @@ class radmc3dTree(object):
                     self.dz       = np.append(self.dz, cellsize_z*0.5)
 
                     self.isLeaf   = np.append(self.isLeaf, True)
-                    self.level    = np.append(self.level, level)
-                    self.parentID = np.append(self.parentID, parentID) 
+                    self.level    = np.append(self.level, 0)
+                    self.parentID = np.append(self.parentID, -1) 
                     self.childID.append(np.zeros(self.nChild, dtype=np.int))
 
                     self.nLeaf += 1 
@@ -712,7 +748,7 @@ class radmc3dTree(object):
             #
             # Check which cells to resolve
             #
-            resolve = decisionFunction(self.x[ii], self.y[ii], self.z[ii], self.dx[ii][0], self.dy[ii][0], self.dz[ii][0], ppar=ppar, **kwargs)
+            resolve = decisionFunction(self.x[ii], self.y[ii], self.z[ii], self.dx[ii][0], self.dy[ii][0], self.dz[ii][0], model=self.model, ppar=ppar, **kwargs)
             jj = (resolve == True) & (self.level[ii] < self.levelMaxLimit)
             
             #
@@ -726,6 +762,7 @@ class radmc3dTree(object):
             else:
                 print 'No cells to resolve at this level'
         
+        self.childID = np.array(self.childID)
         #
         # Print out some statistics
         #
@@ -734,10 +771,10 @@ class radmc3dTree(object):
         print 'Nr of branches     : ', self.nBranch
         print 'Nr of leaves       : ', self.nLeaf
         ncells_fullgrid = self.nChild**self.levelMax * self.nxRoot*self.nyRoot*self.nzRoot
-        cell_fraction =  (self.nLeaf + self.nBranch) / ncells_fullgrid
-        print self.nCell, self.nLeaf + self.nBranch
+        cell_fraction =  float(self.nLeaf + self.nBranch) / ncells_fullgrid
         print 'Using '+("%.3f"%(cell_fraction*100))+'% memory of a full grid at max resolution'
 
+        self.generateLeafID()
         return
     
     def setModel(self, model=''): 
@@ -825,14 +862,46 @@ class radmc3dTree(object):
         """
       
         print 'Generating leaf indices'
-        self.leafID = np.zeros(self.nCell,dtype=np.int)
+        self.leafID = np.zeros(self.nCell,dtype=np.int)-1
         self.cellIDCur  = -1
         nRoot = self.nxRoot * self.nyRoot * self.nzRoot
         for i in range(nRoot):
             self._generateLeafIDRec(i)
         
         print 'Done'
-    
+   
+    def tree2Leaf(self, var=None):
+        """
+        Converts a data array to leaf size. The input a scalar or vector variable is defined at all nodes and the returned variable
+        will only represent values at leaf nodes thereby reduced in length compared to the input.
+
+        Parameters:
+        -----------
+        var     : ndarray
+                  A one or two dimensional ndarray with the first dimension is the size of the full tree
+
+        Returns:
+        --------
+        A one or two dimensional ndarray with size of nLeaf in the first dimension
+        """
+
+        ii = (self.leafID >= 0)
+        ndim    = len(var.shape)
+        if ndim == 1:
+            leafVar = np.zeros(self.nLeaf, dtype=var.dtype)
+            leafVar[self.leafID[ii]] = var[ii]
+        elif ndim == 2:
+            leafVar = np.zeros([self.nLeaf, var.shape[1]], dtype=var.dtype)
+            for i in range(var.shape[1]):
+                leafVar[self.leafID[ii],i] = var[ii,i]
+        else:
+            print 'ERROR'
+            print 'Input variable is a three dimensional array. Octree AMR only supports one or two dimensional arrays'
+            print ' with the first dimension beeing the cell / spatial dimension'
+            return
+
+        return leafVar
+
     def writeSpatialGrid(self, fname=''):
         """
         Writes the wavelength grid to a file (e.g. amr_grid.inp).
@@ -905,7 +974,7 @@ class radmc3dTree(object):
         else:
             wfile.write("1\n")
             for i in range(self.childID[cellID].shape[0]):
-                self._writeOcTreeNodeType(cellID=self.childID[cellID][i], wfile=wfile)
+                self._writeOcTreeNodeTypeRec(cellID=self.childID[cellID][i], wfile=wfile)
         
         return
     
@@ -2005,191 +2074,191 @@ class radmc3dGrid(object):
         self.readWavelengthGrid(old=old)
 
         return
-# --------------------------------------------------------------------------------------------------
-    def readGridOld(self, fname='', old=False):
-        """Reads the spatial (amr_grid.inp) and frequency grid (wavelength_micron.inp).
+## --------------------------------------------------------------------------------------------------
+    #def readGridOld(self, fname='', old=False):
+        #"""Reads the spatial (amr_grid.inp) and frequency grid (wavelength_micron.inp).
         
-        Parameters
-        ----------
+        #Parameters
+        #----------
 
-        fname : str, optional
-                File name from which the spatial grid should be read. If omitted 'amr_grid.inp' will be used. 
+        #fname : str, optional
+                #File name from which the spatial grid should be read. If omitted 'amr_grid.inp' will be used. 
 
-        old   : bool, optional
-                If set to True the file format of the previous, 2D version of radmc will be used
-        """
+        #old   : bool, optional
+                #If set to True the file format of the previous, 2D version of radmc will be used
+        #"""
 
 
-#
-# Natural constants
-#
+##
+## Natural constants
+##
 
-        cc = 29979245800.
+        #cc = 29979245800.
 
-# 
-# Read the radmc3d format
-#
-        if not old:
-            if fname=='':
-                fname = 'amr_grid.inp'
-    # 
-    # Read the spatial grid 
-    #
-            try :
-                rfile = open(fname, 'r')
-            except:
-                print 'Error!' 
-                print 'amr_grid.inp was not found!'
-                return 
+## 
+## Read the radmc3d format
+##
+        #if not old:
+            #if fname=='':
+                #fname = 'amr_grid.inp'
+    ## 
+    ## Read the spatial grid 
+    ##
+            #try :
+                #rfile = open(fname, 'r')
+            #except:
+                #print 'Error!' 
+                #print 'amr_grid.inp was not found!'
+                #return 
         
-            form        = float(rfile.readline())
-            grid_style  = float(rfile.readline())
-            crd_system  = int(rfile.readline())
-            if crd_system<100:
-                self.crd_sys = 'car'
-            elif ((crd_system>=100)&(crd_system<200)):
-                self.crd_sys = 'sph'
-            elif ((crd_system>=200)&(crd_system<300)):
-                self.crd_sys = 'cyl'
-            else:
-                rfile.close()
-                print 'ERROR'
-                print ' unsupported coordinate system in the amr_grid.inp file'
-                print crd_system
-                return
+            #form        = float(rfile.readline())
+            #grid_style  = float(rfile.readline())
+            #crd_system  = int(rfile.readline())
+            #if crd_system<100:
+                #self.crd_sys = 'car'
+            #elif ((crd_system>=100)&(crd_system<200)):
+                #self.crd_sys = 'sph'
+            #elif ((crd_system>=200)&(crd_system<300)):
+                #self.crd_sys = 'cyl'
+            #else:
+                #rfile.close()
+                #print 'ERROR'
+                #print ' unsupported coordinate system in the amr_grid.inp file'
+                #print crd_system
+                #return
 
-            grid_info   = float(rfile.readline())
-            dum         = rfile.readline().split()
-            self.act_dim = [int(dum[i]) for i in range(len(dum))]
-            dum         = rfile.readline().split()
-            self.nx,self.ny,self.nz    = int(dum[0]), int(dum[1]), int(dum[2])
-            self.nxi,self.nyi,self.nzi = self.nx+1, self.ny+1, self.nz+1
+            #grid_info   = float(rfile.readline())
+            #dum         = rfile.readline().split()
+            #self.act_dim = [int(dum[i]) for i in range(len(dum))]
+            #dum         = rfile.readline().split()
+            #self.nx,self.ny,self.nz    = int(dum[0]), int(dum[1]), int(dum[2])
+            #self.nxi,self.nyi,self.nzi = self.nx+1, self.ny+1, self.nz+1
 
-            self.xi           = np.zeros(self.nx+1, dtype=np.float64)
-            self.yi           = np.zeros(self.ny+1, dtype=np.float64)
-            self.zi           = np.zeros(self.nz+1, dtype=np.float64)
+            #self.xi           = np.zeros(self.nx+1, dtype=np.float64)
+            #self.yi           = np.zeros(self.ny+1, dtype=np.float64)
+            #self.zi           = np.zeros(self.nz+1, dtype=np.float64)
            
-            for i in range(self.nxi): self.xi[i] = float(rfile.readline())
-            for i in range(self.nyi): self.yi[i] = float(rfile.readline())
-            for i in range(self.nzi): self.zi[i] = float(rfile.readline())
+            #for i in range(self.nxi): self.xi[i] = float(rfile.readline())
+            #for i in range(self.nyi): self.yi[i] = float(rfile.readline())
+            #for i in range(self.nzi): self.zi[i] = float(rfile.readline())
 
-            if self.crd_sys=='car':
-                self.x = (self.xi[0:self.nx] +  self.xi[1:self.nx+1]) * 0.5
-                self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
-                self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
-            else: 
-                self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
-                self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
-                self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+            #if self.crd_sys=='car':
+                #self.x = (self.xi[0:self.nx] +  self.xi[1:self.nx+1]) * 0.5
+                #self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+                #self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
+            #else: 
+                #self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx+1])
+                #self.y = (self.yi[0:self.ny] +  self.yi[1:self.ny+1]) * 0.5
+                #self.z = (self.zi[0:self.nz] +  self.zi[1:self.nz+1]) * 0.5
 
-            rfile.close()
+            #rfile.close()
 
-    # 
-    # Read the frequency grid 
-    #
+    ## 
+    ## Read the frequency grid 
+    ##
 
-            try :
-                rfile = open('wavelength_micron.inp', 'r')
-            except:
-                print 'Error!' 
-                print 'wavelength_micron.inp was not found!'
-                return 
+            #try :
+                #rfile = open('wavelength_micron.inp', 'r')
+            #except:
+                #print 'Error!' 
+                #print 'wavelength_micron.inp was not found!'
+                #return 
 
-            self.nwav = int(rfile.readline())
-            self.nfreq = self.nwav
-            self.wav  = np.zeros(self.nwav, dtype=np.float64)
+            #self.nwav = int(rfile.readline())
+            #self.nfreq = self.nwav
+            #self.wav  = np.zeros(self.nwav, dtype=np.float64)
 
-            for i in range(self.nwav): self.wav[i] = float(rfile.readline())
+            #for i in range(self.nwav): self.wav[i] = float(rfile.readline())
 
-            self.freq = cc / self.wav * 1e4
+            #self.freq = cc / self.wav * 1e4
 
-            rfile.close()
-#
-# Read the old radmc format
-#
-        else:
-            self.crd_sys = 'sph'
-            self.act_dim = [1,1,0]
+            #rfile.close()
+##
+## Read the old radmc format
+##
+        #else:
+            #self.crd_sys = 'sph'
+            #self.act_dim = [1,1,0]
         
-            #
-            # Read the radial grid
-            #
-            try: 
-                rfile = open('radius.inp')
-            except:
-                print 'Error!' 
-                print 'radius.inp was not found!'
-                return 
+            ##
+            ## Read the radial grid
+            ##
+            #try: 
+                #rfile = open('radius.inp')
+            #except:
+                #print 'Error!' 
+                #print 'radius.inp was not found!'
+                #return 
 
-            self.nx  = int(rfile.readline())
-            self.nxi = self.nx + 1
-            dum = rfile.readline()
-            self.x  = np.zeros(self.nx, dtype=float)
-            self.xi = np.zeros(self.nxi, dtype=float)
-            for i in range(self.nx):
-                self.x[i] = float(rfile.readline())
-            self.xi[1:-1] = 0.5 * (self.x[1:] + self.x[:-1])
-            self.xi[0]    = self.x[0] - (self.xi[1] - self.x[0])
-            self.xi[-1]   = self.x[-1] + (self.x[-1] - self.xi[-2])
-            rfile.close()
+            #self.nx  = int(rfile.readline())
+            #self.nxi = self.nx + 1
+            #dum = rfile.readline()
+            #self.x  = np.zeros(self.nx, dtype=float)
+            #self.xi = np.zeros(self.nxi, dtype=float)
+            #for i in range(self.nx):
+                #self.x[i] = float(rfile.readline())
+            #self.xi[1:-1] = 0.5 * (self.x[1:] + self.x[:-1])
+            #self.xi[0]    = self.x[0] - (self.xi[1] - self.x[0])
+            #self.xi[-1]   = self.x[-1] + (self.x[-1] - self.xi[-2])
+            #rfile.close()
 
             
-            #
-            # Read the poloidal angular grid
-            #
-            try: 
-                rfile = open('theta.inp')
-            except:
-                print 'Error!' 
-                print 'theta.inp was not found!'
-                return 
+            ##
+            ## Read the poloidal angular grid
+            ##
+            #try: 
+                #rfile = open('theta.inp')
+            #except:
+                #print 'Error!' 
+                #print 'theta.inp was not found!'
+                #return 
 
     
-            ny = int(rfile.readline().split()[0])
-            self.ny = ny*2
-            self.nyi = self.ny+1
-            dum = rfile.readline()
+            #ny = int(rfile.readline().split()[0])
+            #self.ny = ny*2
+            #self.nyi = self.ny+1
+            #dum = rfile.readline()
 
-            self.y  = np.zeros(self.ny, dtype=float)
-            self.yi = np.zeros(self.nyi, dtype=float)
-            self.yi[0] = 0.
-            self.yi[-1] = np.pi
-            self.yi[ny] = np.pi*0.5
+            #self.y  = np.zeros(self.ny, dtype=float)
+            #self.yi = np.zeros(self.nyi, dtype=float)
+            #self.yi[0] = 0.
+            #self.yi[-1] = np.pi
+            #self.yi[ny] = np.pi*0.5
 
-            for i in range(self.ny/2):
-                 self.y[i]           = float(rfile.readline())
-                 self.y[self.ny-1-i] = np.pi-self.y[i]
+            #for i in range(self.ny/2):
+                 #self.y[i]           = float(rfile.readline())
+                 #self.y[self.ny-1-i] = np.pi-self.y[i]
 
-            self.yi[1:-1] = 0.5 * (self.y[1:] + self.y[:-1])
-            self.yi[ny] = np.pi*0.5
-            rfile.close()
+            #self.yi[1:-1] = 0.5 * (self.y[1:] + self.y[:-1])
+            #self.yi[ny] = np.pi*0.5
+            #rfile.close()
 
-            #
-            # Create the azimuthal grid
-            #
+            ##
+            ## Create the azimuthal grid
+            ##
 
-            self.nz = 1
-            self.zi = np.array([0., 2.*np.pi], dtype=float)
+            #self.nz = 1
+            #self.zi = np.array([0., 2.*np.pi], dtype=float)
 
-            # 
-            # Read the frequency grid 
-            #
-            try: 
-                rfile = open('frequency.inp')
-            except:
-                print 'Error!' 
-                print 'frequency.inp was not found!'
-                return 
+            ## 
+            ## Read the frequency grid 
+            ##
+            #try: 
+                #rfile = open('frequency.inp')
+            #except:
+                #print 'Error!' 
+                #print 'frequency.inp was not found!'
+                #return 
 
-            self.nfreq = int(rfile.readline())
-            self.nwav  = self.nfreq
-            dum = rfile.readline()
-            self.freq = np.zeros(self.nfreq, dtype=float)
-            self.wav  = np.zeros(self.nfreq, dtype=float)
-            for i in range(self.nfreq):
-                self.freq[i] = float(rfile.readline())
-                self.wav[i]  = cc/self.freq[i]*1e4
-            rfile.close()
+            #self.nfreq = int(rfile.readline())
+            #self.nwav  = self.nfreq
+            #dum = rfile.readline()
+            #self.freq = np.zeros(self.nfreq, dtype=float)
+            #self.wav  = np.zeros(self.nfreq, dtype=float)
+            #for i in range(self.nfreq):
+                #self.freq[i] = float(rfile.readline())
+                #self.wav[i]  = cc/self.freq[i]*1e4
+            #rfile.close()
 # --------------------------------------------------------------------------------------------------
     def getCellVolume(self):
         """Calculates the volume of grid cells.
@@ -2306,7 +2375,7 @@ class radmc3dData(object):
     def __init__(self, grid=None):
 
         if grid:
-            self.grid = copy.deepcopy(grid)
+            self.grid = grid
         else:
             self.grid = None
 
@@ -2347,11 +2416,22 @@ class radmc3dData(object):
         
         """
 
+        
         wfile = open(fname, 'w')
         if binary:
             if octree:
-                print 'Octree binary format is not yet supported'
-                return
+                if len(data.shape) == 1:
+                    hdr = np.array([1, 8, data.shape[0], 1], dtype=np.int)
+                elif len(data.shape) == 2:
+                    hdr = np.array([1, 8, data.shape[0], data.shape[1]], dtype=np.int)
+                else:
+                    print 'For octree type grid field variables should be stored in a 1D or 2D arrays with the second'
+                    print 'dimension being the dust species'
+                    print 'The data array to be written has a shape of ', data.shape
+                    print 'No data has been written'
+                    return
+                hdr.tofile(wfile)
+                data.flatten(order='f').tofile(wfile)
             else:
                 if len(data.shape)==3:
                     hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
@@ -2375,9 +2455,9 @@ class radmc3dData(object):
         else:
             if octree:
                 if len(data.shape) == 1:
-                    hdr = np.array([1, grid.nLeaf, 1], dtype=np.int)
+                    hdr = np.array([1, data.shape[0], 1], dtype=np.int)
                 elif len(data.shape) == 2:
-                    hdr = np.array([1, grid.nLeaf, data.shape[1]], dtype=np.int)
+                    hdr = np.array([1, data.shape[0], data.shape[1]], dtype=np.int)
                 else:
                     print 'For octree type grid field variables should be stored in a 1D or 2D arrays with the second'
                     print 'dimension being the dust species'
@@ -2386,8 +2466,7 @@ class radmc3dData(object):
                     return
                 
                 hdr.tofile(wfile, sep=" ", format="%d\n")
-                data.flatten(order='f').tofile(wfile, sep=" ", format="%.9\n")
-
+                data.flatten(order='f').tofile(wfile, sep=" ", format="%.9e\n")
             else:
                 if len(data.shape)==3:
                     hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
@@ -2438,8 +2517,27 @@ class radmc3dData(object):
 
         if binary:
             if octree:
-                print 'Binary octree format is not yet supported'
-                return
+                hdr = np.fromfile(fname, count=4, dtype=int)
+                if hdr[2] != self.grid.nLeaf:
+                    print 'Error!'
+                    print 'Number of cells in '+fname+' is different from that in amr_grid.inp'
+                    print hdr[1], self.grid.nLeaf
+                    return -1
+                
+                if hdr[1]==8:
+                    data = np.fromfile(fname, count=-1, dtype=np.float64)
+                elif hdr[1]==4:
+                    data = np.fromfile(fname, count=-1, dtype=float)
+                else:
+                    print 'ERROR'
+                    print 'Unknown datatype in '+fname
+                    return
+                
+                if data.shape[0]==(hdr[2]+3):
+                    data = np.reshape(data[3:], [self.grid.nLeaf, 1], order='f')
+                elif data.shape[0]==(hdr[2]*hdr[3]+4):
+                    data = np.reshape(data[4:], [self.grid.nLeaf, hdr[3]], order='f')
+
             else:
                 # hdr[0] = format number
                 # hdr[1] = data precision (4=single, 8=double)
@@ -2695,9 +2793,19 @@ class radmc3dData(object):
         vol = self.grid.getCellVolume()
         gmass = -1.
         if not rhogas:
-            gmass = (vol * self.ndens_mol[:,:,:,0] * mweight*mp).sum()
+            #
+            # I'm not sure if this is the right way of doing it but right now I don't have a better idea
+            #
+            if isinstance(self.grid, radmc3dOctree):
+                gmass = (vol * self.ndens_mol[:,0] * mweight*mp).sum()
+            else:
+                gmass = (vol * self.ndens_mol[:,:,:,0] * mweight*mp).sum()
+
         else:
-            gmass = (vol * self.rhogas[:,:,:,0]).sum()
+            if isinstance(self.grid, radmc3dOctree):
+                gmass = (vol * self.rhogas[:,0]).sum()
+            else:
+                gmass = (vol * self.rhogas[:,:,:,0]).sum()
 
         return gmass
 # --------------------------------------------------------------------------------------------------
@@ -2718,11 +2826,21 @@ class radmc3dData(object):
         vol = self.grid.getCellVolume()
         dmass = -1.
         if idust>0:
-            dmass = (vol * self.rhodust[:,:,:,idust]).sum()
+            #
+            # I'm not sure if this is the right way of doing it but right now I don't have a better idea
+            #
+            if isinstance(self.grid, radmc3dOctree):
+                dmass = (vol*self.rhodust[:,idust]).sum()
+            else:
+                dmass = (vol * self.rhodust[:,:,:,idust]).sum()
         else:
             dmass = 0.
-            for i in range(self.rhodust.shape[3]):
-                dmass += (vol * self.rhodust[:,:,:,i]).sum()
+            if isinstance(self.grid, radmc3dOctree):
+                for i in range(self.rhodust.shape[1]):
+                    dmass += (vol * self.rhodust[:,i]).sum()
+            else:
+                for i in range(self.rhodust.shape[3]):
+                    dmass += (vol * self.rhodust[:,:,:,i]).sum()
 
         return dmass
 # --------------------------------------------------------------------------------------------------
@@ -2748,7 +2866,7 @@ class radmc3dData(object):
   
         if self.grid is None:
             if octree:
-                self.grid = radmc3dTree()
+                self.grid = radmc3dOctree()
             else:
                 self.grid = radmc3dGrid()
                 self.grid.readGrid(old=old)
@@ -2815,8 +2933,12 @@ class radmc3dData(object):
         """
        
 
-        if (self.grid.nx==-1):
-            self.grid.readGrid(old=old)
+        if self.grid is None:
+            if octree:
+                self.grid = radmc3dOctree()
+            else:
+                self.grid = radmc3dGrid()
+                self.grid.readGrid(old=old)
             
         print 'Reading dust temperature'
 
@@ -2869,86 +2991,113 @@ class radmc3dData(object):
                 If true the data will be read in binary format, otherwise the file format is ascii
 
         """
+       
+        if self.grid is None:
+            if octree:
+                self.grid = radmc3dOctree()
+            else:
+                self.grid = radmc3dGrid()
+                self.grid.readGrid(old=old)
+
 
         if binary:
             if fname=='':
                 fname = 'gas_velocity.binp'
-            if (self.grid.nx==-1):
-                self.grid.readGrid()
 
             print 'Reading gas velocity'
-            
-            try :
-                rfile = open(fname, 'r')
-            except:
+            if os.path.isfile(fname):
+                # If we have an octree grid
+                if isinstance(self.grid, radmc3dOctree):
+                    hdr = np.fromfile(fname, count=3, dtype=int)
+                    if (hdr[2]!=self.grid.nLeaf):
+                        print 'ERROR'
+                        print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                        print self.grid.nx, self.grid.ny, self.grid.nz
+                        print hdr[1]
+                        return
+                    
+                    if hdr[1]==8:
+                        self.gasvel = np.fromfile(fname, count=-1, dtype=np.float64)
+                    elif hdr[1]==4:
+                        self.gasvel = np.fromfile(fname, count=-1, dtype=float)
+                    else:
+                        print 'ERROR'
+                        print 'Unknown datatype in '+fname
+                        return
+                    self.gasvel = np.reshape(self.gasvel[3:], [self.nLeaf, 3], order='f')
+
+                else:
+                    hdr = np.fromfile(fname, count=3, dtype=int)
+                    if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
+                        print 'ERROR'
+                        print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
+                        print self.grid.nx, self.grid.ny, self.grid.nz
+                        print hdr[1]
+                        return
+
+                    if hdr[1]==8:
+                        self.gasvel = np.fromfile(fname, count=-1, dtype=np.float64)
+                    elif hdr[1]==4:
+                        self.gasvel = np.fromfile(fname, count=-1, dtype=float)
+                    else:
+                        print 'ERROR'
+                        print 'Unknown datatype in '+fname
+                        return
+                    self.gasvel = np.reshape(self.gasvel[3:], [self.grid.nz,self.grid.ny,self.grid.nx,3])
+                    self.gasvel = np.swapaxes(self.gasvel, 0, 2)
+            else:
                 print 'Error!' 
                 print fname+' was not found!'
-
-            if (rfile!=(-1)):            
-                hdr = np.fromfile(fname, count=3, dtype=int)
-                if (hdr[2]!=self.grid.nx*self.grid.ny*self.grid.nz):
-                    print 'ERROR'
-                    print 'Number of grid points in '+fname+' is different from that in amr_grid.inp'
-                    print self.grid.nx, self.grid.ny, self.grid.nz
-                    print hdr[1]
-                    return
-
-                if hdr[1]==8:
-                    self.gasvel = np.fromfile(fname, count=-1, dtype=np.float64)
-                elif hdr[1]==4:
-                    self.gasvel = np.fromfile(fname, count=-1, dtype=float)
-                else:
-                    print 'ERROR'
-                    print 'Unknown datatype in '+fname
-                    return
-                self.gasvel = np.reshape(self.gasvel[3:], [self.grid.nz,self.grid.ny,self.grid.nx,3])
-                self.gasvel = np.swapaxes(self.gasvel, 0, 2)
-
-            else:
-                self.gasvel=-1
-            
+                return
+                
 
         else:
+            
             if fname=='':
                 fname = 'gas_velocity.inp'
 
-            if (self.grid.nx==-1):
-                self.grid.readGrid()
-
-            print 'Reading gas velocity'
-
-            rfile = -1
-
-            try :
-                rfile = open(fname, 'r')
-            except:
-                print 'Error!' 
-                print fname+' was not found!'
-                
-            if (rfile!=(-1)):            
-                dum = rfile.readline()
-                dum = int(rfile.readline())
-                
-                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                    print 'Error!'
-                    print 'Number of self.grid.points in amr_grid.inp is not equal to that in gas_velocity.inp'
+            # If we have an octree grid
+            if isinstance(self.grid, radmc3dOctree):
+                if os.path.isfile(fname):
+                    self.gasvel = np.loadtxt(fname, skiprows=2)
                 else:
-                    
-                    self.gasvel = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=np.float64)
-                    
-                    for k in range(self.grid.nz):
-                        for j in range(self.grid.ny):
-                            for i in range(self.grid.nx):
-                                dum = rfile.readline().split()
-                                self.gasvel[i,j,k,0] = float(dum[0])
-                                self.gasvel[i,j,k,1] = float(dum[1])
-                                self.gasvel[i,j,k,2] = float(dum[2])
-    #                            self.gasvel[i,j,k,:] = [float(dum[i]) for i in range(3)]
-
+                    print 'Error!' 
+                    print fname+' was not found!'
             else:
-                self.gasvel = -1                            
+                print 'Reading gas velocity'
 
-            rfile.close()
+                rfile = -1
+
+                try :
+                    rfile = open(fname, 'r')
+                except:
+                    print 'Error!' 
+                    print fname+' was not found!'
+                    
+                if (rfile!=(-1)):            
+                    dum = rfile.readline()
+                    dum = int(rfile.readline())
+                    
+                    if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                        print 'Error!'
+                        print 'Number of self.grid.points in amr_grid.inp is not equal to that in gas_velocity.inp'
+                    else:
+                        
+                        self.gasvel = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=np.float64)
+                        
+                        for k in range(self.grid.nz):
+                            for j in range(self.grid.ny):
+                                for i in range(self.grid.nx):
+                                    dum = rfile.readline().split()
+                                    self.gasvel[i,j,k,0] = float(dum[0])
+                                    self.gasvel[i,j,k,1] = float(dum[1])
+                                    self.gasvel[i,j,k,2] = float(dum[2])
+        #                            self.gasvel[i,j,k,:] = [float(dum[i]) for i in range(3)]
+
+                else:
+                    self.gasvel = -1                            
+
+                rfile.close()
 # --------------------------------------------------------------------------------------------------
     def readVTurb(self, fname='', binary=True, octree=False):
         """Reads the turbulent velocity field. 
@@ -2967,8 +3116,12 @@ class radmc3dData(object):
                   If the data is defined on an octree-like AMR
         """
         
-        if (self.grid.nx==-1):
-            self.grid.readGrid()
+        if self.grid is None:
+            if octree:
+                self.grid = radmc3dOctree()
+            else:
+                self.grid = radmc3dGrid()
+                self.grid.readGrid(old=old)
             
         print 'Reading microturbulence'
 
@@ -3000,8 +3153,12 @@ class radmc3dData(object):
                   If the data is defined on an octree-like AMR
         """
         
-        if (self.grid.nx==-1):
-            self.grid.readGrid()
+        if self.grid is None:
+            if octree:
+                self.grid = radmc3dOctree()
+            else:
+                self.grid = radmc3dGrid()
+                self.grid.readGrid(old=old)
            
 
         if binary:
@@ -3033,8 +3190,12 @@ class radmc3dData(object):
                   If the data is defined on an octree-like AMR
         """
       
-        if (self.grid.nx==-1):
-            self.grid.readGrid()
+        if self.grid is None:
+            if octree:
+                self.grid = radmc3dOctree()
+            else:
+                self.grid = radmc3dGrid()
+                self.grid.readGrid(old=old)
             
         print 'Reading gas temperature'
 
@@ -3081,7 +3242,10 @@ class radmc3dData(object):
 
             print 'Writing '+fname
 
-            self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary, octree=octree)
+            if octree:
+                self._scalarfieldWriter(data=self.grid.tree2Leaf(self.rhodust), fname=fname, binary=binary, octree=True)
+            else:
+                self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary, octree=False)
 
         # 
         # Write dust density for the previous 2D version of the code
@@ -3133,7 +3297,10 @@ class radmc3dData(object):
                 fname = 'dust_temperature.dat'
 
         print 'Writing '+fname
-        self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary, octree=octree)
+        if octree:
+            self._scalarfieldWriter(data=self.grid.tree2Leaf(self.dusttemp), fname=fname, binary=binary, octree=True)
+        else:
+            self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary, octree=False)
     
 # --------------------------------------------------------------------------------------------------
     def writeGasDens(self, fname='', ispec='',binary=True, octree=False):
@@ -3169,7 +3336,10 @@ class radmc3dData(object):
                     fname = 'numberdens_'+ispec+'.inp'
 
             print 'Writing '+fname
-            self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary, octree=octree)
+            if octree:
+                self._scalarfieldWriter(data=self.grid.tree2Leaf(self.ndens_mol), fname=fname, binary=binary, octree=True)
+            else:
+                self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary, octree=False)
         
        
 # --------------------------------------------------------------------------------------------------
@@ -3196,7 +3366,10 @@ class radmc3dData(object):
                 fname = 'gas_temperature.inp'
 
         print 'Writing '+fname
-        self._scalarfieldWriter(data=self.gastemp, fname=fname, binary=binary, octree=octree)
+        if octree:
+            self._scalarfieldWriter(data=self.grid.tree2Leaf(self.gastemp), fname=fname, binary=binary, octree=True)
+        else:
+            self._scalarfieldWriter(data=self.gastemp, fname=fname, binary=binary, octree=False)
    
 # --------------------------------------------------------------------------------------------------
     def writeGasVel(self, fname='', binary=True):
@@ -3231,18 +3404,31 @@ class radmc3dData(object):
         else:
             if fname=='':
                 fname = 'gas_velocity.inp'
-
-            wfile = open(fname, 'w')
             
-            wfile.write('%d\n'%1)
-            wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+            # If we have an octree grid
+            if isinstance(self.grid, radmc3dOctree):
+                hdr = "1\n"
+                hdr += ("%d\n"%self.grid.nLeaf)
+                try:
+                    np.savetxt(fname, self.gasvel, fmt="%.9 %.9 %.9", header=hdr, comments='')
+                except Exception as e:
+                    print e
+            else:
+                #hdr = "1\n"
+                #hdr += ('%d'%(self.grid.nx*self.grid.ny*self.grid.nz))
+                #np.savetxt(fname, self.gasvel, fmt="%.9 %.9 %.9", header=hdr, comments='')
 
-            for iz in range(self.grid.nz):
-                for iy in range(self.grid.ny):
-                    for ix in range(self.grid.nx):
-                        wfile.write("%9e %9e %9e\n"%(self.gasvel[ix,iy,iz,0], self.gasvel[ix,iy,iz,1], self.gasvel[ix,iy,iz,2]))
-                    
-            wfile.close()
+                wfile = open(fname, 'w')
+                
+                wfile.write('%d\n'%1)
+                wfile.write('%d\n'%(self.grid.nx*self.grid.ny*self.grid.nz))
+
+                for iz in range(self.grid.nz):
+                    for iy in range(self.grid.ny):
+                        for ix in range(self.grid.nx):
+                            wfile.write("%9e %9e %9e\n"%(self.gasvel[ix,iy,iz,0], self.gasvel[ix,iy,iz,1], self.gasvel[ix,iy,iz,2]))
+                        
+                wfile.close()
         print 'Writing '+fname
 # --------------------------------------------------------------------------------------------------
     def writeVTurb(self, fname='', binary=True, octree=False):
@@ -3269,7 +3455,10 @@ class radmc3dData(object):
                 fname = 'microturbulence.inp'
 
         print 'Writing '+fname
-        self._scalarfieldWriter(data=self.vturb, fname=fname, binary=binary, octree=octree)
+        if octree:
+            self._scalarfieldWriter(data=self.grid.tree2Leaf(self.vturb), fname=fname, binary=binary, octree=True)
+        else:
+            self._scalarfieldWriter(data=self.vturb, fname=fname, binary=binary, octree=False)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -3737,7 +3926,7 @@ class radmc3dRadSources(object):
         dum = rfile.readline().split()
         self.nstar = int(dum[0])
         #self.grid  = radmc3dGrid()
-        self.grid  = readGrid(spatial=False)
+        self.grid  = readGrid(sgrid=False)
         self.grid.nwav  = int(dum[1])
         self.grid.nfreq = self.grid.nwav
         self.rstar = []
@@ -6092,9 +6281,10 @@ class radmc3dPar(object):
         # Grid parameters
         #
         self.setPar(['crd_sys', "'sph'", '  Coordinate system used (car/cyl)', 'Grid parameters']) 
-        self.setPar(['nx', '50', '  Number of grid points in the first dimension', 'Grid parameters']) 
-        self.setPar(['ny', '30', '  Number of grid points in the second dimension', 'Grid parameters'])
-        self.setPar(['nz', '36', '  Number of grid points in the third dimension', 'Grid parameters'])
+        self.setPar(['grid_style', '0', '  0 - Regular grid, 1 - Octree AMR, 10 - Layered/nested grid (not yet supported)', 'Grid parameters'])
+        self.setPar(['nx', '50', '  Number of grid points in the first dimension (to switch off this dimension set it to 0)', 'Grid parameters']) 
+        self.setPar(['ny', '30', '  Number of grid points in the second dimension (to switch off this dimension set it to 0)', 'Grid parameters'])
+        self.setPar(['nz', '36', '  Number of grid points in the third dimension (to switch off this dimension set it to 0)', 'Grid parameters'])
         self.setPar(['xbound', '[1.0*au, 100.*au]', '  Boundaries for the x grid', 'Grid parameters'])
         self.setPar(['ybound', '[0.0, pi]', '  Boundaries for the y grid', 'Grid parameters'])
         self.setPar(['zbound', '[0.0, 2.0*pi]', '  Boundraries for the z grid', 'Grid parameters'])
@@ -6103,6 +6293,7 @@ class radmc3dPar(object):
         self.setPar(['xres_nstep', '3', 'Number of grid cells to create in a refinement level (spherical coordinates only)', 'Grid parameters'])
         self.setPar(['wbound', '[0.1, 7.0, 25., 1e4]', '  Boundraries for the wavelength grid', 'Grid parameters'])
         self.setPar(['nw', '[19, 50, 30]', '  Number of points in the wavelength grid', 'Grid parameters'])
+        self.setPar(['levelMaxLimit', '5', '  Highest refinement level in octree AMR', 'Grid parameters'])
 
         #
         # Dust opacity
@@ -6124,8 +6315,7 @@ class radmc3dPar(object):
         self.setPar(['gasspec_mol_dbase_type',"['leiden']", '  leiden or linelist', 'Gas line RT'])
         self.setPar(['gasspec_colpart_name', "['h2']", '  Name of the gas species - the extension of the molecule_EXT.inp file', 'Gas line RT'])
         self.setPar(['gasspec_colpart_abun', '[1e0]', '  Abundance of the molecule', 'Gas line RT']) 
-        #self.setPar(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
-        #self.setPar(['writeGasTemp', 'False', '  Whether or not to write a separate gas temperature file (gas_temperature.inp) if such function exists in the model', 'Gas line RT'])
+        self.setPar(['gasspec_vturb', '0.1e5', '  Microturbulence', 'Gas line RT'])
         #
         # Code parameters
         #
@@ -6340,7 +6530,7 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
 
     res = radmc3dData()
     if octree:
-        res.grid = radmc3dTree()
+        res.grid = radmc3dOctree()
         res.grid.readGrid()
     else:
         res.grid = radmc3dGrid()
@@ -6379,7 +6569,7 @@ def readGrid(sgrid=True, wgrid=True):
     Returns
     -------
 
-    Returns an instance of the radmc3dGrid (for regular grid) or radmc3dTree (for octree AMR) class 
+    Returns an instance of the radmc3dGrid (for regular grid) or radmc3dOctree (for octree AMR) class 
     """
 
     #
@@ -6389,7 +6579,7 @@ def readGrid(sgrid=True, wgrid=True):
     if hdr[1] == 0:
         grid = radmc3dGrid()
     elif hdr[1] == 1:
-        grid = radmc3dTree()
+        grid = radmc3dOctree()
     else:
         print 'ERROR'
         print 'Unsupported amr_style', hdr[1]
@@ -7248,7 +7438,7 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
                 x_label = 'r'
                 y_label = r'$\theta$'
                 if au == True:
-                    xx /= nc.au
+                    xx /= au
                     x_label += ' [AU]'
                 else:
                     x_label += ' [cm]'
@@ -7271,8 +7461,8 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
                 y_label = 'y'
 
                 if au == True:
-                    xx /= nc.au
-                    yy /= nc.au
+                    xx /= au
+                    yy /= au
                     x_label += ' [AU]'
                     y_label += ' [AU]'
                 else:
@@ -7314,7 +7504,7 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
                 x_label = 'r'
                 y_label = r'$\phi$'
                 if au == True:
-                    xx /= nc.au
+                    xx /= au
                     x_label += ' [AU]'
                 else:
                     x_label += ' [cm]'
@@ -7336,8 +7526,8 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
                 y_label = 'y'
                
                 if au == True:
-                    xx /= nc.au
-                    yy /= nc.au
+                    xx /= au
+                    yy /= au
                     x_label += ' [AU]'
                     y_label += ' [AU]'
                 else:
@@ -7403,8 +7593,8 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
                 y_label = 'y'
                 
                 if au == True:
-                    xx /= nc.au
-                    yy /= nc.au
+                    xx /= au
+                    yy /= au
                     x_label += ' [AU]'
                     y_label += ' [AU]'
                 else:
@@ -7475,7 +7665,7 @@ def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None
     
     return {'ax':ax, 'cb':cbar}
 
-def gasdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=None, par=None):
+def gdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=None, **kwargs):
     """
     Example function to be used as decision function for resolving cells in tree building. It calculates the gas density
     at a random sample of coordinates within a given cell than take the ratio of the max/min density. If it is larger
@@ -7509,15 +7699,29 @@ def gasdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None,
     ppar    : dictionary
               All parameters of the problem (from the problem_params.inp file). It is not used here, but must be present 
               for compatibility reasons.
-
-    par     : dictionary
+    
+    nsample : int
+              Number of coordinate points at which the gas density in the cell should be sampled
+    
+    **kwargs: dictionary
               Parameters used to decide whether the cell should be resolved. It should the following keywords; 'nsample', 
               which sets the number of random points the gas desity is sampled at within the cell and 'threshold' that
               sets the threshold value for max(gasdens)/min(gasdens) above which the cell should be resolved.
     """
+
     ncell   = x.shape[0]
-    rho     = np.zeros([ncell, nsample], dtype=np.float64)
-    for isample in range(par['nsample']):
+    rho     = np.zeros([ncell, kwargs['nsample']], dtype=np.float64)
+
+    dummy_offset = np.array([-0.5, 0.5], dtype=np.float64)
+    
+    #xoffset = np.array([-0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5], dtype=np.float64)*dx*4.
+    #yoffset = np.array([-0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5], dtype=np.float64)*dy*4.
+    #zoffset = np.array([-0.5, -0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5], dtype=np.float64)*dz*4.
+    
+    #for i in range(xoffset.shape[0]):
+        #rho[:,i] = model.getGasDensity(x=x+xoffset[i], y=y+yoffset[i], z=z+zoffset[i], ppar=ppar)
+
+    for isample in range(kwargs['nsample']):
         xoffset  = (np.random.random_sample(ncell)-0.5)*dx*4.0
         yoffset  = (np.random.random_sample(ncell)-0.5)*dy*4.0
         zoffset  = (np.random.random_sample(ncell)-0.5)*dz*4.0
@@ -7525,7 +7729,7 @@ def gasdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None,
 
     rho_max = rho.max(axis=1)
     rho_min = rho.min(axis=1)
-    jj      = ((rho_max/rho_min)>par['threshold'])
+    jj      = ((rho_max/rho_min)>ppar['threshold'])
     
     decision = np.zeros(ncell, dtype=bool)
     if True in jj:
@@ -7533,7 +7737,7 @@ def gasdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None,
 
     return decision
 
-def findContainerLeafID(cellCRD=None, cellHW=None, xi=None, yi=None, zi=None, childID=None, isLeaf=None, nChild=None, crdList=None):
+def findContainerLeafID(cellCRD=None, cellHW=None, xi=None, yi=None, zi=None, childID=None, isLeaf=None, nChild=None, crd=None):
     """
     Function to find the tree index of a leaf cell containing a given point in space, i.e. if the following is true : 
     xcell - dxcell <= xpoint < xcell + dxcell for each dimension. This function is to be used in multiprocessing.
@@ -7565,8 +7769,8 @@ def findContainerLeafID(cellCRD=None, cellHW=None, xi=None, yi=None, zi=None, ch
     nChild          : int
                       Number of children (8,4,2 for 3,2,1 active dimensions)
 
-    crdList         : ndarray
-                      Array with dimensions [npoint, 3] containing the coordinates of the points whose container
+    crd             : ndarray
+                      Array of length 3 containing the coordinates of the point whose container
                       leaf is to be found
 
     Returns:
@@ -7575,46 +7779,44 @@ def findContainerLeafID(cellCRD=None, cellHW=None, xi=None, yi=None, zi=None, ch
 
     """
 
-    leafID = np.zeros(crdList.shape[0], dtype=np.int)-1
+    leafID = -1
 
-    for i in range(crdList.shape[0]):
-        crd = crdList[i]
-        if (crd[0]<xi[0])|(crd[0]>xi[-1]):
-            return leafID
-        if (crd[1]<yi[0])|(crd[1]>yi[-1]):
-            return leafID
-        if (crd[2]<zi[0])|(crd[2]>zi[-1]):
-            return leafID
+    if (crd[0]<xi[0])|(crd[0]>xi[-1]):
+        return leafID
+    if (crd[1]<yi[0])|(crd[1]>yi[-1]):
+        return leafID
+    if (crd[2]<zi[0])|(crd[2]>zi[-1]):
+        return leafID
 
-     
-        ix = np.searchsorted(xi, crd[0])
-        iy = np.searchsorted(yi, crd[1])
-        iz = np.searchsorted(zi, crd[2])
-       
-        if xi[ix]!=crd[0]:
-            ix -= 1
-        if yi[iy]!=crd[1]:
-            iy -= 1
-        if zi[iz]!=crd[2]:
-            iz -= 1
+ 
+    ix = np.searchsorted(xi, crd[0])
+    iy = np.searchsorted(yi, crd[1])
+    iz = np.searchsorted(zi, crd[2])
+   
+    if xi[ix]!=crd[0]:
+        ix -= 1
+    if yi[iy]!=crd[1]:
+        iy -= 1
+    if zi[iz]!=crd[2]:
+        iz -= 1
 
-        nxRoot = xi.shape[0]-1
-        nyRoot = yi.shape[0]-1
-        nzRoot = zi.shape[0]-1
+    nxRoot = xi.shape[0]-1
+    nyRoot = yi.shape[0]-1
+    nzRoot = zi.shape[0]-1
 
-        if crd[0]==xi[-1]:
-            ix = nxRoot-1
-        if crd[1]==yi[-1]:
-            iy = nyRoot-1
-        if crd[2]==zi[-1]:
-            iz = nzRoot-1
-      
-        ind       = iz*nyRoot*nxRoot + iy*nxRoot + ix
-        dum = findContainerLeafIDrec(cellCRD[:,0], cellCRD[:,1], cellCRD[:,2], cellHW[:,0], cellHW[:,1], cellHW[:,2], ChildID, isLeaf, nChild, crd, ind)
-        if dum is None:
-            leafID[i] = -1
-        else:
-            leafID[i] = dum
+    if crd[0]==xi[-1]:
+        ix = nxRoot-1
+    if crd[1]==yi[-1]:
+        iy = nyRoot-1
+    if crd[2]==zi[-1]:
+        iz = nzRoot-1
+  
+    ind       = iz*nyRoot*nxRoot + iy*nxRoot + ix
+    dum = findContainerLeafIDRec(cellCRD[:,0], cellCRD[:,1], cellCRD[:,2], cellHW[:,0], cellHW[:,1], cellHW[:,2], childID, isLeaf, nChild, crd, ind)
+    if dum is None:
+        leafID = -1
+    else:
+        leafID = dum
 
     return leafID
 
@@ -7661,12 +7863,12 @@ def findContainerLeafIDRec(x=None, y=None, z=None, dx=None, dy=None, dz=None, ch
     """
         
 
-    xmin = treeCRDx[cellID] - treeDXx[cellID]
-    xmax = treeCRDx[cellID] + treeDXx[cellID]
-    ymin = treeCRDy[cellID] - treeDXy[cellID]
-    ymax = treeCRDy[cellID] + treeDXy[cellID]
-    zmin = treeCRDz[cellID] - treeDXz[cellID]
-    zmax = treeCRDz[cellID] + treeDXz[cellID]
+    xmin = x[cellID] - dx[cellID]
+    xmax = x[cellID] + dx[cellID]
+    ymin = y[cellID] - dy[cellID]
+    ymax = y[cellID] + dy[cellID]
+    zmin = z[cellID] - dz[cellID]
+    zmax = z[cellID] + dz[cellID]
 
     if isLeaf[cellID]:
         if (((crd[0]>=xmin) & (crd[0]<xmax)) &
@@ -7678,7 +7880,7 @@ def findContainerLeafIDRec(x=None, y=None, z=None, dx=None, dy=None, dz=None, ch
             
     else:
         for i in range(nChild):
-            dum = findContainerLeafIDrec(x, y, z, dx, dy, dz, childID, isLeaf, nChild, crd, childID[cellID][i])
+            dum = findContainerLeafIDRec(x, y, z, dx, dy, dz, childID, isLeaf, nChild, crd, childID[cellID][i])
             if dum is not None:
                 break
         
@@ -7691,8 +7893,8 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
     data        : radmc3dData
                   Data container
     
-    grid        : radmc3dTree
-                  An instance of a radmc3dTree containing the octree amr grid
+    grid        : radmc3dOctree
+                  An instance of a radmc3dOctree containing the octree amr grid
 
     x           : ndarray
                   Coordiantes of the point to be interpolated on in the first dimension
@@ -7760,86 +7962,84 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
             crdList[ind,0] = x[ix]
             crdList[ind,1] = y[iy]
             crdList[ind,2] = z[iz]
+       
       
         pool   = Pool(processes=nproc)
         target = partial(findContainerLeafID, cellCRD, cellHW, grid.xi, grid.yi, grid.zi, childID, grid.isLeaf, grid.nChild)
         res    = pool.map(target, crdList, chunksize=chunkSize)
         res    = np.array(res)
         pool.close()
-
-
+            
         idata  = {}
+        idata['cellID'] = res
+        #for i in range(1, len(res)):
+            #idata['cellID'] = np.append(idata['cellID'], res[i])
 
         if ddens:
-            dummy_idata = np.zeros([nx,ny,nz,data.ndust], dtype=np.float64)
+            ndust = data.rhodust.shape[1]
+            idata['rhodust'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
                 iy  = int(np.floor((ind - ix*ny*nz) / nz))
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
-                if res[ind] is not None:
-                    idata[ix,iy,iz,:] = data.rhodust[grid.leafID[res[ind]],:]
+                #print data.rhodust.shape
+                #print grid.leafID.shape
+                #if res[ind] is not None:
+                if res[ind] >= 0:
+                    idata['rhodust'][ix,iy,iz,:] = data.rhodust[grid.leafID[res[ind]],:]
                 else:
-                    idata[ix,iy,iz,:] = 0
-            
-            idata['rhodust'] = dummy_idata
+                    idata['rhodust'][ix,iy,iz,:] = 0
 
         if dtemp:
-            dummy_idata = np.zeros([nx,ny,nz,data.ndust], dtype=np.float64)
+            ndust = data.dusttemp.shape[1]
+            idata['dusttemp'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
                 iy  = int(np.floor((ind - ix*ny*nz) / nz))
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata[ix,iy,iz,:] = data.dusttemp[grid.leafID[res[ind]],:]
+                    idata['dusttemp'][ix,iy,iz,:] = data.dusttemp[grid.leafID[res[ind]],:]
                 else:
-                    idata[ix,iy,iz,:] = 0
+                    idata['dusttemp'][ix,iy,iz,:] = 0
             
-            idata['dusttemp'] = dummy_idata
-        
         if gdens:
-            dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            idata['ndens_mol'] = np.zeros([nx,ny,nz], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
                 iy  = int(np.floor((ind - ix*ny*nz) / nz))
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata[ix,iy,iz] = data.ndens_mol[grid.leafID[res[ind]]]
+                    idata['ndens_mol'][ix,iy,iz] = data.ndens_mol[grid.leafID[res[ind]]]
                 else:
-                    idata[ix,iy,iz] = 0
+                    idata['ndens_mol'][ix,iy,iz] = 0
             
-            idata['ndens_mol'] = dummy_idata
-        
         if gtemp:
-            dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            idata['gastemp'] = np.zeros([nx,ny,nz], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
                 iy  = int(np.floor((ind - ix*ny*nz) / nz))
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata[ix,iy,iz] = data.gastemp[grid.leafID[res[ind]]]
+                    idata['gastemp'][ix,iy,iz] = data.gastemp[grid.leafID[res[ind]]]
                 else:
-                    idata[ix,iy,iz] = 0
+                    idata['gastemp'][ix,iy,iz] = 0
             
-            idata['gastemp'] = dummy_idata
-
         if vturb:
-            dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            idata['vturb'] = np.zeros([nx,ny,nz], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
                 iy  = int(np.floor((ind - ix*ny*nz) / nz))
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata[ix,iy,iz] = data.vturb[grid.leafID[res[ind]]]
+                    idata['vturb'][ix,iy,iz] = data.vturb[grid.leafID[res[ind]]]
                 else:
-                    idata[ix,iy,iz] = 0
+                    idata['vturb'][ix,iy,iz] = 0
             
-            idata['vturb'] = dummy_idata
-
     else:
 
         idata  = {}
@@ -7847,7 +8047,7 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
             ndust = data.rhodust.shape[1]
             idata['rhodust'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
         if dtemp:
-            ndust = data.rhodust.shape[1]
+            ndust = data.dusttemp.shape[1]
             idata['dusttemp'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
         if gdens:
             idata['ndens_mol'] = np.zeros([nx,ny,nz], dtype=np.float64)
@@ -7857,6 +8057,8 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
             idata['vturb'] = np.zeros([nx,ny,nz], dtype=np.float64)
         
         dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
+            
+        idata['cellID'] = np.zeros(npoint, dtype=np.int)
 
         for ind in range(npoint):
 
@@ -7865,8 +8067,9 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
             iz  = int(ind - ix*ny*nz - iy*nz)
 
             cellID = grid.getContainerLeafID((x[ix], y[iy], z[iz]))
-          
+                
             if cellID is not None:
+                idata['cellID'][ind] = cellID
                 if ddens:
                     idata['rhodust'][ix,iy,iz,:] = data.rhodust[grid.leafID[cellID]]
                 if dtemp:
@@ -7881,18 +8084,97 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
         
     return idata
 
-def plotAMRSlice(data=None, tree=None, plane='xy', crd3=0., xlim=(), ylim=(), nx=200, ny=200, log=False, vmin=None, vmax=None,\
-        ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, au=True, idust=None, nproc=1, **kwargs):
+def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, gridcolor='k', gridalpha=1.0,\
+        xlim=(), ylim=(), nx=200, ny=200, log=False, \
+        vmin=None, vmax=None, ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, \
+        linunit='cm', angunit='rad', idust=None, nproc=1, **kwargs):
     """
+    Function to create a slice plot of the disk structure along any axis-aligned plane. Any additional keyword
+    argument above the listed ones will be passed on to matplotlib.pylab.pcolormesh(). The plot did not use the 
+    variables on the octree AMR mesh directly. It interpolated first to a regular grid on which the data is displayed.
+    The size and resolution of the regular image grid can be set at input. 
+
+    Parameters:
+    -----------
+
+    data        : radmc3dData
+                  Instance of radmc3dData containing the field variable to be displayed
+
+    grid        : radmc3dOctree
+                  Tree container 
+
+    plane       : {'xy', 'yx', 'xz', 'zx', 'yz', 'zy'}
+                  Plane to be displayed           
+
+    crd3        : float
+                  Coordinate of the third dimension (i.e. when plotting a slice in the x-y plane, crd3 is the z-coordinate)
+    
+    showgrid    : bool
+                  Whether or not display the AMR mesh structure
+    
+    gridcolor   : str
+                  Color of the AMR cell boundaries
+
+    gridalpha   : float
+                  Alpha (transparency) value of the cell boundaries to be displayed (0 fully transparent, 1 fully opaque)
+
+    xlim        : tuple
+                  Coordinate boundaries in the first dimension of the regular image grid
+
+    ylim        : tuple
+                  Coordinate boundaries in the second dimension of the regular image grid
+
+    nx          : int
+                  Number of grid points in the first dimension of the regular image grid
+    
+    ny          : int
+                  Number of grid points in the second dimension of the regular image grid
+
+    log         : bool
+                  If True the contour/image will be displayed on a logarithmic stretch
+    
+    vmin        : float
+                  Minimum scalar value to be displayed
+        
+    vmax        : float
+                  Maximum scalar value to be displayed
+
+    ddens       : bool
+                  If True the dust density will be displayed
+
+    dtemp       : bool
+                  If True the dust temperature will be displayed
+
+    gdens       : bool
+                  If True the molecular number density will be displayed
+
+    gtemp       : bool
+                  If True the gas temperature  will be displayed
+
+    vturb       : bool
+                  If True the turbulent velocity will be displayed
+
+    linunit     : {'cm', 'au', 'pc', 'rs'}
+                  Unit selection for linear image coordinate axes.
+
+    angunit     : {'rad', 'deg'}
+                  Unit selection for angular image coordinate axes (only if spherical coordinate system is used).
+
+    idust       : int
+                  Index of dust species to be displayed. If negative dust densities will be summed up and the total cumulative dust 
+                  density is displayed
+
+    nproc       : int
+                  Number of processes to be used for interpolation. 
 
     """
-    if tree is None:
+    if grid is None:
         if data.grid is None:
             print 'ERROR'
             print 'Spatial grid is not found as a member of the data class or was specified at input'
             return
         else:
-            tree = data.grid
+            grid = data.grid
     # First check if there is anything to plot
     nothing2plot = True
     if ddens:
@@ -7919,61 +8201,123 @@ def plotAMRSlice(data=None, tree=None, plane='xy', crd3=0., xlim=(), ylim=(), nx
     plane = plane.lower()
 
     swapDim = False
+    xnorm = 1.0
+    ynorm = 1.0
+    znorm = 1.0
+
+    if (linunit.strip().lower() == 'cm'):
+        linunit_label = '[cm]'
+        linunit_norm = 1.
+    elif (linunit.strip().lower() == 'au'):
+        linunit_label = '[au]'
+        linunit_norm = 1./au
+    elif (linunit.strip().lower() == 'pc'):
+        linunit_label = '[pc]'
+        linunit_norm = 1./pc
+    elif (linunit.strip().lower() == 'rs'):
+        linunit_label = r'[R$_\odot$]'
+        linunit_norm = 1./rs
+    else:
+        print 'ERROR'
+        print 'Unknown linear unit length ', linunit
+        print 'Supported units are : cm, au, pc, rs'
+        return
+
+
+    if (angunit.strip().lower() == 'rad'):
+        angunit_label = '[rad]'
+        angunit_norm  = 1.0
+    elif (angunit.strip().lower() == 'deg'):
+        angunit_label = '[deg]'
+        angunit_norm  = np.pi/180.
+    else:
+        print 'ERROR'
+        print 'Unknown angular unit length ', linunit
+        print 'Supported units are : rad, deg'
+        return
+
+
     if 'x' in plane:
         # xy plane
         if 'y' in plane:
-            if tree.crd_sys == 'car':
-                xlabel = r'$x$ [cm]'
-                ylabel = r'$y$ [cm]'
+            if grid.crd_sys == 'car':
+                xlabel = r'x '+linunit_label
+                ylabel = r'y '+linunit_label
+                xnorm  = linunit_norm
+                ynorm  = linunit_norm
             else:
-                xlabel = '$r$ [cm]'
-                ylabel = '$\theta$ [rad]'
+                xlabel = 'r '+linunit_label
+                ylabel = '$\theta$ '+angunit_label
+                xnorm  = linunit_norm
+                ynorm  = angunit_norm
                 
             if plane == 'yx':
                 swapDim = True
-                if tree.crd_sys == 'car':
-                    xlabel = r'$y$ [cm]'
-                    ylabel = r'$x$ [cm]'
+                if grid.crd_sys == 'car':
+                    xlabel = r'y '+linunit_label
+                    ylabel = r'x '+linunit_label
+                    xnorm  = linunit_norm
+                    ynorm  = linunit_norm
                 else:
-                    xlabel = '$\theta$ [rad]'
-                    ylabel = '$r$ [cm]'
-            idata = interpolateOctree(data, tree, x=plot_x, y=plot_y, z=plot_z, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+                    xlabel = '$\theta$ '+angunit_label
+                    ylabel = 'r '+linunit_label
+                    xnorm  = angunit_norm
+                    ynorm  = linunit_norm
+
+            idata = interpolateOctree(data, grid, x=plot_x/xnorm, y=plot_y/ynorm, z=plot_z, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
         # xz plane
         elif 'z' in plane:
-            if tree.crd_sys == 'car':
-                xlabel = r'$x$ [cm]'
-                ylabel = r'$z$ [cm]'
+            if grid.crd_sys == 'car':
+                xlabel = r'x '+linunit_label
+                ylabel = r'z '+linunit_label
+                xnorm  = linunit_norm
+                ynorm  = linunit_norm
             else:
-                xlabel = '$r$ [cm]'
-                ylabel = '$\phi$ [rad]'
+                xlabel = 'r '+linunit_label
+                ylabel = '$\phi$ '+angunit_label
+                xnorm  = linunit_norm
+                ynorm  = angunit_norm
             if plane == 'zx':
                 swapDim = True
-                if tree.crd_sys == 'car':
-                    xlabel = r'$z$ [cm]'
-                    ylabel = r'$x$ [cm]'
+                if grid.crd_sys == 'car':
+                    xlabel = r'z '+linunit_label
+                    ylabel = r'x '+linunit_label
+                    xnorm  = linunit_norm
+                    ynorm  = linunit_norm
                 else:
-                    xlabel = '$\phi$ [rad]'
-                    ylabel = '$r$ [cm]'
-            idata = interpolateOctree(data, tree, x=plot_x, y=plot_z, z=plot_y, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+                    xlabel = '$\phi$ '+angunit_label
+                    ylabel = 'r '+linunit_label
+                    xnorm  = angunit_norm
+                    ynorm  = linunit_norm
+
+            idata = interpolateOctree(data, grid, x=plot_x/xnorm, y=plot_z, z=plot_y/ynorm, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
     # yz plane
     else:
-        if tree.crd_sys == 'car':
-            xlabel = r'$y$ [cm]'
-            ylabel = r'$z$ [cm]'
+        if grid.crd_sys == 'car':
+            xlabel = r'y '+linunit_label
+            ylabel = r'z '+linunit_label
+            xnorm  = linunit_norm
+            ynorm  = linunit_norm
+
         else:
-            xlabel = '$\theta$ [rad]'
-            ylabel = '$\phi$ [rad]'
+            xlabel = '$\theta$ '+angunit_label
+            ylabel = '$\phi$ '+angunit_label
+            xnorm  = angunit_norm
+            ynorm  = angunit_norm
         if plane == 'zy':
             swapDim = True
-            if tree.crd_sys == 'car':
-                xlabel = r'$z$ [cm]'
-                ylabel = r'$y$ [cm]'
+            if grid.crd_sys == 'car':
+                xlabel = r'z '+linunit_label
+                ylabel = r'y '+linunit_label
+                xnorm  = linunit_norm
+                ynorm  = linunit_norm
             else:
-                xlabel = '$\phi$ [rad]'
-                ylabel = '$\theta$ [rad]'
-        idata = interpolateOctree(data, tree, x=plot_z, y=plot_x, z=plot_y, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+                xlabel = '$\phi$ '+angunit_label
+                ylabel = '$\theta$ '+angunit_label
+                xnorm  = angunit_norm
+                ynorm  = angunit_norm
 
-    print idata['rhodust'].min(), idata['rhodust'].max()
+        idata = interpolateOctree(data, grid, x=plot_z, y=plot_x/xnorm, z=plot_y/ynorm, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
 
     if ddens:
         cblabel = r'$\rho_{\rm dust}$ [g/cm$^3$]'
@@ -8007,12 +8351,14 @@ def plotAMRSlice(data=None, tree=None, plane='xy', crd3=0., xlim=(), ylim=(), nx
         dum = np.array(plot_x)
         plot_y = np.array(plot_x)
         plot_x = dum
+
       
     pdata = pdata.clip(1e-90, 1e90)
     if not vmin:
         vmin = pdata.min()
     if not vmax:
         vmax = pdata.max()
+
     #
     # Now we can do the plotting
     #
@@ -8027,5 +8373,65 @@ def plotAMRSlice(data=None, tree=None, plane='xy', crd3=0., xlim=(), ylim=(), nx
     plb.ylabel(ylabel)
     plb.xlim(xlim[0], xlim[1])
     plb.ylim(ylim[0], ylim[1])
+
+
+    if showgrid:
+        ax = plb.gca()
+        import matplotlib.patches as patches
+        ind = 0
+        plottedInd = np.zeros(idata['cellID'].shape[0], dtype=np.int)-1
+
+        if plane.strip().lower() == 'xy':
+            for i in idata['cellID']:
+                if i not in plottedInd:
+                    ind+=1
+                    bottomleft = ((grid.x[i]-grid.dx[i])*xnorm, (grid.y[i]-grid.dy[i])*ynorm)
+                    ax.add_patch(patches.Rectangle(bottomleft, grid.dx[i]*2*xnorm, grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    plottedInd[ind] = i
+
+        elif plane.strip().lower() == 'yx':
+            
+            for i in idata['cellID']:
+                if i not in plottedInd:
+                    ind+=1
+                    bottomleft = ((grid.y[i]-grid.dy[i])*xnorm, (grid.x[i]-grid.dx[i])*ynorm)
+                    ax.add_patch(patches.Rectangle(bottomleft, grid.dy[i]*2*xnorm, grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    plottedInd[ind] = i
+        
+        elif plane.strip().lower() == 'xz':
+            
+            for i in idata['cellID']:
+                if i not in plottedInd:
+                    ind+=1
+                    bottomleft = ((grid.x[i]-grid.dx[i])*xnorm, (grid.z[i]-grid.dz[i])*ynorm)
+                    ax.add_patch(patches.Rectangle(bottomleft, grid.dx[i]*2*xnorm, grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    plottedInd[ind] = i
+
+        elif plane.strip().lower() == 'zx':
+            
+            for i in idata['cellID']:
+                if i not in plottedInd:
+                    ind+=1
+                    bottomleft = ((grid.z[i]-grid.dz[i])*xnorm, (grid.x[i]-grid.dx[i])*ynorm)
+                    ax.add_patch(patches.Rectangle(bottomleft, grid.dz[i]*2*xnorm, grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    plottedInd[ind] = i
+        
+        elif plane.strip().lower() == 'yz':
+            
+            for i in idata['cellID']:
+                if i not in plottedInd:
+                    ind+=1
+                    bottomleft = ((grid.y[i]-grid.y[i])*xnorm, (grid.z[i]-grid.dz[i])*ynorm)
+                    ax.add_patch(patches.Rectangle(bottomleft, grid.dy[i]*2*xnorm, grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    plottedInd[ind] = i
+
+        elif plane.strip().lower() == 'zy':
+            
+            for i in idata['cellID']:
+                if i not in plottedInd:
+                    ind+=1
+                    bottomleft = ((grid.z[i]-grid.dz[i])*xnorm, (grid.y[i]-grid.dy[i])*ynorm)
+                    ax.add_patch(patches.Rectangle(bottomleft, grid.dz[i]*2*xnorm, grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    plottedInd[ind] = i
 
 
