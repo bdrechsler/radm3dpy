@@ -7209,461 +7209,461 @@ def plotSpectrum(a,ev=False,kev=False,hz=False,micron=False,jy=False,lsun=False,
 
 
 # --------------------------------------------------------------------------------------------------
-def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None, ispec=0, xlim=(), ylim=(), 
-        minval=None, maxval=None, contours=False, clev=None, clmin=None, clmax=None, ncl=None, cllog=False, 
-        clcol='k', cmap=None, overlay=False, alpha=1.0, ax=None, projection='spherical', au=True, lattitude=True, 
-        deg=False):
+#def plotStruct2D(d=None, var='ddens', scale='lin', iplane=0, icrd3=0., crd3=None, ispec=0, xlim=(), ylim=(), 
+        #minval=None, maxval=None, contours=False, clev=None, clmin=None, clmax=None, ncl=None, cllog=False, 
+        #clcol='k', cmap=None, overlay=False, alpha=1.0, ax=None, projection='spherical', au=True, lattitude=True, 
+        #deg=False):
 
-    """ 
-    Creates a contour plot of the crossection of the disk at various planes.
+    #""" 
+    #Creates a contour plot of the crossection of the disk at various planes.
 
-    Parameters:
-    -----------
+    #Parameters:
+    #-----------
         
-        d        : radmc3dData
-                   An instance of the radmc3dData class, containing the variable to be plotted
+        #d        : radmc3dData
+                   #An instance of the radmc3dData class, containing the variable to be plotted
 
-        var      : {'ddens', 'dtemp', 'gdens', 'ndens', 'gtemp', 'vx', 'vy', 'vz', 'vturb', 'taux', 'tauy'}
-                   The variable to be plotted
+        #var      : {'ddens', 'dtemp', 'gdens', 'ndens', 'gtemp', 'vx', 'vy', 'vz', 'vturb', 'taux', 'tauy'}
+                   #The variable to be plotted
 
-        scale    : {'lin', 'log'}
-                   Linear or logarithmic scale to be used in the contours
+        #scale    : {'lin', 'log'}
+                   #Linear or logarithmic scale to be used in the contours
 
-    Options:
-    --------
+    #Options:
+    #--------
 
-        contours : bool
-                   If True contour lines are plotted, if False a colorscale plot will be created
+        #contours : bool
+                   #If True contour lines are plotted, if False a colorscale plot will be created
 
-        clev     : ndarray  
-                   A numpy ndarray containing the levels to be displayed with contour lines. If clev is set
-                   then clmin, clmax and ncl are omitted
+        #clev     : ndarray  
+                   #A numpy ndarray containing the levels to be displayed with contour lines. If clev is set
+                   #then clmin, clmax and ncl are omitted
 
-        clmin    : float
-                   Min. contour level (for setting auto-contours between clmin and clmax at ncl values)
+        #clmin    : float
+                   #Min. contour level (for setting auto-contours between clmin and clmax at ncl values)
 
-        clmax    : float
-                   Max. contour level (for setting auto-contours between clmin and clmax at ncl values)
+        #clmax    : float
+                   #Max. contour level (for setting auto-contours between clmin and clmax at ncl values)
         
-        ncl      : float
-                   Number of contour levels (for setting auto-contours between clmin and clmax at ncl values)
+        #ncl      : float
+                   #Number of contour levels (for setting auto-contours between clmin and clmax at ncl values)
 
-        cllog    : bool
-                   If clmin, clmax and ncl are used to generate the contour levels, then if cllog is True
-                   the contours will be log-scaled
+        #cllog    : bool
+                   #If clmin, clmax and ncl are used to generate the contour levels, then if cllog is True
+                   #the contours will be log-scaled
 
-        clcol    : str
-                   Color-code for the contour lines for single color contours
+        #clcol    : str
+                   #Color-code for the contour lines for single color contours
 
-        cmap     : matplotib color map
-                   A color map used that could be used both for the color-scale image and also for the contour
-                   lines if clcol is not set
+        #cmap     : matplotib color map
+                   #A color map used that could be used both for the color-scale image and also for the contour
+                   #lines if clcol is not set
 
-        ax       : matplotlib.Figure.Axis
-                   A matplotlib axis in which the plot should be made
+        #ax       : matplotlib.Figure.Axis
+                   #A matplotlib axis in which the plot should be made
 
-        projection : {'cartesian', 'polar'}
-                   Coordinate system of the plot
+        #projection : {'cartesian', 'polar'}
+                   #Coordinate system of the plot
 
-        au       : bool
-                   If set to true, linear coordinates will have the unit of AU
+        #au       : bool
+                   #If set to true, linear coordinates will have the unit of AU
 
-        lattitude : bool
-                   If the coordinate sytem used in RADMC-3D is spherical, then the 2nd coordiante is the co-lattitude.
-                   If lattitude is set to True then the 2nd coordinate in the RADMC-3D grid will be transformet to true
-                   lattitude (i.e. pi/2.-colattitude). If set to false the original co-lattitude will be used. 
+        #lattitude : bool
+                   #If the coordinate sytem used in RADMC-3D is spherical, then the 2nd coordiante is the co-lattitude.
+                   #If lattitude is set to True then the 2nd coordinate in the RADMC-3D grid will be transformet to true
+                   #lattitude (i.e. pi/2.-colattitude). If set to false the original co-lattitude will be used. 
 
-        deg      : bool
-                   If set to True angular coordinates will be displayed in degrees instead of radians. 
+        #deg      : bool
+                   #If set to True angular coordinates will be displayed in degrees instead of radians. 
                 
-        overlay  : bool
-                   If true the plot will be overlayed over an existing plot on the given axis
+        #overlay  : bool
+                   #If true the plot will be overlayed over an existing plot on the given axis
 
-        alpha    : float
-                   Transparency of the plot (0. - transparent, 1.0 - opaque)
+        #alpha    : float
+                   #Transparency of the plot (0. - transparent, 1.0 - opaque)
              
-    """
+    #"""
 
-    #
-    # Check the input consistency
-    #
-    if d==None:
-        print 'ERROR'
-        print ' No data to be plotted'
+    ##
+    ## Check the input consistency
+    ##
+    #if d==None:
+        #print 'ERROR'
+        #print ' No data to be plotted'
 
-        return 
+        #return 
 
 
-    #
-    # Check what to plot
-    #
-    if var.strip().lower()=='ddens':
-        if type(d.rhodust)==int:  
-            print 'ERROR'
-            print 'Dust density is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.rhodust
-            d_label = r'$\rho_{\rm dust}$ [g/cm$^3$]'
+    ##
+    ## Check what to plot
+    ##
+    #if var.strip().lower()=='ddens':
+        #if type(d.rhodust)==int:  
+            #print 'ERROR'
+            #print 'Dust density is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.rhodust
+            #d_label = r'$\rho_{\rm dust}$ [g/cm$^3$]'
 
-    elif var.strip().lower()=='dtemp':
-        if type(d.dusttemp)==int:  
-            print 'ERROR'
-            print 'Dust temperature is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.dusttemp
-            d_label = r'$T_{\rm dust}$ [K]'
+    #elif var.strip().lower()=='dtemp':
+        #if type(d.dusttemp)==int:  
+            #print 'ERROR'
+            #print 'Dust temperature is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.dusttemp
+            #d_label = r'$T_{\rm dust}$ [K]'
     
-    elif var.strip().lower()=='gdens':
-        if type(d.rhogas)==int:  
-            print 'ERROR'
-            print 'Gas density is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.rhogas
-            d_label = r'$\rho_{\rm gas}$ [g/cm$^3$]'
+    #elif var.strip().lower()=='gdens':
+        #if type(d.rhogas)==int:  
+            #print 'ERROR'
+            #print 'Gas density is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.rhogas
+            #d_label = r'$\rho_{\rm gas}$ [g/cm$^3$]'
     
-    elif var.strip().lower()=='ndens':
-        if type(d.ndens_mol)==int:  
-            print 'ERROR'
-            print 'Gas number density is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.ndens_mol
-            d_label = r'$n_{\rm gas}$ [molecule/cm$^3$]'
+    #elif var.strip().lower()=='ndens':
+        #if type(d.ndens_mol)==int:  
+            #print 'ERROR'
+            #print 'Gas number density is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.ndens_mol
+            #d_label = r'$n_{\rm gas}$ [molecule/cm$^3$]'
     
-    elif var.strip().lower()=='gtemp':
-        if type(d.gastemp)==int:  
-            print 'ERROR'
-            print 'Gas temperture is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.gastemp
-            d_label = r'$T_{\rm gas}$ [K]'
+    #elif var.strip().lower()=='gtemp':
+        #if type(d.gastemp)==int:  
+            #print 'ERROR'
+            #print 'Gas temperture is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.gastemp
+            #d_label = r'$T_{\rm gas}$ [K]'
     
-    elif var.strip().lower()=='vx':
-        if type(d.gvel)==int:  
-            print 'ERROR'
-            print 'Gas velocity is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.gvel[:,:,:,0]
-            d_label = r'$v_{\rm x}$ [cm/s]'
+    #elif var.strip().lower()=='vx':
+        #if type(d.gvel)==int:  
+            #print 'ERROR'
+            #print 'Gas velocity is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.gvel[:,:,:,0]
+            #d_label = r'$v_{\rm x}$ [cm/s]'
     
-    elif var.strip().lower()=='vy':
-        if type(d.gvel)==int:  
-            print 'ERROR'
-            print 'Gas velocity is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.gvel[:,:,:,1]
-            d_label = r'$v_{\rm y}$ [cm/s]'
-    elif var.strip().lower()=='vz':
-        if type(d.gvel)==int:  
-            print 'ERROR'
-            print 'Gas velocity is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.gvel[:,:,:,2]
-            d_label = r'$v_{\rm z}$ [cm/s]'
+    #elif var.strip().lower()=='vy':
+        #if type(d.gvel)==int:  
+            #print 'ERROR'
+            #print 'Gas velocity is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.gvel[:,:,:,1]
+            #d_label = r'$v_{\rm y}$ [cm/s]'
+    #elif var.strip().lower()=='vz':
+        #if type(d.gvel)==int:  
+            #print 'ERROR'
+            #print 'Gas velocity is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.gvel[:,:,:,2]
+            #d_label = r'$v_{\rm z}$ [cm/s]'
     
-    elif var.strip().lower()=='vturb':
-        if type(d.vturb)==int:  
-            print 'ERROR'
-            print 'Microturbulent velocity is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.vturb
-            d_label = r'$v_{\rm turb}$ [cm/s]'
+    #elif var.strip().lower()=='vturb':
+        #if type(d.vturb)==int:  
+            #print 'ERROR'
+            #print 'Microturbulent velocity is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.vturb
+            #d_label = r'$v_{\rm turb}$ [cm/s]'
     
-    if var.strip().lower()=='taux':
-        if type(d.taux)==int:  
-            print 'ERROR'
-            print 'Optical depth is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.taux
-            d_label = r'$\tau_{\rm r}$'
+    #if var.strip().lower()=='taux':
+        #if type(d.taux)==int:  
+            #print 'ERROR'
+            #print 'Optical depth is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.taux
+            #d_label = r'$\tau_{\rm r}$'
     
-    if var.strip().lower()=='tauy':
-        if type(d.tauy)==int:  
-            print 'ERROR'
-            print 'Optical depth is not present in the passed radmc3dData instance'
-            return
-        else:
-            data = d.tauy
-            d_label = r'$\tau_{\rm \theta}$'
+    #if var.strip().lower()=='tauy':
+        #if type(d.tauy)==int:  
+            #print 'ERROR'
+            #print 'Optical depth is not present in the passed radmc3dData instance'
+            #return
+        #else:
+            #data = d.tauy
+            #d_label = r'$\tau_{\rm \theta}$'
 
-    if scale == 'log':
-        data = np.log10(data)
+    #if scale == 'log':
+        #data = np.log10(data)
 
     
-    if contours == True:
-        if clev == None:
-            if clmin == None:
-                clmin = data.min()
-            if clmax == None:
-                clmax = data.max()
-            if ncl == None:
-                ncl = 12
-
-
-    if d.grid.crd_sys == 'sph':
-        # r-theta plane
-        if iplane == 0:
-            # Get the third coordinate index
-            if ( (icrd3 == None) & (crd3 == None) ):
-                print 'ERROR'
-                print 'Either icrd3 or crd3 should be specificied'
-                return 
-            else:
-                if crd3 != None:
-                    icrd3 = abs(d.grid.z - crd3).argmin()
-
-            # Select the data dimensions
-            if len(data.shape)==4:
-                if ispec>=0: 
-                    data = data[:,:,icrd3,ispec]
-                else:
-                    data = data[:,:,icrd3,:]
-                    data.sum(2)
-            else:
-                data = data[:,:,icrd3]
+    #if contours == True:
+        #if clev == None:
+            #if clmin == None:
+                #clmin = data.min()
+            #if clmax == None:
+                #clmax = data.max()
+            #if ncl == None:
+                #ncl = 12
 
 
+    #if data.grid.crd_sys == 'sph':
+        ## r-theta plane
+        #if iplane == 0:
+            ## Get the third coordinate index
+            #if ( (icrd3 == None) & (crd3 == None) ):
+                #print 'ERROR'
+                #print 'Either icrd3 or crd3 should be specificied'
+                #return 
+            #else:
+                #if crd3 != None:
+                    #icrd3 = abs(data.grid.z - crd3).argmin()
 
-            if projection == 'spherical':
-                xx,yy = np.meshgrid(d.grid.x, d.grid.y)
-                x_label = 'r'
-                y_label = r'$\theta$'
-                if au == True:
-                    xx /= au
-                    x_label += ' [AU]'
-                else:
-                    x_label += ' [cm]'
+            ## Select the data dimensions
+            #if len(data.shape)==4:
+                #if ispec>=0: 
+                    #data = data[:,:,icrd3,ispec]
+                #else:
+                    #data = data[:,:,icrd3,:]
+                    #data.sum(2)
+            #else:
+                #data = data[:,:,icrd3]
+
+
+
+            #if projection == 'spherical':
+                #xx,yy = np.meshgrid(data.grid.x, data.grid.y)
+                #x_label = 'r'
+                #y_label = r'$\theta$'
+                #if au == True:
+                    #xx /= au
+                    #x_label += ' [AU]'
+                #else:
+                    #x_label += ' [cm]'
                 
-                if lattitude == True:
-                    yy = np.pi/2.-yy
-                    y_label = r'$\pi/2 - \theta$'
+                #if lattitude == True:
+                    #yy = np.pi/2.-yy
+                    #y_label = r'$\pi/2 - \theta$'
 
-                if deg == True:
-                    yy *= 180./np.pi
-                    y_label += ' [deg]'
-                else:
-                    y_label += ' [rad]'
+                #if deg == True:
+                    #yy *= 180./np.pi
+                    #y_label += ' [deg]'
+                #else:
+                    #y_label += ' [rad]'
 
-            elif projection == 'cartesian':
-                rr,tt = np.meshgrid(d.grid.x, d.grid.y)
-                xx    = rr*np.sin(tt)
-                yy    = rr*np.cos(tt)
-                x_label = 'x'
-                y_label = 'y'
+            #elif projection == 'cartesian':
+                #rr,tt = np.meshgrid(data.grid.x, data.grid.y)
+                #xx    = rr*np.sin(tt)
+                #yy    = rr*np.cos(tt)
+                #x_label = 'x'
+                #y_label = 'y'
 
-                if au == True:
-                    xx /= au
-                    yy /= au
-                    x_label += ' [AU]'
-                    y_label += ' [AU]'
-                else:
-                    x_label += ' [cm]'
-                    y_label += ' [cm]'
+                #if au == True:
+                    #xx /= au
+                    #yy /= au
+                    #x_label += ' [AU]'
+                    #y_label += ' [AU]'
+                #else:
+                    #x_label += ' [cm]'
+                    #y_label += ' [cm]'
 
-            else:
-                print 'ERROR'
-                print 'Unkonwn projection ', projection
-                print 'Projection should be either "spherical", or "cartesian"'
-                return
+            #else:
+                #print 'ERROR'
+                #print 'Unkonwn projection ', projection
+                #print 'Projection should be either "spherical", or "cartesian"'
+                #return
         
-        # r-phi plane
-        elif iplane == 1:
-            # Get the third coordinate index
-            if ( (icrd3 == None) & (crd3 == None) ):
-                print 'ERROR'
-                print 'Either icrd3 or crd3 should be specificied'
-                return 
-            else:
-                if crd3 != None:
-                    if lattitude == True:
-                        icrd3 = abs( (np.pi/2.-d.grid.y) - crd3).argmin()
-                    else:
-                        icrd3 = abs(d.grid.y - crd3).argmin()
+        ## r-phi plane
+        #elif iplane == 1:
+            ## Get the third coordinate index
+            #if ( (icrd3 == None) & (crd3 == None) ):
+                #print 'ERROR'
+                #print 'Either icrd3 or crd3 should be specificied'
+                #return 
+            #else:
+                #if crd3 != None:
+                    #if lattitude == True:
+                        #icrd3 = abs( (np.pi/2.-data.grid.y) - crd3).argmin()
+                    #else:
+                        #icrd3 = abs(data.grid.y - crd3).argmin()
 
-            # Select the data dimensions
-            if len(data.shape)==4:
-                if ispec>=0: 
-                    data = data[:,icrd3,:,ispec]
-                else:
-                    data = data[:,icrd3,:,:]
-                    data.sum(2)
-            else:
-                data = data[:,icrd3,:]
+            ## Select the data dimensions
+            #if len(data.shape)==4:
+                #if ispec>=0: 
+                    #data = data[:,icrd3,:,ispec]
+                #else:
+                    #data = data[:,icrd3,:,:]
+                    #data.sum(2)
+            #else:
+                #data = data[:,icrd3,:]
            
-            if projection == 'spherical':
-                xx,yy = np.meshgrid(d.grid.x, d.grid.z)
-                x_label = 'r'
-                y_label = r'$\phi$'
-                if au == True:
-                    xx /= au
-                    x_label += ' [AU]'
-                else:
-                    x_label += ' [cm]'
+            #if projection == 'spherical':
+                #xx,yy = np.meshgrid(data.grid.x, data.grid.z)
+                #x_label = 'r'
+                #y_label = r'$\phi$'
+                #if au == True:
+                    #xx /= au
+                    #x_label += ' [AU]'
+                #else:
+                    #x_label += ' [cm]'
 
-                if deg == True:
-                    xx *= 180./np.pi
-                    yy *= 180./np.pi
-                    y_label += ' [deg]'
-                else:
-                    y_label += ' [rad]'
+                #if deg == True:
+                    #xx *= 180./np.pi
+                    #yy *= 180./np.pi
+                    #y_label += ' [deg]'
+                #else:
+                    #y_label += ' [rad]'
 
 
-            elif projection == 'cartesian':
+            #elif projection == 'cartesian':
 
-                rr,pp = np.meshgrid(d.grid.x, d.grid.z)
-                xx    = rr*np.sin(tt)
-                yy    = rr*np.cos(tt)
-                x_label = 'x'
-                y_label = 'y'
+                #rr,pp = np.meshgrid(data.grid.x, data.grid.z)
+                #xx    = rr*np.sin(tt)
+                #yy    = rr*np.cos(tt)
+                #x_label = 'x'
+                #y_label = 'y'
                
-                if au == True:
-                    xx /= au
-                    yy /= au
-                    x_label += ' [AU]'
-                    y_label += ' [AU]'
-                else:
-                    x_label += ' [cm]'
-                    y_label += ' [cm]'
+                #if au == True:
+                    #xx /= au
+                    #yy /= au
+                    #x_label += ' [AU]'
+                    #y_label += ' [AU]'
+                #else:
+                    #x_label += ' [cm]'
+                    #y_label += ' [cm]'
 
-            else:
-                print 'ERROR'
-                print 'Unkonwn projection ', projection
-                print 'Projection should be either "spherical", or "cartesian"'
-                return
+            #else:
+                #print 'ERROR'
+                #print 'Unkonwn projection ', projection
+                #print 'Projection should be either "spherical", or "cartesian"'
+                #return
 
 
 
-        # phi-theta plane
-        elif iplane == 2:
+        ## phi-theta plane
+        #elif iplane == 2:
            
-            # Get the third coordinate index
-            if ( (icrd3 == None) & (crd3 == None) ):
-                print 'ERROR'
-                print 'Either icrd3 or crd3 should be specificied'
-                return 
-            else:
-                if crd3 != None:
-                    icrd3 = abs(d.grid.x - crd3).argmin()
+            ## Get the third coordinate index
+            #if ( (icrd3 == None) & (crd3 == None) ):
+                #print 'ERROR'
+                #print 'Either icrd3 or crd3 should be specificied'
+                #return 
+            #else:
+                #if crd3 != None:
+                    #icrd3 = abs(data.grid.x - crd3).argmin()
 
-            # Select the data dimensions
-            if len(data.shape)==4:
-                if ispec>=0: 
-                    data = data[icrd3,:,:,ispec]
-                else:
-                    data = data[icrd3,:,:,:]
-                    data.sum(2)
-            else:
-                data = data[icrd3,:,:]
+            ## Select the data dimensions
+            #if len(data.shape)==4:
+                #if ispec>=0: 
+                    #data = data[icrd3,:,:,ispec]
+                #else:
+                    #data = data[icrd3,:,:,:]
+                    #data.sum(2)
+            #else:
+                #data = data[icrd3,:,:]
 
-            if projection == 'spherical':
-                xx,yy = np.meshgrid(d.grid.z, d.grid.y)
-                data  = data.T
-                x_label = r'$\phi$'
-                y_label = r'$\theta$'
+            #if projection == 'spherical':
+                #xx,yy = np.meshgrid(data.grid.z, data.grid.y)
+                #data  = data.T
+                #x_label = r'$\phi$'
+                #y_label = r'$\theta$'
 
-                if lattitude == True:
-                    yy = np.pi/2. - yy
-                    y_label = r'$\pi/2 - \theta$'
+                #if lattitude == True:
+                    #yy = np.pi/2. - yy
+                    #y_label = r'$\pi/2 - \theta$'
 
-                if deg == True:
-                    xx *= 180./np.pi
-                    yy *= 180./np.pi
-                    y_label += ' [deg]'
-                    x_label += ' [deg]'
-                else:
-                    y_label += ' [rad]'
-                    x_label += ' [rad]'
+                #if deg == True:
+                    #xx *= 180./np.pi
+                    #yy *= 180./np.pi
+                    #y_label += ' [deg]'
+                    #x_label += ' [deg]'
+                #else:
+                    #y_label += ' [rad]'
+                    #x_label += ' [rad]'
 
-            elif projection == 'cartesian':
+            #elif projection == 'cartesian':
 
-                tt,pp = np.meshgrid(d.grid.y, d.grid.z)
-                rr = d.grid.x[icrd3] 
-                xx = pp*rr
-                yy = (pi/2.-tt)*rr
-                x_label = 'x'
-                y_label = 'y'
+                #tt,pp = np.meshgrid(data.grid.y, data.grid.z)
+                #rr = data.grid.x[icrd3] 
+                #xx = pp*rr
+                #yy = (pi/2.-tt)*rr
+                #x_label = 'x'
+                #y_label = 'y'
                 
-                if au == True:
-                    xx /= au
-                    yy /= au
-                    x_label += ' [AU]'
-                    y_label += ' [AU]'
-                else:
-                    x_label += ' [cm]'
-                    y_label += ' [cm]'
+                #if au == True:
+                    #xx /= au
+                    #yy /= au
+                    #x_label += ' [AU]'
+                    #y_label += ' [AU]'
+                #else:
+                    #x_label += ' [cm]'
+                    #y_label += ' [cm]'
 
-            else:
-                print 'ERROR'
-                print 'Unkonwn projection ', projection
-                print 'Projection should be either "spherical", or "cartesian"'
-                return
-
-
-
-    # Make the plot
-    if ax == None:
-        ax = plb.gca()
-
-    # Clear the axis if overlay==True
-    if overlay == False:
-        ax.cla()
+            #else:
+                #print 'ERROR'
+                #print 'Unkonwn projection ', projection
+                #print 'Projection should be either "spherical", or "cartesian"'
+                #return
 
 
-    if cmap == None:
-        cmap = plb.cm.jet
+
+    ## Make the plot
+    #if ax == None:
+        #ax = plb.gca()
+
+    ## Clear the axis if overlay==True
+    #if overlay == False:
+        #ax.cla()
+
+
+    #if cmap == None:
+        #cmap = plb.cm.jet
        
-    if contours == True:
-        # Generate the contour levels
-        if clev == None:
-            if cllog == True:
-                clev = clmin * (clmax/clmin)**(np.arange(ncl, dtype=float)/float(ncl-1))
-            else:
-                clev = clmin + (clmax-clmin)*(np.arange(ncl, dtype=float)/float(ncl-1))
-        if clcol == 'none':
-            if cmap != None:
-                ax.contour(xx, yy, data, clev, cmap, alpha=alpha)
-            else:
-                print 'ERROR'
-                print 'If clcol=="none" cmap should be specified'
-                return
-        else:
-            ax.contour(xx, yy, data.T, clev, colors=clcol, alpha=alpha)
+    #if contours == True:
+        ## Generate the contour levels
+        #if clev == None:
+            #if cllog == True:
+                #clev = clmin * (clmax/clmin)**(np.arange(ncl, dtype=float)/float(ncl-1))
+            #else:
+                #clev = clmin + (clmax-clmin)*(np.arange(ncl, dtype=float)/float(ncl-1))
+        #if clcol == 'none':
+            #if cmap != None:
+                #ax.contour(xx, yy, data, clev, cmap, alpha=alpha)
+            #else:
+                #print 'ERROR'
+                #print 'If clcol=="none" cmap should be specified'
+                #return
+        #else:
+            #ax.contour(xx, yy, data.T, clev, colors=clcol, alpha=alpha)
         
-        cbar = None
-    else:
-        if minval == None:
-            minval = data.min()
-        if maxval == None:
-            maxval = data.max()
-
-        plb.axes(ax)
-        plb.pcolormesh(xx,yy,data.T,cmap=cmap,alpha=alpha, vmin=minval, vmax=maxval)
-        cbar = plb.colorbar(ax=ax)
-        cbar.set_label(d_label)
         #cbar = None
+    #else:
+        #if minval == None:
+            #minval = data.min()
+        #if maxval == None:
+            #maxval = data.max()
+
+        #plb.axes(ax)
+        #plb.pcolormesh(xx,yy,data.T,cmap=cmap,alpha=alpha, vmin=minval, vmax=maxval)
+        #cbar = plb.colorbar(ax=ax)
+        #cbar.set_label(d_label)
+        ##cbar = None
     
-    if len(xlim)==2:
-        plb.xlim(xlim[0], xlim[1])
-    else:
-        plb.xlim(xx.min(), xx.max())
-    if len(ylim)==2:
-        plb.ylim(ylim[0], ylim[1])
-    else:
-        plb.xlim(xx.min(), xx.max())
+    #if len(xlim)==2:
+        #plb.xlim(xlim[0], xlim[1])
+    #else:
+        #plb.xlim(xx.min(), xx.max())
+    #if len(ylim)==2:
+        #plb.ylim(ylim[0], ylim[1])
+    #else:
+        #plb.xlim(xx.min(), xx.max())
    
-    plb.xlabel(x_label)
-    plb.ylabel(y_label)
+    #plb.xlabel(x_label)
+    #plb.ylabel(y_label)
     
-    return {'ax':ax, 'cb':cbar}
+    #return {'ax':ax, 'cb':cbar}
 
 def gdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=None, **kwargs):
     """
@@ -7886,16 +7886,13 @@ def findContainerLeafIDRec(x=None, y=None, z=None, dx=None, dy=None, dz=None, ch
         
         return dum
 
-def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, nproc=1):
+def interpolateOctree(data=None, x=None, y=None, z=None, var=['ddens'], nproc=1):
     """
     Nearest neighbour inteprolation on an octree
    
     data        : radmc3dData
                   Data container
     
-    grid        : radmc3dOctree
-                  An instance of a radmc3dOctree containing the octree amr grid
-
     x           : ndarray
                   Coordiantes of the point to be interpolated on in the first dimension
 
@@ -7905,20 +7902,9 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
     z           : ndarray
                   Coordiantes of the point to be interpolated on in the third dimension
 
-    ddens       : bool
-                  True if dust density has to be interpolated
-
-    dtemp       : bool
-                  True if dust temperature has to be interpolated
-    
-    gdens       : bool
-                  True if molecular number density has to be interpolated
-
-    gtemp       : bool
-                  True if gas temperature has to be interpolated
-    
-    vturb       : bool
-                  True if turbulent velocity field has to be interpolated
+    var         : list
+                  Name of the variables to be interpolated, supported names are:
+                  ddens, dtemp, gdens, ndens, gtemp, gvel, vturb
     
     nproc       : int
                   Number of processes to be used (for parallel computing) 
@@ -7940,16 +7926,16 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
     npoint = nx*ny*nz
     
     if nproc > 1:
-        cellCRD = np.zeros([grid.nCell, 3], dtype=np.float64)
-        cellHW = np.zeros([grid.nCell, 3], dtype=np.float64)
+        cellCRD = np.zeros([data.grid.nCell, 3], dtype=np.float64)
+        cellHW = np.zeros([data.grid.nCell, 3], dtype=np.float64)
 
-        cellCRD[:,0] = grid.x
-        cellCRD[:,1] = grid.y
-        cellCRD[:,2] = grid.z
-        cellHW[:,0]  = grid.dx
-        cellHW[:,1]  = grid.dy
-        cellHW[:,2]  = grid.dz
-        childID  = np.array(grid.childID)
+        cellCRD[:,0] = data.grid.x
+        cellCRD[:,1] = data.grid.y
+        cellCRD[:,2] = data.grid.z
+        cellHW[:,0]  = data.grid.dx
+        cellHW[:,1]  = data.grid.dy
+        cellHW[:,2]  = data.grid.dz
+        childID  = np.array(data.grid.childID)
 
         chunkSize    = int(np.ceil(float(npoint)/nproc))
         
@@ -7965,17 +7951,15 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
        
       
         pool   = Pool(processes=nproc)
-        target = partial(findContainerLeafID, cellCRD, cellHW, grid.xi, grid.yi, grid.zi, childID, grid.isLeaf, grid.nChild)
+        target = partial(findContainerLeafID, cellCRD, cellHW, data.grid.xi, data.grid.yi, data.grid.zi, childID, data.grid.isLeaf, data.grid.nChild)
         res    = pool.map(target, crdList, chunksize=chunkSize)
         res    = np.array(res)
         pool.close()
             
         idata  = {}
         idata['cellID'] = res
-        #for i in range(1, len(res)):
-            #idata['cellID'] = np.append(idata['cellID'], res[i])
 
-        if ddens:
+        if 'ddens' in var:
             ndust = data.rhodust.shape[1]
             idata['rhodust'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
             for ind in range(npoint):
@@ -7983,15 +7967,12 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
                 iy  = int(np.floor((ind - ix*ny*nz) / nz))
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
-                #print data.rhodust.shape
-                #print grid.leafID.shape
-                #if res[ind] is not None:
                 if res[ind] >= 0:
                     idata['rhodust'][ix,iy,iz,:] = data.rhodust[grid.leafID[res[ind]],:]
                 else:
                     idata['rhodust'][ix,iy,iz,:] = 0
 
-        if dtemp:
+        if 'dtemp' in var:
             ndust = data.dusttemp.shape[1]
             idata['dusttemp'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
             for ind in range(npoint):
@@ -8004,7 +7985,19 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
                 else:
                     idata['dusttemp'][ix,iy,iz,:] = 0
             
-        if gdens:
+        if 'gdens' in var:
+            idata['rhogas'] = np.zeros([nx,ny,nz], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata['rhogas'][ix,iy,iz] = data.rhogas[data.grid.leafID[res[ind]]]
+                else:
+                    idata['rhogas'][ix,iy,iz] = 0
+
+        if 'ndens' in var:
             idata['ndens_mol'] = np.zeros([nx,ny,nz], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
@@ -8012,11 +8005,11 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata['ndens_mol'][ix,iy,iz] = data.ndens_mol[grid.leafID[res[ind]]]
+                    idata['ndens_mol'][ix,iy,iz] = data.ndens_mol[data.grid.leafID[res[ind]]]
                 else:
                     idata['ndens_mol'][ix,iy,iz] = 0
             
-        if gtemp:
+        if 'gtemp' in var:
             idata['gastemp'] = np.zeros([nx,ny,nz], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
@@ -8024,11 +8017,11 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata['gastemp'][ix,iy,iz] = data.gastemp[grid.leafID[res[ind]]]
+                    idata['gastemp'][ix,iy,iz] = data.gastemp[data.grid.leafID[res[ind]]]
                 else:
                     idata['gastemp'][ix,iy,iz] = 0
             
-        if vturb:
+        if 'vturb' in var:
             idata['vturb'] = np.zeros([nx,ny,nz], dtype=np.float64)
             for ind in range(npoint):
                 ix  = int(np.floor(ind/ny/nz))
@@ -8036,28 +8029,41 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
                 iz  = int(ind - ix*ny*nz - iy*nz)
 
                 if res[ind] is not None:
-                    idata['vturb'][ix,iy,iz] = data.vturb[grid.leafID[res[ind]]]
+                    idata['vturb'][ix,iy,iz] = data.vturb[data.grid.leafID[res[ind]]]
                 else:
                     idata['vturb'][ix,iy,iz] = 0
             
+        if 'gvel' in var:
+            idata['gvel'] = np.zeros([nx,ny,nz,3], dtype=np.float64)
+            for ind in range(npoint):
+                ix  = int(np.floor(ind/ny/nz))
+                iy  = int(np.floor((ind - ix*ny*nz) / nz))
+                iz  = int(ind - ix*ny*nz - iy*nz)
+
+                if res[ind] is not None:
+                    idata['gasvel'][ix,iy,iz,:] = data.gasvel[data.grid.leafID[res[ind]],:]
+                else:
+                    idata['gasvel'][ix,iy,iz,:] = 0
     else:
 
         idata  = {}
-        if ddens:
+        if 'ddens' in var:
             ndust = data.rhodust.shape[1]
             idata['rhodust'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
-        if dtemp:
+        if 'dtemp' in var:
             ndust = data.dusttemp.shape[1]
             idata['dusttemp'] = np.zeros([nx,ny,nz,ndust], dtype=np.float64)
-        if gdens:
+        if 'gdens' in var:
+            idata['rhogas'] = np.zeros([nx,ny,nz], dtype=np.float64)
+        if 'ndens' in var:
             idata['ndens_mol'] = np.zeros([nx,ny,nz], dtype=np.float64)
-        if gtemp:
+        if 'gtemp' in var:
             idata['gastemp'] = np.zeros([nx,ny,nz], dtype=np.float64)
-        if vturb:
+        if 'vturb' in var:
             idata['vturb'] = np.zeros([nx,ny,nz], dtype=np.float64)
+        if 'gvel' in var:
+            idata['gvel'] = np.zeros([nx,ny,nz,3], dtype=np.float64)
         
-        dummy_idata = np.zeros([nx,ny,nz], dtype=np.float64)
-            
         idata['cellID'] = np.zeros(npoint, dtype=np.int)
 
         for ind in range(npoint):
@@ -8070,141 +8076,546 @@ def interpolateOctree(data=None, grid=None, x=None, y=None, z=None, ddens=False,
                 
             if cellID is not None:
                 idata['cellID'][ind] = cellID
-                if ddens:
-                    idata['rhodust'][ix,iy,iz,:] = data.rhodust[grid.leafID[cellID]]
-                if dtemp:
-                    idata['dusttemp'][ix,iy,iz,:] = data.dusttemp[grid.leafID[cellID]]
-                if gdens:
-                    idata['ndens_mol'][ix,iy,iz] = data.ndens_mol[grid.leafID[cellID]]
-                if gtemp:
-                    idata['gastemp'][ix,iy,iz] = data.gastemp[grid.leafID[cellID]]
-                if vturb:
-                    idata['vturb'][ix,iy,iz] = data.vturb[grid.leafID[cellID]]
+                if 'ddens' in var:
+                    if cellID >= 0:
+                        idata['rhodust'][ix,iy,iz,:] = data.rhodust[data.grid.leafID[cellID]]
+                    else:
+                        idata['rhodust'][ix,iy,iz,:] = 0.0
+                if 'dtemp' in var:
+                    if cellID >= 0:
+                        idata['dusttemp'][ix,iy,iz,:] = data.dusttemp[data.grid.leafID[cellID]]
+                    else:
+                        idata['dusttemp'][ix,iy,iz,:] = 0.0
+                if 'gdens' in var:
+                    if cellID >= 0:
+                        idata['rhogas'][ix,iy,iz] = data.ndens_mol[data.grid.leafID[cellID]]
+                    else:
+                        idata['rhogas'][ix,iy,iz] = 0.0
+                if 'ndens' in var:
+                    if cellID >= 0:
+                        idata['ndens_mol'][ix,iy,iz] = data.ndens_mol[data.grid.leafID[cellID]]
+                    else:
+                        idata['ndens_mol'][ix,iy,iz] = 0.0
+                if 'gtemp' in var:
+                    if cellID >= 0:
+                        idata['gastemp'][ix,iy,iz] = data.gastemp[data.grid.leafID[cellID]]
+                    else:
+                        idata['gastemp'][ix,iy,iz] = 0.0
+                if 'vturb' in var:
+                    if cellID >= 0:
+                        idata['vturb'][ix,iy,iz] = data.vturb[data.grid.leafID[cellID]]
+                    else:
+                        idata['vturb'][ix,iy,iz] = 0.0
+                if 'gvel' in var:
+                    if cellID >= 0:
+                        idata['gasvel'][ix,iy,iz,:] = data.gasvel[data.grid.leafID[cellID],:]
+                    else:
+                        idata['gasvel'][ix,iy,iz,:] = 0.0
 
         
     return idata
 
-def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, gridcolor='k', gridalpha=1.0,\
-        xlim=(), ylim=(), nx=200, ny=200, log=False, \
-        vmin=None, vmax=None, ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, \
-        linunit='cm', angunit='rad', idust=None, nproc=1, **kwargs):
+#def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, gridcolor='k', gridalpha=1.0,\
+        #xlim=(), ylim=(), nx=200, ny=200, log=False, \
+        #vmin=None, vmax=None, ddens=False, dtemp=False, gdens=False, gtemp=False, vturb=False, \
+        #linunit='cm', angunit='rad', idust=None, nproc=1, **kwargs):
+    #"""
+    #Function to create a slice plot of the disk structure along any axis-aligned plane. Any additional keyword
+    #argument above the listed ones will be passed on to matplotlib.pylab.pcolormesh(). The plot did not use the 
+    #variables on the octree AMR mesh directly. It interpolated first to a regular grid on which the data is displayed.
+    #The size and resolution of the regular image grid can be set at input. 
+
+    #Parameters:
+    #-----------
+
+    #data        : radmc3dData
+                  #Instance of radmc3dData containing the field variable to be displayed
+
+    #grid        : radmc3dOctree
+                  #Tree container 
+
+    #plane       : {'xy', 'yx', 'xz', 'zx', 'yz', 'zy'}
+                  #Plane to be displayed           
+
+    #crd3        : float
+                  #Coordinate of the third dimension (i.e. when plotting a slice in the x-y plane, crd3 is the z-coordinate)
+    
+    #showgrid    : bool
+                  #Whether or not display the AMR mesh structure
+    
+    #gridcolor   : str
+                  #Color of the AMR cell boundaries
+
+    #gridalpha   : float
+                  #Alpha (transparency) value of the cell boundaries to be displayed (0 fully transparent, 1 fully opaque)
+
+    #xlim        : tuple
+                  #Coordinate boundaries in the first dimension of the regular image grid
+
+    #ylim        : tuple
+                  #Coordinate boundaries in the second dimension of the regular image grid
+
+    #nx          : int
+                  #Number of grid points in the first dimension of the regular image grid
+    
+    #ny          : int
+                  #Number of grid points in the second dimension of the regular image grid
+
+    #log         : bool
+                  #If True the contour/image will be displayed on a logarithmic stretch
+    
+    #vmin        : float
+                  #Minimum scalar value to be displayed
+        
+    #vmax        : float
+                  #Maximum scalar value to be displayed
+
+    #ddens       : bool
+                  #If True the dust density will be displayed
+
+    #dtemp       : bool
+                  #If True the dust temperature will be displayed
+
+    #gdens       : bool
+                  #If True the molecular number density will be displayed
+
+    #gtemp       : bool
+                  #If True the gas temperature  will be displayed
+
+    #vturb       : bool
+                  #If True the turbulent velocity will be displayed
+
+    #linunit     : {'cm', 'au', 'pc', 'rs'}
+                  #Unit selection for linear image coordinate axes.
+
+    #angunit     : {'rad', 'deg'}
+                  #Unit selection for angular image coordinate axes (only if spherical coordinate system is used).
+
+    #idust       : int
+                  #Index of dust species to be displayed. If negative dust densities will be summed up and the total cumulative dust 
+                  #density is displayed
+
+    #nproc       : int
+                  #Number of processes to be used for interpolation. 
+
+    #"""
+    #if grid is None:
+        #if data.grid is None:
+            #print 'ERROR'
+            #print 'Spatial grid is not found as a member of the data class or was specified at input'
+            #return
+        #else:
+            #grid = data.grid
+    ## First check if there is anything to plot
+    #nothing2plot = True
+    #if ddens:
+        #nothing2plot = False
+    #if dtemp:
+        #nothing2plot = False
+    #if gdens:
+        #nothing2plot = False
+    #if gtemp:
+        #nothing2plot = False
+    #if vturb:
+        #nothing2plot = False
+   
+    #print ddens
+    #if nothing2plot:
+        #print 'No variable is specified to be plotted'
+        #print 'No plot is made, returning'
+        #return
+    
+    #plot_x = xlim[0] + (xlim[1]-xlim[0]) * np.arange(nx, dtype=float) / float(nx-1)
+    #plot_y = ylim[0] + (ylim[1]-ylim[0]) * np.arange(ny, dtype=float) / float(ny-1)
+    #plot_z = np.array([crd3])
+
+    #plane = plane.lower()
+
+    #swapDim = False
+    #xnorm = 1.0
+    #ynorm = 1.0
+    #znorm = 1.0
+
+    #if (linunit.strip().lower() == 'cm'):
+        #linunit_label = '[cm]'
+        #linunit_norm = 1.
+    #elif (linunit.strip().lower() == 'au'):
+        #linunit_label = '[au]'
+        #linunit_norm = 1./au
+    #elif (linunit.strip().lower() == 'pc'):
+        #linunit_label = '[pc]'
+        #linunit_norm = 1./pc
+    #elif (linunit.strip().lower() == 'rs'):
+        #linunit_label = r'[R$_\odot$]'
+        #linunit_norm = 1./rs
+    #else:
+        #print 'ERROR'
+        #print 'Unknown linear unit length ', linunit
+        #print 'Supported units are : cm, au, pc, rs'
+        #return
+
+
+    #if (angunit.strip().lower() == 'rad'):
+        #angunit_label = '[rad]'
+        #angunit_norm  = 1.0
+    #elif (angunit.strip().lower() == 'deg'):
+        #angunit_label = '[deg]'
+        #angunit_norm  = np.pi/180.
+    #else:
+        #print 'ERROR'
+        #print 'Unknown angular unit length ', linunit
+        #print 'Supported units are : rad, deg'
+        #return
+
+
+    #if 'x' in plane:
+        ## xy plane
+        #if 'y' in plane:
+            #if grid.crd_sys == 'car':
+                #xlabel = r'x '+linunit_label
+                #ylabel = r'y '+linunit_label
+                #xnorm  = linunit_norm
+                #ynorm  = linunit_norm
+            #else:
+                #xlabel = 'r '+linunit_label
+                #ylabel = '$\theta$ '+angunit_label
+                #xnorm  = linunit_norm
+                #ynorm  = angunit_norm
+                
+            #if plane == 'yx':
+                #swapDim = True
+                #if grid.crd_sys == 'car':
+                    #xlabel = r'y '+linunit_label
+                    #ylabel = r'x '+linunit_label
+                    #xnorm  = linunit_norm
+                    #ynorm  = linunit_norm
+                #else:
+                    #xlabel = '$\theta$ '+angunit_label
+                    #ylabel = 'r '+linunit_label
+                    #xnorm  = angunit_norm
+                    #ynorm  = linunit_norm
+
+            #idata = interpolateOctree(data, x=plot_x/xnorm, y=plot_y/ynorm, z=plot_z, var=var, nproc=nproc)
+        ## xz plane
+        #elif 'z' in plane:
+            #if grid.crd_sys == 'car':
+                #xlabel = r'x '+linunit_label
+                #ylabel = r'z '+linunit_label
+                #xnorm  = linunit_norm
+                #ynorm  = linunit_norm
+            #else:
+                #xlabel = 'r '+linunit_label
+                #ylabel = '$\phi$ '+angunit_label
+                #xnorm  = linunit_norm
+                #ynorm  = angunit_norm
+            #if plane == 'zx':
+                #swapDim = True
+                #if grid.crd_sys == 'car':
+                    #xlabel = r'z '+linunit_label
+                    #ylabel = r'x '+linunit_label
+                    #xnorm  = linunit_norm
+                    #ynorm  = linunit_norm
+                #else:
+                    #xlabel = '$\phi$ '+angunit_label
+                    #ylabel = 'r '+linunit_label
+                    #xnorm  = angunit_norm
+                    #ynorm  = linunit_norm
+
+            #idata = interpolateOctree(data, x=plot_x/xnorm, y=plot_z, z=plot_y/ynorm, var=var, nproc=nproc)
+    ## yz plane
+    #else:
+        #if grid.crd_sys == 'car':
+            #xlabel = r'y '+linunit_label
+            #ylabel = r'z '+linunit_label
+            #xnorm  = linunit_norm
+            #ynorm  = linunit_norm
+
+        #else:
+            #xlabel = '$\theta$ '+angunit_label
+            #ylabel = '$\phi$ '+angunit_label
+            #xnorm  = angunit_norm
+            #ynorm  = angunit_norm
+        #if plane == 'zy':
+            #swapDim = True
+            #if grid.crd_sys == 'car':
+                #xlabel = r'z '+linunit_label
+                #ylabel = r'y '+linunit_label
+                #xnorm  = linunit_norm
+                #ynorm  = linunit_norm
+            #else:
+                #xlabel = '$\phi$ '+angunit_label
+                #ylabel = '$\theta$ '+angunit_label
+                #xnorm  = angunit_norm
+                #ynorm  = angunit_norm
+
+        #idata = interpolateOctree(data, x=plot_z, y=plot_x/xnorm, z=plot_y/ynorm, var=var, nproc=nproc)
+
+    #if ddens:
+        #cblabel = r'$\rho_{\rm dust}$ [g/cm$^3$]'
+        #if idust >= 0:
+            #pdata = np.squeeze(idata['rhodust'][:,:,:,idust])
+        #else:
+            #pdata = np.squeeze(idata['rhodust'].sum(3))
+       
+    #elif dtemp:
+        #cblabel = r'T$_{\rm dust}$ [K]'
+        #if idust >= 0:
+            #pdata = np.squeeze(idata['dusttemp'][:,:,:,idust])
+        #else:
+            #pdata = np.squeeze(idata['dusttemp'].sum(3))
+    
+    #elif gdens:
+        #cblabel = r'$\n_{\rm mol}$ [mol/cm$^3$]'
+        #pdata = np.squeeze(idata['ndens_mol'])
+    
+    #elif gtemp:
+        #cblabel = r'T$_{\rm gas}$ [K]'
+        #pdata = np.squeeze(idata['gastemp'])
+    
+    #elif vturb:
+        #cblabel = r'v$_{\rm turb}$ [cm/s]'
+        #pdata = np.squeeze(idata['vturb'])
+     
+    
+    #if swapDim:
+        #pdata = pdata.swapaxes(0,1) 
+        #dum = np.array(plot_x)
+        #plot_y = np.array(plot_x)
+        #plot_x = dum
+
+      
+    #pdata = pdata.clip(1e-90, 1e90)
+    #if not vmin:
+        #vmin = pdata.min()
+    #if not vmax:
+        #vmax = pdata.max()
+
+    ##
+    ## Now we can do the plotting
+    ##
+    #if log:
+        #plb.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+    #else: 
+        #plb.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+
+    #cb = plb.colorbar()
+    #cb.set_label(cblabel)
+    #plb.xlabel(xlabel)
+    #plb.ylabel(ylabel)
+    #plb.xlim(xlim[0], xlim[1])
+    #plb.ylim(ylim[0], ylim[1])
+
+
+    #if showgrid:
+        #ax = plb.gca()
+        #import matplotlib.patches as patches
+        #ind = 0
+        #plottedInd = np.zeros(idata['cellID'].shape[0], dtype=np.int)-1
+
+        #if plane.strip().lower() == 'xy':
+            #for i in idata['cellID']:
+                #if i not in plottedInd:
+                    #ind+=1
+                    #bottomleft = ((grid.x[i]-grid.dx[i])*xnorm, (grid.y[i]-grid.dy[i])*ynorm)
+                    #ax.add_patch(patches.Rectangle(bottomleft, grid.dx[i]*2*xnorm, grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    #plottedInd[ind] = i
+
+        #elif plane.strip().lower() == 'yx':
+            
+            #for i in idata['cellID']:
+                #if i not in plottedInd:
+                    #ind+=1
+                    #bottomleft = ((grid.y[i]-grid.dy[i])*xnorm, (grid.x[i]-grid.dx[i])*ynorm)
+                    #ax.add_patch(patches.Rectangle(bottomleft, grid.dy[i]*2*xnorm, grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    #plottedInd[ind] = i
+        
+        #elif plane.strip().lower() == 'xz':
+            
+            #for i in idata['cellID']:
+                #if i not in plottedInd:
+                    #ind+=1
+                    #bottomleft = ((grid.x[i]-grid.dx[i])*xnorm, (grid.z[i]-grid.dz[i])*ynorm)
+                    #ax.add_patch(patches.Rectangle(bottomleft, grid.dx[i]*2*xnorm, grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    #plottedInd[ind] = i
+
+        #elif plane.strip().lower() == 'zx':
+            
+            #for i in idata['cellID']:
+                #if i not in plottedInd:
+                    #ind+=1
+                    #bottomleft = ((grid.z[i]-grid.dz[i])*xnorm, (grid.x[i]-grid.dx[i])*ynorm)
+                    #ax.add_patch(patches.Rectangle(bottomleft, grid.dz[i]*2*xnorm, grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    #plottedInd[ind] = i
+        
+        #elif plane.strip().lower() == 'yz':
+            
+            #for i in idata['cellID']:
+                #if i not in plottedInd:
+                    #ind+=1
+                    #bottomleft = ((grid.y[i]-grid.y[i])*xnorm, (grid.z[i]-grid.dz[i])*ynorm)
+                    #ax.add_patch(patches.Rectangle(bottomleft, grid.dy[i]*2*xnorm, grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    #plottedInd[ind] = i
+
+        #elif plane.strip().lower() == 'zy':
+            
+            #for i in idata['cellID']:
+                #if i not in plottedInd:
+                    #ind+=1
+                    #bottomleft = ((grid.z[i]-grid.dz[i])*xnorm, (grid.y[i]-grid.dy[i])*ynorm)
+                    #ax.add_patch(patches.Rectangle(bottomleft, grid.dz[i]*2*xnorm, grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                    #plottedInd[ind] = i
+
+def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=-1, xlim=(), ylim=(), log=False, linunit='cm', angunit='rad',
+                nx=100, ny=100, showgrid=False, gridcolor='k', gridalpha=1.0, nproc=1,\
+                contours=False, clev=None, clmin=None, clmax=None, ncl=None, cllog=False, clcol='k', clcmap=None, clalpha=1.0,\
+                ax=None,  lattitude=True, **kwargs):
     """
-    Function to create a slice plot of the disk structure along any axis-aligned plane. Any additional keyword
-    argument above the listed ones will be passed on to matplotlib.pylab.pcolormesh(). The plot did not use the 
-    variables on the octree AMR mesh directly. It interpolated first to a regular grid on which the data is displayed.
+    Function to plot an axis-aligned 2D slice of the variables in the model. Any additional keyword
+    argument above the listed ones will be passed on to matplotlib.pylab.pcolormesh(). For an octree grid the variables 
+    are interpolated onto a regular grid using nearest neighbour interpolation before plotting. 
     The size and resolution of the regular image grid can be set at input. 
+
 
     Parameters:
     -----------
 
-    data        : radmc3dData
-                  Instance of radmc3dData containing the field variable to be displayed
-
-    grid        : radmc3dOctree
-                  Tree container 
-
-    plane       : {'xy', 'yx', 'xz', 'zx', 'yz', 'zy'}
-                  Plane to be displayed           
-
-    crd3        : float
-                  Coordinate of the third dimension (i.e. when plotting a slice in the x-y plane, crd3 is the z-coordinate)
+    data            : radmc3dData
+                      Instance of radmc3dData containing the field variable to be displayed
     
-    showgrid    : bool
-                  Whether or not display the AMR mesh structure
+    var             : {'ddens', 'dtemp', 'gdens', 'ndens', 'gtemp', 'vturb', 'vx', 'vy', 'vz', 'taux', 'tauy'}
+                      Variable to be displayed
     
-    gridcolor   : str
-                  Color of the AMR cell boundaries
-
-    gridalpha   : float
-                  Alpha (transparency) value of the cell boundaries to be displayed (0 fully transparent, 1 fully opaque)
-
-    xlim        : tuple
-                  Coordinate boundaries in the first dimension of the regular image grid
-
-    ylim        : tuple
-                  Coordinate boundaries in the second dimension of the regular image grid
-
-    nx          : int
-                  Number of grid points in the first dimension of the regular image grid
+    plane           : {'xy', 'xz', 'yz', 'yx, 'zx', 'yz'}
+                      Plane to be displayed           
     
-    ny          : int
-                  Number of grid points in the second dimension of the regular image grid
-
-    log         : bool
-                  If True the contour/image will be displayed on a logarithmic stretch
+    crd3            : float
+                      Coordinate of the third dimension (i.e. when plotting a slice in the x-y plane, crd3 is the z-coordinate)
     
-    vmin        : float
-                  Minimum scalar value to be displayed
+    icrd3           : int
+                      Index of the third coordinate in the grid (only for regular grid!)
+
+    ispec           : int
+                      Dust species index. If negative dust densities will be summed up and the total cumulative density will be displayed
+
+    xlim            : tuple
+                      Coordinate boundaries in the first dimension of the plot (also the coordinate boundary of the regular grid data on
+                      AMR grids are interpolated to)
+                        
+    ylim            : tuple
+                      Coordinate boundaries in the second dimension of the plot (also the coordinate boundary of the regular grid data on
+                      AMR grids are interpolated to)
+
+    log             : bool
+                      If True the contour/image will be displayed on a logarithmic stretch
+
+    linunit         : {'cm', 'au', 'pc', 'rs'}
+                      Unit selection for linear image coordinate axes.
+
+    angunit         : {'rad', 'deg'}
+                      Unit selection for angular image coordinate axes (only if spherical coordinate system is used).
+    
+    nproc           : int
+                      Number of parallel processes to be used for interpolation. 
         
-    vmax        : float
-                  Maximum scalar value to be displayed
+    contours        : bool
+                      If True contour lines are plotted, if False a colorscale plot will be created
 
-    ddens       : bool
-                  If True the dust density will be displayed
+    clev            : ndarray  
+                      A numpy ndarray containing the levels to be displayed with contour lines. If clev is set
+                      then clmin, clmax and ncl are omitted
 
-    dtemp       : bool
-                  If True the dust temperature will be displayed
+    clmin           : float
+                      Min. contour level (for setting auto-contours between clmin and clmax at ncl values)
 
-    gdens       : bool
-                  If True the molecular number density will be displayed
+    clmax           : float
+                      Max. contour level (for setting auto-contours between clmin and clmax at ncl values)
+    
+    ncl             : float
+                      Number of contour levels (for setting auto-contours between clmin and clmax at ncl values)
 
-    gtemp       : bool
-                  If True the gas temperature  will be displayed
+    cllog           : bool
+                      If clmin, clmax and ncl are used to generate the contour levels, then if cllog is True
+                      the contours will be log-scaled
 
-    vturb       : bool
-                  If True the turbulent velocity will be displayed
+    clcol           : str
+                      Color-code for the contour lines for single color contours
 
-    linunit     : {'cm', 'au', 'pc', 'rs'}
-                  Unit selection for linear image coordinate axes.
+    clcmap          : matplotlib colormap
+                      Colormap used for the contour lines
+    
+    clalpha         : float
+                      Transparency of the contour lines (1.0 fully opaque, 0.0 fully transparent)
 
-    angunit     : {'rad', 'deg'}
-                  Unit selection for angular image coordinate axes (only if spherical coordinate system is used).
-
-    idust       : int
-                  Index of dust species to be displayed. If negative dust densities will be summed up and the total cumulative dust 
-                  density is displayed
-
-    nproc       : int
-                  Number of processes to be used for interpolation. 
+    lattitude       : bool
+                      If the coordinate sytem used in RADMC-3D is spherical, then the 2nd coordiante is the co-lattitude.
+                      If lattitude is set to True then the 2nd coordinate in the RADMC-3D grid will be transformet to true
+                      lattitude (i.e. pi/2.-colattitude). If set to false the original co-lattitude will be used. 
 
     """
-    if grid is None:
-        if data.grid is None:
-            print 'ERROR'
-            print 'Spatial grid is not found as a member of the data class or was specified at input'
-            return
-        else:
-            grid = data.grid
-    # First check if there is anything to plot
-    nothing2plot = True
-    if ddens:
-        nothing2plot = False
-    if dtemp:
-        nothing2plot = False
-    if gdens:
-        nothing2plot = False
-    if gtemp:
-        nothing2plot = False
-    if vturb:
-        nothing2plot = False
-   
-    print ddens
-    if nothing2plot:
-        print 'No variable is specified to be plotted'
-        print 'No plot is made, returning'
+
+    octree = False
+    #
+    # Check the input consistency
+    #
+    if data == None:
+        print 'ERROR'
+        print ' No data to be plotted'
+        return 
+
+    if data.grid == None: 
+        print 'ERROR'
+        print 'data structure does not contain spatial grid. Plots cannot be made without a grid'
         return
-    
-    plot_x = xlim[0] + (xlim[1]-xlim[0]) * np.arange(nx, dtype=float) / float(nx-1)
-    plot_y = ylim[0] + (ylim[1]-ylim[0]) * np.arange(ny, dtype=float) / float(ny-1)
-    plot_z = np.array([crd3])
+    else:
+        if isinstance(data.grid, radmc3dOctree):
+            octree = True
 
-    plane = plane.lower()
+    if not octree:
+        if icrd3 is None:
+            if crd3 is None:
+                print 'Unknown coordinate for the third dimension (icrd3/crd3)'
+                return
 
-    swapDim = False
-    xnorm = 1.0
-    ynorm = 1.0
-    znorm = 1.0
+    var = var.strip().lower() 
+    varFound = False
+    if var == 'ddens':
+        varFound = True
+    if var == 'dtemp':
+        varFound = True
+    if var == 'gdens':
+        varFound = True
+    if var == 'ndens':
+        varFound = True
+    if var == 'gtemp':
+        varFound = True
+    if var == 'vx':
+        varFound = True
+    if var == 'vy':
+        varFound = True
+    if var == 'vz':
+        varFound = True
+    if var == 'vturb':
+        varFound = True
+    if var == 'taux':
+        varFound = True
+        if octree:
+            print 'Optical depth calculation has not yet been implemented for octrees'
+            return
+    if var == 'tauy':
+        varFound = True
+        if octree:
+            print 'Optical depth calculation has not yet been implemented for octrees'
+            return
+   
+    if not varFound:
+        print 'ERROR'
+        print 'Unknown variable to be plotted : ', var
+        print 'Allower variable names are : ddens, dtemp, gdens, ndens, dtemp, vx, vy, vz, vturb, taux, tauy'
+        return
 
+    #
+    # Get the units
+    #
     if (linunit.strip().lower() == 'cm'):
         linunit_label = '[cm]'
         linunit_norm = 1.
@@ -8235,38 +8646,71 @@ def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, grid
         print 'Unknown angular unit length ', linunit
         print 'Supported units are : rad, deg'
         return
+    
+    #
+    # Now check which plane to be plotted
+    #
+    swapDim = False
+    xnorm   = 1.0
+    ynorm   = 1.0
+    znorm   = 1.0
+    iplane  = -1 
+
+    if octree:
+        plot_x = xlim[0] + (xlim[1]-xlim[0]) * np.arange(nx, dtype=float) / float(nx-1)
+        plot_y = ylim[0] + (ylim[1]-ylim[0]) * np.arange(ny, dtype=float) / float(ny-1)
+        plot_z = np.array([crd3])
 
 
     if 'x' in plane:
         # xy plane
         if 'y' in plane:
-            if grid.crd_sys == 'car':
+            iplane = 2
+            if not octree:
+                plot_x = data.grid.x
+                plot_y = data.grid.y
+                if lattitude:
+                    plot_y = np.pi/2.0 - data.grid.y
+
+                if icrd3 is None:
+                    icrd3 = abs(data.grid.z - crd3).argmin()
+            if data.grid.crd_sys == 'car':
                 xlabel = r'x '+linunit_label
                 ylabel = r'y '+linunit_label
                 xnorm  = linunit_norm
                 ynorm  = linunit_norm
             else:
                 xlabel = 'r '+linunit_label
-                ylabel = '$\theta$ '+angunit_label
+                ylabel = '$\\theta$ '+angunit_label
                 xnorm  = linunit_norm
                 ynorm  = angunit_norm
                 
             if plane == 'yx':
                 swapDim = True
-                if grid.crd_sys == 'car':
+                if data.grid.crd_sys == 'car':
                     xlabel = r'y '+linunit_label
                     ylabel = r'x '+linunit_label
                     xnorm  = linunit_norm
                     ynorm  = linunit_norm
                 else:
-                    xlabel = '$\theta$ '+angunit_label
+                    xlabel = '$\\theta$ '+angunit_label
                     ylabel = 'r '+linunit_label
                     xnorm  = angunit_norm
                     ynorm  = linunit_norm
 
-            idata = interpolateOctree(data, grid, x=plot_x/xnorm, y=plot_y/ynorm, z=plot_z, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+            if octree:
+                idata = interpolateOctree(data, x=plot_x/xnorm, y=plot_y/ynorm, z=plot_z, var=var, nproc=nproc)
         # xz plane
         elif 'z' in plane:
+            iplane = 1
+            if not octree:
+                plot_x = data.grid.x
+                plot_y = data.grid.z
+                if icrd3 is None:
+                    icrd3 = abs(data.grid.y - crd3).argmin()
+                    if lattitude:
+                        icrd3 = abs( (np.pi/2.-data.grid.y) - crd3).argmin()
+
             if grid.crd_sys == 'car':
                 xlabel = r'x '+linunit_label
                 ylabel = r'z '+linunit_label
@@ -8290,9 +8734,19 @@ def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, grid
                     xnorm  = angunit_norm
                     ynorm  = linunit_norm
 
-            idata = interpolateOctree(data, grid, x=plot_x/xnorm, y=plot_z, z=plot_y/ynorm, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+            if octree:
+                idata = interpolateOctree(data, x=plot_x/xnorm, y=plot_z, z=plot_y/ynorm, var=var, nproc=nproc)
     # yz plane
     else:
+        iplane = 0
+        if not octree:
+            plot_x = data.grid.y
+            plot_y = data.grid.z
+            if lattitude:
+               plot_x = (np.pi/2.0 - data.grid.y) 
+            if icrd3 is None:
+                icrd3 = abs(data.grid.x - crd3).argmin()
+
         if grid.crd_sys == 'car':
             xlabel = r'y '+linunit_label
             ylabel = r'z '+linunit_label
@@ -8300,7 +8754,7 @@ def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, grid
             ynorm  = linunit_norm
 
         else:
-            xlabel = '$\theta$ '+angunit_label
+            xlabel = '$\\theta$ '+angunit_label
             ylabel = '$\phi$ '+angunit_label
             xnorm  = angunit_norm
             ynorm  = angunit_norm
@@ -8313,125 +8767,381 @@ def plotAMRSlice(data=None, grid=None, plane='xy', crd3=0., showgrid=False, grid
                 ynorm  = linunit_norm
             else:
                 xlabel = '$\phi$ '+angunit_label
-                ylabel = '$\theta$ '+angunit_label
+                ylabel = '$\\theta$ '+angunit_label
                 xnorm  = angunit_norm
                 ynorm  = angunit_norm
 
-        idata = interpolateOctree(data, grid, x=plot_z, y=plot_x/xnorm, z=plot_y/ynorm, ddens=ddens, dtemp=dtemp, gdens=gdens, gtemp=gtemp, vturb=vturb, nproc=nproc)
+        if octree:
+            idata = interpolateOctree(data, x=plot_z, y=plot_x/xnorm, z=plot_y/ynorm, var=var, nproc=nproc)
+   
+    #
+    # Get the variable to be plotted
+    #
+    if var=='ddens':
+        if type(data.rhodust)==int:  
+            print 'ERROR'
+            print 'Dust density is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                if (ispec >= 0):
+                    pdata = np.squeeze(idata['rhodust'][:,:,:,ispec])
+                else:
+                    pdata = np.squeeze(idata['rhodust'].sum(3))
 
-    if ddens:
-        cblabel = r'$\rho_{\rm dust}$ [g/cm$^3$]'
-        if idust >= 0:
-            pdata = np.squeeze(idata['rhodust'][:,:,:,idust])
+            else:
+                if iplane == 0:
+                    if ispec > 0:
+                        pdata = data.rhodust[icrd3,:,:,ispec]
+                    else:
+                        pdata = data.rhodust[icrd3,:,:,:].sum(2)
+                elif iplane == 1:
+                    if ispec > 0:
+                        pdata = data.rhodust[:,icrd3,:,ispec]
+                    else:
+                        pdata = data.rhodust[:,icrd3,:,:].sum(2)
+                elif iplane == 2:
+                    if ispec > 0:
+                        pdata = data.rhodust[:,:,icrd3,ispec]
+                    else:
+                        pdata = data.rhodust[:,:,icrd3,:].sum(2)
+
+            cblabel = r'$\rho_{\rm dust}$ [g/cm$^3$]'
+
+    elif var=='dtemp':
+        if type(data.dusttemp)==int:  
+            print 'ERROR'
+            print 'Dust temperature is not present in the passed radmc3dData instance'
+            return
         else:
-            pdata = np.squeeze(idata['rhodust'].sum(3))
-       
-    elif dtemp:
-        cblabel = r'T$_{\rm dust}$ [K]'
-        if idust >= 0:
-            pdata = np.squeeze(idata['dusttemp'][:,:,:,idust])
+            if octree:
+                if (ispec >= 0):
+                    pdata = np.squeeze(idata['dusttemp'][:,:,:,ispec])
+                else:
+                    print 'ERROR'
+                    print 'dust species index should not be smaller than 0 for dust temperature'
+                    return
+
+            else:
+                if iplane == 0:
+                    if ispec > 0:
+                        pdata = data.dusttemp[icrd3,:,:,ispec]
+                    else:
+                        print 'ERROR'
+                        print 'dust species index should not be smaller than 0 for dust temperature'
+                        return
+                elif iplane == 1:
+                    if ispec > 0:
+                        pdata = data.dusttemp[:,icrd3,:,ispec]
+                    else:
+                        print 'ERROR'
+                        print 'dust species index should not be smaller than 0 for dust temperature'
+                        return
+                elif iplane == 2:
+                    if ispec > 0:
+                        pdata = data.dusttemp[:,:,icrd3,ispec]
+                    else:
+                        print 'ERROR'
+                        print 'dust species index should not be smaller than 0 for dust temperature'
+                        return
+            cblabel = r'$T_{\rm dust}$ [K]'
+    
+    elif var=='gdens':
+        if type(data.rhogas)==int:  
+            print 'ERROR'
+            print 'Gas density is not present in the passed radmc3dData instance'
+            return
         else:
-            pdata = np.squeeze(idata['dusttemp'].sum(3))
+            if octree:
+                pdata = np.squeeze(idata['rhogas'])
+            else:
+                if iplane == 0:
+                    pdata = data.rhogas[icrd3,:,:]
+                elif iplane == 1:
+                    pdata = data.rhogas[:,icrd3,:]
+                elif iplane == 2:
+                    pdata = data.rhogas[:,:,icrd3]
+            cblabel = r'$\rho_{\rm gas}$ [g/cm$^3$]'
     
-    elif gdens:
-        cblabel = r'$\n_{\rm mol}$ [mol/cm$^3$]'
-        pdata = np.squeeze(idata['ndens_mol'])
+    elif var=='ndens':
+        if type(data.ndens_mol)==int:  
+            print 'ERROR'
+            print 'Gas number density is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                pdata = np.squeeze(idata['ndens_mol'])
+            else:
+                if iplane == 0:
+                    pdata = data.ndens_mol[icrd3,:,:]
+                elif iplane == 1:
+                    pdata = data.ndens_mol[:,icrd3,:]
+                elif iplane == 2:
+                    pdata = data.ndens_mol[:,:,icrd3]
+            cblabel = r'$n_{\rm gas}$ [molecule/cm$^3$]'
     
-    elif gtemp:
-        cblabel = r'T$_{\rm gas}$ [K]'
-        pdata = np.squeeze(idata['gastemp'])
+    elif var=='gtemp':
+        if type(data.gastemp)==int:  
+            print 'ERROR'
+            print 'Gas temperture is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                pdata = np.squeeze(idata['gastemp'])
+            else:
+                if iplane == 0:
+                    pdata = data.gastemp[icrd3,:,:]
+                elif iplane == 1:
+                    pdata = data.gastemp[:,icrd3,:]
+                elif iplane == 2:
+                    pdata = data.gastemp[:,:,icrd3]
+            cblabel = r'$T_{\rm gas}$ [K]'
     
-    elif vturb:
-        cblabel = r'v$_{\rm turb}$ [cm/s]'
-        pdata = np.squeeze(idata['vturb'])
-     
+    elif var=='vx':
+        if type(data.gvel)==int:  
+            print 'ERROR'
+            print 'Gas velocity is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                pdata = np.squeeze(idata['gasvel'][:,:,:,0])
+            else:
+                if iplane == 0:
+                    pdata = data.gasvel[icrd3,:,:,0]
+                elif iplane == 1:
+                    pdata = data.gasvel[:,icrd3,:,0]
+                elif iplane == 2:
+                    pdata = data.gasvel[:,:,icrd3,0]
+            cblabel = r'$v_{\rm x}$ [cm/s]'
     
+    elif var=='vy':
+        if type(data.gvel)==int:  
+            print 'ERROR'
+            print 'Gas velocity is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                pdata = inp.squeeze(data['gasvel'][:,:,:,1])
+            else:
+                if iplane == 0:
+                    pdata = data.gasvel[icrd3,:,:,1]
+                elif iplane == 1:
+                    pdata = data.gasvel[:,icrd3,:,1]
+                elif iplane == 2:
+                    pdata = data.gasvel[:,:,icrd3,1]
+            cblabel = r'$v_{\rm y}$ [cm/s]'
+    elif var=='vz':
+        if type(data.gvel)==int:  
+            print 'ERROR'
+            print 'Gas velocity is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                pdata = np.squeeze(idata['gasvel'][:,:,:,2])
+            else:
+                if iplane == 0:
+                    pdata = data.gasvel[icrd3,:,:,2]
+                elif iplane == 1:
+                    pdata = data.gasvel[:,icrd3,:,2]
+                elif iplane == 2:
+                    pdata = data.gasvel[:,:,icrd3,2]
+            cblabel = r'$v_{\rm z}$ [cm/s]'
+        
+    elif var=='vturb':
+        if type(data.vturb)==int:  
+            print 'ERROR'
+            print 'Microturbulent velocity is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                pdata = np.squeeze(idata['vturb'])
+            else:
+                if iplane == 0:
+                    pdata = data.vturb[icrd3,:,:]
+                elif iplane == 1:
+                    pdata = data.vturb[:,icrd3,:]
+                elif iplane == 2:
+                    pdata = data.vturb[:,:,icrd3]
+            cblabel = r'$v_{\rm turb}$ [cm/s]'
+    
+    if var=='taux':
+        if type(data.taux)==int:  
+            print 'ERROR'
+            print 'Optical depth is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                print 'Optical depth calculation has not yet been implemented for octrees'
+                return
+            else:
+                if iplane == 0:
+                    pdata = data.taux[icrd3,:,:]
+                elif iplane == 1:
+                    pdata = data.taux[:,icrd3,:]
+                elif iplane == 2:
+                    pdata = data.taux[:,:,icrd3]
+            cblabel = r'$\tau_{\rm r}$'
+    
+    if var=='tauy':
+        if type(data.tauy)==int:  
+            print 'ERROR'
+            print 'Optical depth is not present in the passed radmc3dData instance'
+            return
+        else:
+            if octree:
+                print 'Optical depth calculation has not yet been implemented for octrees'
+                return
+            else:
+                if iplane == 0:
+                    pdata = data.tauy[icrd3,:,:]
+                elif iplane == 1:
+                    pdata = data.tauy[:,icrd3,:]
+                elif iplane == 2:
+                    pdata = data.tauy[:,:,icrd3]
+            cblabel = r'$\tau_{\rm \theta}$'
+    
+    #
+    # If the dimensions are flipped in the plotted plane (i.e. yx, zy, or xz) flip the array dimensions
+    #
     if swapDim:
         pdata = pdata.swapaxes(0,1) 
         dum = np.array(plot_x)
         plot_y = np.array(plot_x)
         plot_x = dum
-
-      
-    pdata = pdata.clip(1e-90, 1e90)
-    if not vmin:
+ 
+    if not octree:
+        plot_x *= xnorm
+        plot_y *= ynorm
+    #
+    # Get the data min/max values
+    #
+    if 'vmin' not in kwargs:
         vmin = pdata.min()
-    if not vmax:
+    else:
+        vmin = kwargs['vmin']
+    
+    if 'vmax' not in kwargs:
         vmax = pdata.max()
+    else:
+        vmax = kwargs['vmax']
+
+
+    if ax is None:
+        ax = plb.gca()
 
     #
-    # Now we can do the plotting
+    # Now do the colorscale plotting
     #
     if log:
-        plb.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+        if pdata.min()<=0:
+            pdata = pdata.clip(1e-90)
+        p = ax.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+        # Enable rasterization to enable easy save to file
+        p.set_rasterized(True)
     else: 
-        plb.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+        p = ax.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+        # Enable rasterization to enable easy save to file
+        p.set_rasterized(True)
 
-    cb = plb.colorbar()
-    cb.set_label(cblabel)
-    plb.xlabel(xlabel)
-    plb.ylabel(ylabel)
+    #
+    # Set the axis limits
+    #
     plb.xlim(xlim[0], xlim[1])
     plb.ylim(ylim[0], ylim[1])
+    #
+    # Set the axis labels
+    #
+    plb.xlabel(xlabel)
+    plb.ylabel(ylabel)
+    #
+    # Generate the colorbar
+    #
+    cb = plb.colorbar(p)
+    cb.set_label(cblabel)
 
+    #
+    # Show the grid (currently only for otctree AMR)
+    #
+    if octree:
+        if showgrid:
+            import matplotlib.patches as patches
+            ind = 0
+            plottedInd = np.zeros(idata['cellID'].shape[0], dtype=np.int)-1
 
-    if showgrid:
-        ax = plb.gca()
-        import matplotlib.patches as patches
-        ind = 0
-        plottedInd = np.zeros(idata['cellID'].shape[0], dtype=np.int)-1
+            if plane.strip().lower() == 'xy':
+                for i in idata['cellID']:
+                    if i not in plottedInd:
+                        ind+=1
+                        bottomleft = ((data.grid.x[i]-data.grid.dx[i])*xnorm, (data.grid.y[i]-data.grid.dy[i])*ynorm)
+                        ax.add_patch(patches.Rectangle(bottomleft, data.grid.dx[i]*2*xnorm, data.grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                        plottedInd[ind] = i
 
-        if plane.strip().lower() == 'xy':
-            for i in idata['cellID']:
-                if i not in plottedInd:
-                    ind+=1
-                    bottomleft = ((grid.x[i]-grid.dx[i])*xnorm, (grid.y[i]-grid.dy[i])*ynorm)
-                    ax.add_patch(patches.Rectangle(bottomleft, grid.dx[i]*2*xnorm, grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
-                    plottedInd[ind] = i
-
-        elif plane.strip().lower() == 'yx':
+            elif plane.strip().lower() == 'yx':
+                
+                for i in idata['cellID']:
+                    if i not in plottedInd:
+                        ind+=1
+                        bottomleft = ((data.grid.y[i]-data.grid.dy[i])*xnorm, (data.grid.x[i]-data.grid.dx[i])*ynorm)
+                        ax.add_patch(patches.Rectangle(bottomleft, data.grid.dy[i]*2*xnorm, data.grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                        plottedInd[ind] = i
             
-            for i in idata['cellID']:
-                if i not in plottedInd:
-                    ind+=1
-                    bottomleft = ((grid.y[i]-grid.dy[i])*xnorm, (grid.x[i]-grid.dx[i])*ynorm)
-                    ax.add_patch(patches.Rectangle(bottomleft, grid.dy[i]*2*xnorm, grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
-                    plottedInd[ind] = i
+            elif plane.strip().lower() == 'xz':
+                
+                for i in idata['cellID']:
+                    if i not in plottedInd:
+                        ind+=1
+                        bottomleft = ((data.grid.x[i]-data.grid.dx[i])*xnorm, (data.grid.z[i]-data.grid.dz[i])*ynorm)
+                        ax.add_patch(patches.Rectangle(bottomleft, data.grid.dx[i]*2*xnorm, data.grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                        plottedInd[ind] = i
+
+            elif plane.strip().lower() == 'zx':
+                
+                for i in idata['cellID']:
+                    if i not in plottedInd:
+                        ind+=1
+                        bottomleft = ((data.grid.z[i]-data.grid.dz[i])*xnorm, (data.grid.x[i]-data.grid.dx[i])*ynorm)
+                        ax.add_patch(patches.Rectangle(bottomleft, data.grid.dz[i]*2*xnorm, data.grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                        plottedInd[ind] = i
+            
+            elif plane.strip().lower() == 'yz':
+                
+                for i in idata['cellID']:
+                    if i not in plottedInd:
+                        ind+=1
+                        bottomleft = ((data.grid.y[i]-data.grid.y[i])*xnorm, (data.grid.z[i]-data.grid.dz[i])*ynorm)
+                        ax.add_patch(patches.Rectangle(bottomleft, data.grid.dy[i]*2*xnorm, data.grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                        plottedInd[ind] = i
+
+            elif plane.strip().lower() == 'zy':
+                
+                for i in idata['cellID']:
+                    if i not in plottedInd:
+                        ind+=1
+                        bottomleft = ((data.grid.z[i]-data.grid.dz[i])*xnorm, (data.grid.y[i]-data.grid.dy[i])*ynorm)
+                        ax.add_patch(patches.Rectangle(bottomleft, data.grid.dz[i]*2*xnorm, data.grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
+                        plottedInd[ind] = i
+
         
-        elif plane.strip().lower() == 'xz':
-            
-            for i in idata['cellID']:
-                if i not in plottedInd:
-                    ind+=1
-                    bottomleft = ((grid.x[i]-grid.dx[i])*xnorm, (grid.z[i]-grid.dz[i])*ynorm)
-                    ax.add_patch(patches.Rectangle(bottomleft, grid.dx[i]*2*xnorm, grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
-                    plottedInd[ind] = i
 
-        elif plane.strip().lower() == 'zx':
-            
-            for i in idata['cellID']:
-                if i not in plottedInd:
-                    ind+=1
-                    bottomleft = ((grid.z[i]-grid.dz[i])*xnorm, (grid.x[i]-grid.dx[i])*ynorm)
-                    ax.add_patch(patches.Rectangle(bottomleft, grid.dz[i]*2*xnorm, grid.dx[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
-                    plottedInd[ind] = i
-        
-        elif plane.strip().lower() == 'yz':
-            
-            for i in idata['cellID']:
-                if i not in plottedInd:
-                    ind+=1
-                    bottomleft = ((grid.y[i]-grid.y[i])*xnorm, (grid.z[i]-grid.dz[i])*ynorm)
-                    ax.add_patch(patches.Rectangle(bottomleft, grid.dy[i]*2*xnorm, grid.dz[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
-                    plottedInd[ind] = i
+    if contours == True:
+        if clmin is None:
+            clmin = pdata.min()
+        if clmax is None:
+            clmax = pdata.max()
+        if ncl is None:
+            ncl = 20
 
-        elif plane.strip().lower() == 'zy':
-            
-            for i in idata['cellID']:
-                if i not in plottedInd:
-                    ind+=1
-                    bottomleft = ((grid.z[i]-grid.dz[i])*xnorm, (grid.y[i]-grid.dy[i])*ynorm)
-                    ax.add_patch(patches.Rectangle(bottomleft, grid.dz[i]*2*xnorm, grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
-                    plottedInd[ind] = i
-
+        # Generate the contour levels
+        if clev == None:
+            if cllog == True:
+                clev = clmin * (clmax/clmin)**(np.arange(ncl, dtype=float)/float(ncl-1))
+            else:
+                clev = clmin + (clmax-clmin)*(np.arange(ncl, dtype=float)/float(ncl-1))
+        if (clcol == 'none')|(clcol is None):
+            if 'cmap' in kwargs:
+                ax.contour(plot_x, plot_y, pdata, clev, kwargs['cmap'], alpha=clalpha)
+            else:
+                ax.contour(plot_x, plot_y, pdata, clev, alpha=clalpha)
+        else:
+            ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
 
