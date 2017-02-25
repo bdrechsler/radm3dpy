@@ -1126,8 +1126,18 @@ def readImage(fname=None, binary=False, old=False):
 
 
 def rebin( a, newshape ):
-    '''Rebin an array to a new shape.
-    '''
+    """
+    Rebin an array to a new shape.
+
+    Parameters:
+    -----------
+
+    a        : ndarray
+               Array to rebin
+
+    newshape : tuple
+               Tuple or list of the new dimension the array should be rebinned to
+    """
     assert len(a.shape) == len(newshape)
     slices = [ slice(0,old, float(old)/new) for old,new in zip(a.shape,newshape) ]
     coordinates = np.mgrid[slices]
@@ -1234,7 +1244,6 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         
     if (ifreq==None):
         ifreq = 0
-    #data = np.squeeze(dum_image.image[::-1,:,ifreq])
     data = np.squeeze(dum_image.image[:,::-1,ifreq].T)
 
     #if (image.nfreq>1):

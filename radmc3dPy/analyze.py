@@ -29,6 +29,7 @@ import radmc3dPy.crd_trans  as crd_trans
 from staratm import StellarAtm
 from multiprocessing import Pool
 from functools import partial
+import inspect
 
 class radmc3dOctree(object):
     """
@@ -197,6 +198,7 @@ class radmc3dOctree(object):
         #
         self.crd_sys           = 'car'
         self.act_dim           = [1,1,1]
+        self.grid_style        = 1
         self.nChild            = 0
         #
         # Stuff used for tree building
@@ -640,7 +642,7 @@ class radmc3dOctree(object):
                             Name of the model to be used in the tree building
         
         dfunc            : function
-                            A user defined function that decides whether the 
+                            A user defined function that decides whether an AMR grid cell should be refined
 
         levelMaxLimit    : int, optional
                             Highest allowable level of the tree. This keyword is optional. If not specified at input as
@@ -648,11 +650,23 @@ class radmc3dOctree(object):
 
         """
         
+        #
+        # Set the model
+        #
+        self.setModel(model)
+        
         if dfunc is None:
-            print 'ERROR'
-            print 'Tree cannot be built as the decision function (dfunc) has not been specified'
-            print ' It is required to decide when a node / cell should be resolved'
-            return
+            fnamelist = [f[0] for f in inspect.getmembers(self.model) if inspect.isfunction(f[1])]
+            if 'decisionFunction' in fnamelist:
+                dfunc = self.model.decisionFunction
+            
+            else:
+                print 'ERROR'
+                print 'Tree cannot be built as no decision function for AMR refinement has been specified.'
+                print 'It is required to decide when a node / cell should be resolved'
+                print 'Decision function should be given either as a dfunc keyword argument in setup function call'
+                print 'or should be implemented in the model as decisionFunction()'
+                return
 
         if levelMaxLimit is None:
             if not 'levelMaxLimit' in ppar.keys():
@@ -730,11 +744,6 @@ class radmc3dOctree(object):
         print txt
 
         #
-        # Set the model
-        #
-        self.setModel(model)
-        
-        #
         # Now go level by level and check which cells are to be resolved and resolve what's necessary
         #
         for ilev in range(self.levelMaxLimit):
@@ -745,20 +754,23 @@ class radmc3dOctree(object):
             cID = np.arange(self.x.shape[0], dtype=int)
             ii  = (self.level == ilev)
             
-            #
-            # Check which cells to resolve
-            #
-            resolve = dfunc(self.x[ii], self.y[ii], self.z[ii], self.dx[ii][0], self.dy[ii][0], self.dz[ii][0], model=self.model, ppar=ppar, **kwargs)
-            jj = (resolve == True) & (self.level[ii] < self.levelMaxLimit)
-            
-            #
-            # If there are some to resolve do so 
-            #
-            if True in jj:
-                ncell2resolve = cID[ii][jj].shape[0]
-                print 'Cells to resolve at this level : ', ncell2resolve
-                self.resolveNodes(rsIDs=cID[ii][jj])
-                self.levelMax += 1
+            if True in ii:
+                #
+                # Check which cells to resolve
+                #
+                resolve = dfunc(self.x[ii], self.y[ii], self.z[ii], self.dx[ii][0], self.dy[ii][0], self.dz[ii][0], model=self.model, ppar=ppar, **kwargs)
+                jj = (resolve == True) & (self.level[ii] < self.levelMaxLimit)
+                
+                #
+                # If there are some to resolve do so 
+                #
+                if True in jj:
+                    ncell2resolve = cID[ii][jj].shape[0]
+                    print 'Cells to resolve at this level : ', ncell2resolve
+                    self.resolveNodes(rsIDs=cID[ii][jj])
+                    self.levelMax += 1
+                else:
+                    print 'No cells to resolve at this level'
             else:
                 print 'No cells to resolve at this level'
         
@@ -772,7 +784,7 @@ class radmc3dOctree(object):
         print 'Nr of leaves       : ', self.nLeaf
         ncells_fullgrid = self.nChild**self.levelMax * self.nxRoot*self.nyRoot*self.nzRoot
         cell_fraction =  float(self.nLeaf + self.nBranch) / ncells_fullgrid
-        print 'Using '+("%.3f"%(cell_fraction*100))+'% memory of a full grid at max resolution'
+        print 'Using '+("%.3f"%(cell_fraction*100))+'% memory of a regular grid at max resolution'
 
         self.generateLeafID()
         return
@@ -1258,6 +1270,7 @@ class radmc3dGrid(object):
 
         self.crd_sys = 'sph'
         self.act_dim = [1,1,1]
+        self.grid_style = 0
         self.nx    = -1
         self.ny    = -1
         self.nz    = -1
@@ -7716,7 +7729,7 @@ def gmass(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=No
         xoffset  = (np.random.random_sample(ncell)-0.5)*dx*4.0
         yoffset  = (np.random.random_sample(ncell)-0.5)*dy*4.0
         zoffset  = (np.random.random_sample(ncell)-0.5)*dz*4.0
-        rho[:,isample] = model.getGasDensity(x=x+xoffset, y=y+yoffset, z=z+zoffset, ppar=ppar)
+        rho[:,isample] = model.getGasDensity(x+xoffset, y+yoffset, z+zoffset, ppar=ppar)
    
     mass    = rho.max(1)*dx*dy*dz*8.0
     jj      = (mass>ppar['threshold'])
@@ -7778,7 +7791,7 @@ def gdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, p
         xoffset  = (np.random.random_sample(ncell)-0.5)*dx*4.0
         yoffset  = (np.random.random_sample(ncell)-0.5)*dy*4.0
         zoffset  = (np.random.random_sample(ncell)-0.5)*dz*4.0
-        rho[:,isample] = model.getGasDensity(x=x+xoffset, y=y+yoffset, z=z+zoffset, ppar=ppar)
+        rho[:,isample] = model.getGasDensity(x+xoffset, y+yoffset, z+zoffset, ppar=ppar)
     
     rho_max = rho.max(axis=1)
     rho_min = rho.min(axis=1)

@@ -14,7 +14,7 @@ import os, sys, copy
 
 from radmc3dPy.natconst import *
 import radmc3dPy.analyze as analyze
-
+import inspect
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, dfunc=None, dfpar=None, **kwargs):
     """
@@ -889,3 +889,241 @@ def writeLinesInp(ppar=None):
     wfile.close()
 
 # --------------------------------------------------------------------------------------------------
+def validateModel(model='', dustModel=False, gasModel=False, writeDustTemp=False, octree=False):
+    """
+    Function to validate a model. It checks three things: 1) whether or not the model can be imported,
+    2) whether the model has all the function to be used as dust and/or gas model, 3) if it has the right
+    number of arguments. The function names tested are getDefaultParams, getDustDensity, getGasDensity, 
+    getGasAbundance, getVTurb, getVelocity, getDustTempearture (optional).
+
+    Parameters:
+    -----------
+
+    model       : str
+                  Name of the model to be tested
+
+    dustModel   : bool
+                  If True the existence of functions getDustDensity() and getDustTemperature() will be checked.
+                  The latter is only checked if writeDustTemp is set to True.
+
+    gasModel    : bool
+                  If True the existence of functions getGasDensity(), getGasAbundance(), getVTurb(), getVelocity()
+                  will be checked.
+
+    writeDustTemp: bool
+                   If True the existence of the function getDustTemperature() will be checked.
+
+    octree      : bool
+                  If True the number of argument of the model functions will be checked. For regular grids only two 
+                  arguments should be present for the grid instance and for the parameter dictionary (grid, ppar). 
+                  For a model to be used with octree AMR three additional arguments for the three spatial coordiantes
+                  (x,y,z) should be present. The argument sequence should then be x, y, z, grid, ppar.
+
+    Returns:
+    --------
+    A boolean True if the model is valid and False if it is not. 
+
+    """
+
+    #
+    # First check if the model can be imported
+    #
+    try:
+        mdl = __import__(model)
+    except:
+        try:
+            mdl  = __import__('radmc3dPy.models.'+model, fromlist=['']) 
+        except:
+            print 'ERROR'
+            print ' '+model+'.py could not be imported'
+            print ' The model files should either be in the current working directory or'
+            print ' in the radmc3d python module directory'
+            return
+
+
+    isValid = True
+    #
+    # Now check the function names in the model
+    #
+    fnamelist = [f[0] for f in inspect.getmembers(mdl) if inspect.isfunction(f[1])]
+    
+    if 'getDefaultParams' not in fnamelist:
+        print 'ERROR'
+        print model + ' does not contain a function to provide default parameters (getDefaultParams)'
+        isValid = False
+
+    if dustModel:
+        if 'getDustDensity' not in fnamelist:
+            print 'ERROR'
+            print model + ' does not contain a function to provide dust density (getDustDensity)'
+            isValid = False
+           
+        if writeDustTemp:
+            if 'getDustTemperature' not in fnamelist:
+                print 'ERROR'
+                print model + ' does not contain a function to provide dust temperature (getDustTemperature)'
+                print 'yet the setup function has been called with the option to write the dust temperature.'
+                isValid = False
+
+    if gasModel:
+        if 'getGasDensity' not in fnamelist:
+            print 'ERROR'
+            print model + ' does not contain a function to provide gas density (getGasDensity)'
+            isValid = False
+
+        if 'getGasAbundance' not in fnamelist:
+            print 'ERROR'
+            print model + ' does not contain a function to provide molecular abundance (getGasAbundance)'
+            isValid = False
+        
+        if 'getVTurb' not in fnamelist:
+            print 'ERROR'
+            print model + ' does not contain a function to provide turbulent velocity (getVTurb)'
+            isValid = False
+
+        if 'getVelocity' not in fnamelist:
+            print 'ERROR'
+            print model + ' does not contain a function to provide gas velocity (getVelocity)'
+            isValid = False
+
+    #
+    # Check the number of arguments
+    #
+    if dustModel:
+        arglist = inspect.getargspec(mdl.getDustDensity).args
+        argnames = ''
+        if len(arglist)>0:
+            argnames = arglist[0]
+            for iarg in arglist[1:]:
+                argnames += ', '+iarg
+        if octree:
+            if len(arglist)<5:
+                print 'ERROR'
+                print model+'.getDustDensity() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'To use octree the argument list should be :'
+                print 'x=None, y=None, z=None, grid=None, ppar=None)'
+                isValid = False
+        else:
+            if len(arglist)<2:
+                print 'ERROR'
+                print model+'.getDustDensity() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'The minimal argument list of a model function should be :'
+                print 'grid=None, ppar=None)'
+                isValid = False
+
+
+        if writeDustTemp:
+            arglist = inspect.getargspec(mdl.getDustTemperature).args
+            argnames = ''
+            if len(arglist)>0:
+                argnames = arglist[0]
+                for iarg in arglist[1:]:
+                    argnames += ', '+iarg
+            if octree:
+                if len(arglist)<5:
+                    print 'ERROR'
+                    print model+'.getDustTemperature() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                    print 'To use octree the argument list should be :'
+                    print 'x=None, y=None, z=None, grid=None, ppar=None)'
+                    isValid = False
+            else:
+                if len(arglist)<2:
+                    print 'ERROR'
+                    print model+'.getDustTemperature() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                    print 'The minimal argument list of a model function should be :'
+                    print 'grid=None, ppar=None)'
+                    isValid = False
+
+    if gasModel:
+        arglist = inspect.getargspec(mdl.getGasDensity).args
+        argnames = ''
+        if len(arglist)>0:
+            argnames = arglist[0]
+            for iarg in arglist[1:]:
+                argnames += ', '+iarg
+        if octree:
+            if len(arglist)<5:
+                print 'ERROR'
+                print model+'.getGasDensity() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'To use octree the argument list should be :'
+                print 'x=None, y=None, z=None, grid=None, ppar=None)'
+                isValid = False
+        else:
+            if len(arglist)<2:
+                print 'ERROR'
+                print model+'.getGasDensity() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'The minimal argument list of a model function should be :'
+                print 'grid=None, ppar=None)'
+                isValid = False
+
+
+        arglist = inspect.getargspec(mdl.getGasAbundance).args
+        argnames = ''
+        if len(arglist)>0:
+            argnames = arglist[0]
+            for iarg in arglist[1:]:
+                argnames += ', '+iarg
+        if octree:
+            if len(arglist)<5:
+                print 'ERROR'
+                print model+'.getGasAbundance() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'To use octree the argument list should be :'
+                print 'x=None, y=None, z=None, grid=None, ppar=None)'
+                isValid = False
+        else:
+            if len(arglist)<2:
+                print 'ERROR'
+                print model+'.getGasAbundance() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'The minimal argument list of a model function should be :'
+                print 'grid=None, ppar=None)'
+                isValid = False
+
+        arglist = inspect.getargspec(mdl.getVTurb).args
+        argnames = ''
+        if len(arglist)>0:
+            argnames = arglist[0]
+            for iarg in arglist[1:]:
+                argnames += ', '+iarg
+        if octree:
+            if len(arglist)<5:
+                print 'ERROR'
+                print model+'.getVTurb() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'To use octree the argument list should be :'
+                print 'x=None, y=None, z=None, grid=None, ppar=None)'
+                isValid = False
+        else:
+            if len(arglist)<2:
+                print 'ERROR'
+                print model+'.getVTurb() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'The minimal argument list of a model function should be :'
+                print 'grid=None, ppar=None)'
+                isValid = False
+
+
+        arglist = inspect.getargspec(mdl.getVelocity).args
+        argnames = ''
+        if len(arglist)>0:
+            argnames = arglist[0]
+            for iarg in arglist[1:]:
+                argnames += ', '+iarg
+        if octree:
+            if len(arglist)<5:
+                print 'ERROR'
+                print model+'.getVelocity() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'To use octree the argument list should be :'
+                print 'x=None, y=None, z=None, grid=None, ppar=None)'
+                isValid = False
+        else:
+            if len(arglist)<2:
+                print 'ERROR'
+                print model+'.getVelocity() has only '+("%d"%len(arglist))+' arguments : ', argnames
+                print 'The minimal argument list of a model function should be :'
+                print 'grid=None, ppar=None)'
+                isValid = False
+
+    
+    #
+    # If it passed all tests so far then formally the model should be OK. There is no guarantee, though
+    # that it will work properly. 
+    #
+    return isValid
