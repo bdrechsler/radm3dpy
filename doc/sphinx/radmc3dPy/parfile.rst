@@ -1,7 +1,7 @@
 .. _parfile:
 
 **********************
-Parameters
+Parameter file
 **********************
 
 .. _parameters-parfile-syntax:

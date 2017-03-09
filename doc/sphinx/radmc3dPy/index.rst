@@ -25,30 +25,6 @@ radmc3dPy provides functionality to
 * calculate interferometric visibilities of images for given projected baselines and position angles
 
 
-
-
-Changes
--------
-
-**v0.29**
-
-*New features*
-
-* octree AMR support (read and write grid and data fields, generate models with an octree grid)
-* plot 2D contour maps of data fields along axis aligned slices (show the cell boundaries for AMR models) 
-* plot the polarisation direction (thanks Kees!)
-* read molecular data files (thanks Kees!)
-* plot spectrum (thanks Kees!)
-* functions to calculate dust and gas mass in a model
-* updated tutorials for models using an octree AMR grid
-
-**Planned features for v0.30**
-
-* python3 compatibility
-* nested mesh support
-* data inspector GUI
-
-
 Copyright
 ---------
 
@@ -60,29 +36,16 @@ I/We reject all responsibility for the use of this package. The package is provi
 nor for incorrect results that may result from the software. The package is still in development and it may contain bugs. In case of any bug, please, contact
 the author of the package (Attila Juhasz <juhasz@ast.cam.ac.uk>).  
 
-Requirements
-------------
-
-radmc3dPy requires the following packages to be installed:
-
-* `Numpy <http://www.numpy.org>`_ v1.6.2 or later
-* `SciPy <http://www.scipy.org>`_ 0.11.0 or later
-* `matplotlib <http://matplotlib.org>`_ 1.2.0 or later
-* `AstroPy <http://www.astropy.org>`_ v0.3 or later or `Pyfits <http://www.stsci.edu/institute/software_hardware/pyfits>`_ v3.0.7 
-
-Download
---------
-
-The latest version of radmc3dPy (0.29.0) can be downloaded from :download:`here <radmc3dPy-0.29.0.tar.gz>`
-
-
 Contents
 --------
 
 .. toctree::
    :maxdepth: 2
 
-   
+   requirements
+   changes
+   download
+   install
    tutorial_reggrid_cont
    tutorial_reggrid_line
    tutorial_octree_grid
