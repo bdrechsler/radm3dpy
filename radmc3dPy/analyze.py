@@ -7026,7 +7026,7 @@ class radmc3dMolecule(object):
        self.lam         = 0.0
 
    # --------------------------------------------------------------------------------------------------
-   def read(self,mol=''):
+   def read(self,mol='',fname=''):
        """Read the molecule_<mol>.inp file
 
        The file format is the format of the Leiden LAMDA molecular database
@@ -7034,20 +7034,30 @@ class radmc3dMolecule(object):
        Parameters
        ----------
        mol             : str
-                        molecule name (e.g. 'co')
-
+                        molecule name (e.g. 'co') if the file name is in the form of 'molecule_<mol>.inp'
+       
+       fname           : str
+                        full file name
        """
 
-       filename = 'molecule_'+mol+'.inp'
-       try:
-           f = open(filename, 'r')
-       except Exception as e:
-           print e
-           return False
+       if fname != '':
+           try:
+               f = open(fname, 'r')
+           except Exception as e:
+               print e
+               return False
+
+       else:
+           fname = 'molecule_'+mol+'.inp'
+           try:
+               f = open(fname, 'r')
+           except Exception as e:
+               print e
+               return False
         
        
-       print 'Reading '+filename+'...'
-       #with open(filename,'r') as f:
+       print 'Reading '+fname+'...'
+       #with open(fname,'r') as f:
        dum             = f.readline()
        dum             = f.readline().split()
        self.name       = dum[0]
@@ -7086,21 +7096,23 @@ class radmc3dMolecule(object):
 
        return True
 # --------------------------------------------------------------------------------------------------
-def readMol(mol=''):
-   """ Wrapper around the radmc3dMolecule.read() method
+def readMol(mol='', fname=''):
+    """ Wrapper around the radmc3dMolecule.read() method
 
        Parameters
        ----------
        mol             : str
-                        molecule name (e.g. 'co')
+                        molecule name (e.g. 'co') if the file name is in the form of 'molecule_<mol>.inp'
 
-   """
+       fname           : str
+                        full file name
+    """
 
-   m = radmc3dMolecule()
-   if m.read(mol) == True:
-       return m
-   else:
-       return
+    m = radmc3dMolecule()
+    if m.read(mol=mol, fname=fname) == True:
+        return m
+    else:
+        return
 
 # --------------------------------------------------------------------------------------------------
 def plotSpectrum(a,ev=False,kev=False,hz=False,micron=False,jy=False,lsun=False,
