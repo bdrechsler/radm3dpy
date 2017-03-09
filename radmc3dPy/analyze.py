@@ -20,16 +20,19 @@ except:
     print ' display images'
 
 from matplotlib.colors import LogNorm
+import matplotlib.patches as patches
+import matplotlib.lines as ml
 import subprocess as sp
 import sys
 import os 
 import copy 
+import inspect
+from multiprocessing import Pool
+from functools import partial
+
 from radmc3dPy.natconst import *
 import radmc3dPy.crd_trans  as crd_trans 
 from staratm import StellarAtm
-from multiprocessing import Pool
-from functools import partial
-import inspect
 
 class radmc3dOctree(object):
     """
@@ -8482,8 +8485,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         if 'y' in plane:
             iplane = 2
             if not octree:
-                plot_x = data.grid.x
-                plot_y = data.grid.y
+                plot_x = np.copy(data.grid.x)
+                plot_y = np.copy(data.grid.y)
                 if lattitude:
                     plot_y = np.pi/2.0 - data.grid.y
 
@@ -8519,8 +8522,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         elif 'z' in plane:
             iplane = 1
             if not octree:
-                plot_x = data.grid.x
-                plot_y = data.grid.z
+                plot_x = np.copy(data.grid.x)
+                plot_y = np.copy(data.grid.z)
                 if icrd3 is None:
                     icrd3 = abs(data.grid.y - crd3).argmin()
                     if lattitude:
@@ -8555,8 +8558,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     else:
         iplane = 0
         if not octree:
-            plot_x = data.grid.y
-            plot_y = data.grid.z
+            plot_x = np.copy(data.grid.y)
+            plot_y = np.copy(data.grid.z)
             if lattitude:
                plot_x = (np.pi/2.0 - data.grid.y) 
             if icrd3 is None:
@@ -8909,9 +8912,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     #
     # Show the grid (currently only for otctree AMR)
     #
-    if octree:
-        if showgrid:
-            import matplotlib.patches as patches
+    if showgrid:
+        if octree:
             ind = 0
             plottedInd = np.zeros(idata['cellID'].shape[0], dtype=np.int)-1
 
@@ -8968,7 +8970,49 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                         ax.add_patch(patches.Rectangle(bottomleft, data.grid.dz[i]*2*xnorm, data.grid.dy[i]*2*ynorm, fill=False, edgecolor=gridcolor, alpha=gridalpha))
                         plottedInd[ind] = i
 
-        
+        else:
+
+            if plane.strip().lower() == 'xy': 
+                px = data.grid.xi*xnorm
+                if ( (data.grid.crd_sys == 'sph') & (lattitude) ):
+                    py = (np.pi/2.-data.grid.yi)*ynorm
+                else:
+                    py = data.grid.yi*ynorm
+
+            elif plane.strip().lower() == 'yx': 
+                py = data.grid.xi*xnorm
+                if ( (data.grid.crd_sys == 'sph') & (lattitude) ):
+                    px = (np.pi/2.-data.grid.yi)*ynorm
+                else:
+                    px = data.grid.yi*ynorm
+
+            elif plane.strip().lower() == 'xz': 
+                px = data.grid.xi*xnorm
+                py = data.grid.zi*znorm
+            
+            elif plane.strip().lower() == 'zx': 
+                py = data.grid.xi*xnorm
+                px = data.grid.zi*znorm
+            
+            elif plane.strip().lower() == 'yz': 
+                if ( (data.grid.crd_sys == 'sph') & (lattitude) ):
+                    px = (np.pi/2.-data.grid.yi)*ynorm
+                else:
+                    px = data.grid.yi*ynorm
+                py = data.grid.zi*znorm
+            
+            elif plane.strip().lower() == 'zy': 
+                if ( (data.grid.crd_sys == 'sph') & (lattitude) ):
+                    py = (np.pi/2.-data.grid.yi)*ynorm
+                else:
+                    py = data.grid.yi*ynorm
+                px = data.grid.zi*znorm
+
+
+            for ix in range(data.grid.nxi):
+                ax.add_line(ml.Line2D((px[ix], px[ix]), (py[0], py[-1]), color=gridcolor,alpha=gridalpha))
+            for iy in range(data.grid.nyi):
+                ax.add_line(ml.Line2D((px[0], px[-1]), (py[iy], py[iy]), color=gridcolor,alpha=gridalpha))
 
     if contours == True:
         if clmin is None:
