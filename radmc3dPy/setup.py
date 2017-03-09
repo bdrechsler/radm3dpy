@@ -258,7 +258,6 @@ def problemSetupDust(model='', binary=True, writeDustTemp=False, old=False, dfun
 
 
         radSources.csdens = mdl.getStellarsrcDensity(grid=grid, ppar=ppar)
-
 # --------------------------------------------------------------------------------------------
 # Create the dust density distribution 
 # --------------------------------------------------------------------------------------------
@@ -629,7 +628,7 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
 # --------------------------------------------------------------------------------------------
     else:
         grid=analyze.readGrid()
-
+    
 # --------------------------------------------------------------------------------------------
 # Create the gas density distribution 
 # --------------------------------------------------------------------------------------------
@@ -643,7 +642,8 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
     #       mean molecular weight
     if dir(mdl).__contains__('getGasDensity'):
         if callable(getattr(mdl, 'getGasDensity')):
-            data.rhogas = mdl.getGasDensity(grid=grid, ppar=ppar)
+            if ppar['grid_style'] == 1:
+                data.rhogas = mdl.getGasDensity(grid=grid, ppar=ppar)
     else:
         print 'WARNING'
         print ' '+model+'.py does not contain a getGasDensity() function, therefore, '
@@ -725,9 +725,9 @@ def problemSetupGas(model='', fullsetup=False, binary=True,  writeGasTemp=False,
             data.vturb = mdl.getVTurb(grid=grid, ppar=ppar)
             # Write the turbulent velocity field
             if ppar['grid_style'] == 1:
-                data.writeVTurb(binary=binary) 
-            else:
                 data.writeVTurb(binary=binary, octree=True) 
+            else:
+                data.writeVTurb(binary=binary) 
     else:
         data.vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=float64)
         data.vturb[:,:,:] = 0.
@@ -896,8 +896,8 @@ def validateModel(model='', dustModel=False, gasModel=False, writeDustTemp=False
     number of arguments. The function names tested are getDefaultParams, getDustDensity, getGasDensity, 
     getGasAbundance, getVTurb, getVelocity, getDustTempearture (optional).
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     model       : str
                   Name of the model to be tested
@@ -919,8 +919,8 @@ def validateModel(model='', dustModel=False, gasModel=False, writeDustTemp=False
                   For a model to be used with octree AMR three additional arguments for the three spatial coordiantes
                   (x,y,z) should be present. The argument sequence should then be x, y, z, grid, ppar.
 
-    Returns:
-    --------
+    Returns
+    -------
     A boolean True if the model is valid and False if it is not. 
 
     """

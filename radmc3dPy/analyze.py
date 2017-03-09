@@ -215,12 +215,13 @@ class radmc3dOctree(object):
         self.wav   = -1
         self.freq  = -1
 
+
     def getCellVolume(self, fullTree=False):
         """
         Calculates the grid cell volume
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
 
         fullTree    : bool, optional
                       If True the cell volumes of the full tree (including both branches and leaves) will be calculated, while
@@ -250,8 +251,8 @@ class radmc3dOctree(object):
         """
         Recursive function to find the tree index of a leaf that contains a given coordinate
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         crd         : tuple
                       List/tuple/ndarray containing the tree dimensional coordinates of the point 
 
@@ -284,8 +285,8 @@ class radmc3dOctree(object):
         """
         Finds the tree index of a leaf that contains a given coordinate
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         crd         : tuple
                       List/tuple/ndarray containing the tree dimensional coordinates of the point 
         """
@@ -376,8 +377,8 @@ class radmc3dOctree(object):
         """
         Function to read the wavelength/frequency grid
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
 
         fname       : str, optional
                       Name of the file to read the wavelength grid from (if not specified wavelenth_micron.inp will be used)
@@ -454,8 +455,8 @@ class radmc3dOctree(object):
         Function to put the data of a single node into the tree. This funcion assumes that all the arrays
         have already been allocated for the tree so input cell indices must refer to already existing array elements.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         crd      : tuple
                    Cell center coordinates of the node
 
@@ -495,12 +496,12 @@ class radmc3dOctree(object):
         Resolve multiple nodes simultaneously and add the children of the resolved node to the tree arrays extending
         the tree array
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rsIDs       : list  
                       List/tuple/array of indices of the resolvable cell in the tree array
         """
-
+            
         ncell         = rsIDs.shape[0]
         self.nLeaf   -= ncell
         self.nBranch += ncell
@@ -632,8 +633,8 @@ class radmc3dOctree(object):
         """
         Function to create an octree-like AMR grid
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
 
         ppar             : dictionary
                             Dictionary containing all input parameters of the model (from the problem_params.inp file)
@@ -784,7 +785,7 @@ class radmc3dOctree(object):
         print 'Nr of leaves       : ', self.nLeaf
         ncells_fullgrid = self.nChild**self.levelMax * self.nxRoot*self.nyRoot*self.nzRoot
         cell_fraction =  float(self.nLeaf + self.nBranch) / ncells_fullgrid
-        print 'Using '+("%.3f"%(cell_fraction*100))+'% memory of a regular grid at max resolution'
+        #print 'Using '+("%.3f"%(cell_fraction*100))+'% memory of a regular grid at max resolution'
 
         self.generateLeafID()
         return
@@ -793,8 +794,8 @@ class radmc3dOctree(object):
         """
         Sets the model to be used for tree building
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         model       : str
                       Name of the model
         """
@@ -881,14 +882,45 @@ class radmc3dOctree(object):
             self._generateLeafIDRec(i)
         
         print 'Done'
-   
-    def tree2Leaf(self, var=None):
+    
+    def convArrLeaf2Tree(self, var=None):
         """
-        Converts a data array to leaf size. The input a scalar or vector variable is defined at all nodes and the returned variable
+        Converts a leaf array to full tree size. 
+
+        Parameters
+        ----------
+        var     : ndarray
+                  A one or two dimensional ndarray with the first dimension is the size of the full tree
+
+        Returns:
+        --------
+        A one or two dimensional ndarray with size of of the full tree in the first dimension
+        """
+
+        ii = (self.leafID >= 0)
+        ndim    = len(var.shape)
+        if ndim == 1:
+            treeVar = np.zeros(self.nLeaf+self.nBranch, dtype=var.dtype)
+            treeVar[ii] = var[self.leafID[ii]] 
+        elif ndim == 2:
+            treeVar = np.zeros([self.nLeaf+self.nBranch, var.shape[1]], dtype=var.dtype)
+            for i in range(var.shape[1]):
+                treeVar[ii,i] = var[self.leafID[ii],i]
+        else:
+            print 'ERROR'
+            print 'Input variable is a three dimensional array. Octree AMR only supports one or two dimensional arrays'
+            print ' with the first dimension beeing the cell / spatial dimension'
+            return
+
+        return treeVar
+   
+    def convArrTree2Leaf(self, var=None):
+        """
+        Converts a data array to leaf size. The input is a scalar or vector variable defined at all nodes and the returned variable
         will only represent values at leaf nodes thereby reduced in length compared to the input.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         var     : ndarray
                   A one or two dimensional ndarray with the first dimension is the size of the full tree
 
@@ -972,8 +1004,8 @@ class radmc3dOctree(object):
         """
         Recursive function to write the node type to file
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
 
         cellID      : int
                       Tree index of the cell to be written
@@ -1104,6 +1136,7 @@ class radmc3dOctree(object):
                     self.nLeaf     += 1 
 
         nRoot = self.nxRoot * self.nyRoot * self.nzRoot
+
         for i in range(nRoot):
             self._readGridNodeTypeOcTreeRec(cellID=i, rfile=rfile)
         #
@@ -1115,13 +1148,13 @@ class radmc3dOctree(object):
 
         #self.selfCheck()
         return
-
+    
     def _readGridNodeTypeOcTreeRec(self, cellID=None, rfile=None):
         """
         Recursive function to write the node type to file
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
 
         cellID      : int
                       Tree index of the cell to be read
@@ -2491,7 +2524,7 @@ class radmc3dData(object):
 
 
                 elif len(data.shape)==4:
-                    hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz,  self.rhodust.shape[3]], dtype=int)
+                    hdr = np.array([1, self.grid.nx*self.grid.ny*self.grid.nz,  data.shape[3]], dtype=int)
                     hdr.tofile(wfile, sep=" ", format="%d\n")
                     # Now we need to flatten the dust density array since the Ndarray.tofile function writes the 
                     # array always in C-order while we need Fortran-order to be written
@@ -2791,9 +2824,7 @@ class radmc3dData(object):
             mweight   : float
                         Molecular weight [atomic mass unit / molecule, i.e. same unit as mean molecular weight]
 
-        Options
-        -------
-            rhogas    : bool
+            rhogas    : bool, optional
                         If True the gas mass will be calculated from radmc3dData.rhogas, while if set to False
                         the gas mass will be calculated from radmc3dData.ndens_mol. The mweight parameter is only
                         required for the latter. 
@@ -2990,7 +3021,7 @@ class radmc3dData(object):
 
             rfile.close()
 # --------------------------------------------------------------------------------------------------
-    def readGasVel(self, fname='', binary=True):
+    def readGasVel(self, fname='', binary=True, octree=False):
         """Reads the gas velocity.  
         
         Parameters
@@ -3003,6 +3034,8 @@ class radmc3dData(object):
         binary : bool
                 If true the data will be read in binary format, otherwise the file format is ascii
 
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
        
         if self.grid is None:
@@ -3068,49 +3101,51 @@ class radmc3dData(object):
             
             if fname=='':
                 fname = 'gas_velocity.inp'
+            
+            try :
+                rfile = open(fname, 'r')
+            except:
+                print 'Error!' 
+                print fname+' was not found!'
+                return
+            
+            print 'Reading gas velocity'
+            dum = rfile.readline()
+            dum = int(rfile.readline())
 
             # If we have an octree grid
-            if isinstance(self.grid, radmc3dOctree):
-                if os.path.isfile(fname):
-                    self.gasvel = np.loadtxt(fname, skiprows=2)
-                else:
-                    print 'Error!' 
-                    print fname+' was not found!'
+            if octree:
+                if ((self.grid.nLeaf)!=dum):
+                    print 'ERROR'
+                    print 'Number of grid points in amr_grid.inp is different from that in gas_velocity.inp'
+                    rfile.close()
+                    return
+
+                self.gasvel = np.zeros([dum, 3], dtype=np.float64)
+                for i in range(dum):
+                    val = rfile.readline().split()
+                    self.gasvel[i,0] = float(dum[0])
+                    self.gasvel[i,1] = float(dum[1])
+                    self.gasvel[i,2] = float(dum[2])
             else:
-                print 'Reading gas velocity'
+                
+                if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
+                    print 'Error!'
+                    print 'Number of grid points in amr_grid.inp is not equal to that in gas_velocity.inp'
+                    return
 
-                rfile = -1
+                self.gasvel = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=np.float64)
+                
+                for k in range(self.grid.nz):
+                    for j in range(self.grid.ny):
+                        for i in range(self.grid.nx):
+                            dum = rfile.readline().split()
+                            self.gasvel[i,j,k,0] = float(dum[0])
+                            self.gasvel[i,j,k,1] = float(dum[1])
+                            self.gasvel[i,j,k,2] = float(dum[2])
 
-                try :
-                    rfile = open(fname, 'r')
-                except:
-                    print 'Error!' 
-                    print fname+' was not found!'
-                    
-                if (rfile!=(-1)):            
-                    dum = rfile.readline()
-                    dum = int(rfile.readline())
-                    
-                    if ((self.grid.nx * self.grid.ny * self.grid.nz)!=dum):
-                        print 'Error!'
-                        print 'Number of self.grid.points in amr_grid.inp is not equal to that in gas_velocity.inp'
-                    else:
-                        
-                        self.gasvel = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=np.float64)
-                        
-                        for k in range(self.grid.nz):
-                            for j in range(self.grid.ny):
-                                for i in range(self.grid.nx):
-                                    dum = rfile.readline().split()
-                                    self.gasvel[i,j,k,0] = float(dum[0])
-                                    self.gasvel[i,j,k,1] = float(dum[1])
-                                    self.gasvel[i,j,k,2] = float(dum[2])
-        #                            self.gasvel[i,j,k,:] = [float(dum[i]) for i in range(3)]
+            rfile.close()
 
-                else:
-                    self.gasvel = -1                            
-
-                rfile.close()
 # --------------------------------------------------------------------------------------------------
     def readVTurb(self, fname='', binary=True, octree=False):
         """Reads the turbulent velocity field. 
@@ -3219,7 +3254,7 @@ class radmc3dData(object):
             if fname=='':
                 fname = 'gas_temperature.inp'
             
-        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary, octre=octree)
+        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         if octree:
             self.gastemp = np.squeeze(self.gastemp)
 
@@ -3256,7 +3291,7 @@ class radmc3dData(object):
             print 'Writing '+fname
 
             if octree:
-                self._scalarfieldWriter(data=self.grid.tree2Leaf(self.rhodust), fname=fname, binary=binary, octree=True)
+                self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.rhodust), fname=fname, binary=binary, octree=True)
             else:
                 self._scalarfieldWriter(data=self.rhodust, fname=fname, binary=binary, octree=False)
 
@@ -3311,7 +3346,7 @@ class radmc3dData(object):
 
         print 'Writing '+fname
         if octree:
-            self._scalarfieldWriter(data=self.grid.tree2Leaf(self.dusttemp), fname=fname, binary=binary, octree=True)
+            self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.dusttemp), fname=fname, binary=binary, octree=True)
         else:
             self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary, octree=False)
     
@@ -3350,7 +3385,7 @@ class radmc3dData(object):
 
             print 'Writing '+fname
             if octree:
-                self._scalarfieldWriter(data=self.grid.tree2Leaf(self.ndens_mol), fname=fname, binary=binary, octree=True)
+                self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.ndens_mol), fname=fname, binary=binary, octree=True)
             else:
                 self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary, octree=False)
         
@@ -3380,12 +3415,12 @@ class radmc3dData(object):
 
         print 'Writing '+fname
         if octree:
-            self._scalarfieldWriter(data=self.grid.tree2Leaf(self.gastemp), fname=fname, binary=binary, octree=True)
+            self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.gastemp), fname=fname, binary=binary, octree=True)
         else:
             self._scalarfieldWriter(data=self.gastemp, fname=fname, binary=binary, octree=False)
    
 # --------------------------------------------------------------------------------------------------
-    def writeGasVel(self, fname='', binary=True):
+    def writeGasVel(self, fname='', binary=True, octree=False):
         """Writes the gas velocity.
 
         Parameters
@@ -3397,35 +3432,68 @@ class radmc3dData(object):
         
         binary : bool
                 If true the data will be written in binary format, otherwise the file format is ascii
+        
+        octree  : bool, optional
+                  If the data is defined on an octree-like AMR
         """
    
         if binary:
             if fname=='':
                 fname = 'gas_velocity.binp'
-
+                
             wfile = open(fname, 'w')
-            hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
-            hdr.tofile(wfile)
-            # Now we need to change the axis orders since the Ndarray.tofile function writes the 
-            # array always in C-order while we need Fortran-order to be written
-            self.gasvel = np.swapaxes(self.gasvel,0,2)
-            self.gasvel.tofile(wfile)
+                
+            if octree:
+                #
+                # Check if the gas velocity contains the full tree or only the leaf nodes
+                #
+                if self.gasvel.shape[0] == self.grid.nLeaf:
+                    hdr = np.array([1, 8, self.gasvel.shape[0]], dtype=int)
+                    hdr.tofile(wfile)
+                    self.gasvel.flatten(order='f').tofile(wfile)
+                else:
+                    hdr = np.array([1, 8, self.grid.nLeaf], dtype=int)
+                    hdr.tofile(wfile)
+                    dummy = self.grid.convArrTree2Leaf(self.gasvel)
+                    dummy.flatten(order='f').tofile(wfile)
+                    #self.gasvel.flatten(order='f').tofile(wfile)
 
-            # Switch back to the original axis order
-            self.gasvel = np.swapaxes(self.gasvel,0,2)
+            else:
+                hdr = np.array([1, 8, self.grid.nx*self.grid.ny*self.grid.nz], dtype=int)
+                hdr.tofile(wfile)
+                # Now we need to change the axis orders since the Ndarray.tofile function writes the 
+                # array always in C-order while we need Fortran-order to be written
+                self.gasvel = np.swapaxes(self.gasvel,0,2)
+                self.gasvel.tofile(wfile)
+
+                # Switch back to the original axis order
+                self.gasvel = np.swapaxes(self.gasvel,0,2)
             wfile.close()
         else:
             if fname=='':
                 fname = 'gas_velocity.inp'
             
             # If we have an octree grid
-            if isinstance(self.grid, radmc3dOctree):
-                hdr = "1\n"
-                hdr += ("%d\n"%self.grid.nLeaf)
-                try:
-                    np.savetxt(fname, self.gasvel, fmt="%.9 %.9 %.9", header=hdr, comments='')
-                except Exception as e:
-                    print e
+            if octree:
+                #
+                # Check if the gas velocity contains the full tree or only the leaf nodes
+                #
+                if self.gasvel.shape[0] == self.grid.nLeaf:
+                    hdr = "1\n"
+                    hdr += ("%d\n"%self.gasvel.shape[0])
+                    try:
+                        np.savetxt(fname, self.gasvel, fmt="%.9e %.9e %.9e", header=hdr, comments='')
+                    except Exception as e:
+                        print e
+                else:
+                    hdr = "1\n"
+                    hdr += ("%d\n"%self.grid.nLeaf)
+                    dummy = self.grid.convArrTree2Leaf(self.gasvel)
+                    try:
+                        np.savetxt(fname, dummy, fmt="%.9e %.9e %.9e", header=hdr, comments='')
+                    except Exception as e:
+                        print e
+                    
             else:
                 #hdr = "1\n"
                 #hdr += ('%d'%(self.grid.nx*self.grid.ny*self.grid.nz))
@@ -3469,7 +3537,7 @@ class radmc3dData(object):
 
         print 'Writing '+fname
         if octree:
-            self._scalarfieldWriter(data=self.grid.tree2Leaf(self.vturb), fname=fname, binary=binary, octree=True)
+            self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.vturb), fname=fname, binary=binary, octree=True)
         else:
             self._scalarfieldWriter(data=self.vturb, fname=fname, binary=binary, octree=False)
 
@@ -4243,16 +4311,16 @@ class radmc3dRadSources(object):
         ----------
         
         ppar : dictionary
-            Dictionary containing all input parameters keys should include
-                * mstar   : stellar mass
-                * rstar   : stellar radius
-                * accrate : accretion rate
+               Dictionary containing all input parameters keys should include
+               * mstar   : stellar mass
+               * rstar   : stellar radius
+               * accrate : accretion rate
 
-            NOTE, that for the calculation of the effective disk temperature only the first
-                star is used if more than one values are given in mstar and rstar. 
+               NOTE, that for the calculation of the effective disk temperature only the first
+               star is used if more than one values are given in mstar and rstar. 
     
         grid : radmc3dGrid, optional 
-            An instance of a radmc3dGrid class containing the spatial and wavelength grid
+               An instance of a radmc3dGrid class containing the spatial and wavelength grid
 
         """
       
@@ -4270,16 +4338,16 @@ class radmc3dRadSources(object):
         ----------
 
         ppar : dictionary
-            Dictionary containing all input parameters keys should include
-                * mstar   : stellar mass
-                * rstar   : stellar radius
-                * accrate : accretion rate
+               Dictionary containing all input parameters keys should include
+               * mstar   : stellar mass
+               * rstar   : stellar radius
+               * accrate : accretion rate
 
-            NOTE, that for the calculation of the effective disk temperature only the first
-                star is used if more than one values are given in mstar and rstar. 
+               NOTE, that for the calculation of the effective disk temperature only the first
+               star is used if more than one values are given in mstar and rstar. 
         
         grid : radmc3dGrid, optional 
-            An instance of a radmc3dGrid class containing the spatial and wavelength grid
+               An instance of a radmc3dGrid class containing the spatial and wavelength grid
         """
 #
 # Check the input which parameters are set and which should be calculated
@@ -4317,7 +4385,7 @@ class radmc3dRadSources(object):
         Parameters
         ----------
         
-        readInput - bool, optional
+        readInput : bool, optional
                     If true the input files of the radiation sources are read and the the total luminosities
                     are calculated from them. If readInput is set to False, the luminosities are calculated
                     by semi-analytic spectra.
@@ -4417,19 +4485,19 @@ class radmc3dRadSources(object):
         ----------
 
         ppar : dictionary
-            Dictionary containing all input parameters keys should include
-                * mstar   : stellar mass
-                * rstar   : stellar radius
-                * accrate : accretion rate
+               Dictionary containing all input parameters keys should include
+               * mstar   : stellar mass
+               * rstar   : stellar radius
+               * accrate : accretion rate
 
-                NOTE, that for the calculation of the effective disk temperature only the first
-                    star is used if more than one values are given in mstar and rstar. 
+               NOTE, that for the calculation of the effective disk temperature only the first
+               star is used if more than one values are given in mstar and rstar. 
         
         incl : float, optional
-                Inclination angle in degrees at which the spectrum be calculated  (default - 0deg)
+               Inclination angle in degrees at which the spectrum be calculated  (default - 0deg)
         
         grid : radmc3dGrid, optional 
-            An instance of a radmc3dGrid class containing the spatial and wavelength grid
+               An instance of a radmc3dGrid class containing the spatial and wavelength grid
 
         """
 
@@ -4457,19 +4525,19 @@ class radmc3dRadSources(object):
         ----------
 
         ppar : dictionary
-            Dictionary containing all input parameters keys should include:
-                * mstar   : stellar mass
-                * rstar   : stellar radius
-                * accrate : accretion rate
+               Dictionary containing all input parameters keys should include:
+               * mstar   : stellar mass
+               * rstar   : stellar radius
+               * accrate : accretion rate
 
-                NOTE, that for the calculation of the effective disk temperature only the first
-                    star is used if more than one values are given in mstar and rstar. 
+               NOTE, that for the calculation of the effective disk temperature only the first
+               star is used if more than one values are given in mstar and rstar. 
         
         incl : float, optional
-                Inclination angle in degrees at which the spectrum be calculated  (default - 0deg)
+               Inclination angle in degrees at which the spectrum be calculated  (default - 0deg)
         
         grid : radmc3dGrid, optional 
-            An instance of a radmc3dGrid class containing the spatial and wavelength grid
+               An instance of a radmc3dGrid class containing the spatial and wavelength grid
 
         """
 
@@ -4496,19 +4564,19 @@ class radmc3dRadSources(object):
         ----------
 
         ppar : dictionary
-            Dictionary containing all input parameters keys should include:
-                * mstar   : stellar mass
-                * rstar   : stellar radius
-                * accrate : accretion rate
+               Dictionary containing all input parameters keys should include:
+               * mstar   : stellar mass
+               * rstar   : stellar radius
+               * accrate : accretion rate
 
-                NOTE, that for the calculation of the effective disk temperature only the first
-                    star is used if more than one values are given in mstar and rstar. 
+               NOTE, that for the calculation of the effective disk temperature only the first
+               star is used if more than one values are given in mstar and rstar. 
         
         incl : float, optional
-                Inclination angle in degrees at which the spectrum be calculated  (default - 0deg)
+               Inclination angle in degrees at which the spectrum be calculated  (default - 0deg)
         
         grid : radmc3dGrid, optional 
-            An instance of a radmc3dGrid class containing the spatial and wavelength grid
+               An instance of a radmc3dGrid class containing the spatial and wavelength grid
         
         """
 
@@ -4738,13 +4806,13 @@ class radmc3dRadSources(object):
         Parameters
         ----------
         
-        fname : str, optional
-                Name of the file from which the stellar templates will be read. If omitted the default
-                'stellarsrc_templates.inp' will be used.
+        fname  : str, optional
+                 Name of the file from which the stellar templates will be read. If omitted the default
+                 'stellarsrc_templates.inp' will be used.
 
         binary : bool, optional
-                If True the file should contain a C-style binary stream, if False the file should be 
-                written as formatted ASCII
+                 If True the file should contain a C-style binary stream, if False the file should be 
+                 written as formatted ASCII
         """
         self.grid = readGrid()
 
@@ -6332,7 +6400,7 @@ class radmc3dPar(object):
         #
         # Code parameters
         #
-        self.setPar(['nphot', 'long(3e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
+        self.setPar(['nphot', 'long(1e6)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
         self.setPar(['nphot_scat','long(3e5)', '  Nr of photons for the scattering Monte Carlo (for images)', 'Code parameters'])
         self.setPar(['nphot_spec','long(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)', 'Code parameters'])
         self.setPar(['scattering_mode_max','1', '  0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering', 'Code parameters'])
@@ -6509,7 +6577,8 @@ def readOpac(ext=[''], idust=None, scatmat=None, old=False):
 # --------------------------------------------------------------------------------------------------
 # Functions for an easy compatibility with the IDL routines
 # --------------------------------------------------------------------------------------------------
-def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, binary=True, old=False, octree=False):
+def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, ispec=None, vturb=False, grid=None,
+        binary=True, old=False, octree=False):
     """Reads the physical variables of the model (e.g. density, velocity, temperature).
 
     Parameters
@@ -6532,22 +6601,39 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
     
     ispec : str
             Name of the molecule in the 'molecule_ispec.inp' filename
-        
+    
+    grid  : radmc3dGrid
+            An instance of radmc3dGrid containing the spatial and frequency grid of the model. If the grid
+            is passed to the function it will not be read again from file. This can be useful for octree
+            models to save time. 
+
     old   : bool, optional
             If set to True the file format of the previous, 2D version of radmc will be used
 
+    binary: bool
+            Set it to True for C-style binary and False for formatted ASCII files
+
+    octree: bool
+            True for models with octree AMR and False for models with regular grid
+    
     Returns
     -------
     Returns an instance of the radmc3dData class 
     """
 
-    res = radmc3dData()
-    if octree:
-        res.grid = radmc3dOctree()
-        res.grid.readGrid()
+    if grid is not None:
+        res = radmc3dData(grid=grid)
     else:
-        res.grid = radmc3dGrid()
-        res.grid.readGrid()
+        res = radmc3dData()
+
+        if octree:
+            res.grid = radmc3dOctree()
+            res.grid.readGrid()
+        else:
+            res.grid = radmc3dGrid()
+            res.grid.readGrid()
+    
+    
     if ddens: res.readDustDens(binary=binary, old=old, octree=octree)
     if dtemp: res.readDustTemp(binary=binary, old=old, octree=octree)
     if gvel: res.readGasVel(binary=binary, octree=octree)
@@ -6570,8 +6656,8 @@ def readGrid(sgrid=True, wgrid=True):
     """Reads the spatial and frequency grid.
     This function is an interface to radmc3dGrid.readGrid().
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     sgrid       : bool
                   If True the spatial grid will be read
@@ -7230,8 +7316,8 @@ def plotSpectrum(a,ev=False,kev=False,hz=False,micron=False,jy=False,lsun=False,
     #""" 
     #Creates a contour plot of the crossection of the disk at various planes.
 
-    #Parameters:
-    #-----------
+    #Parameters
+    #----------
         
         #d        : radmc3dData
                    #An instance of the radmc3dData class, containing the variable to be plotted
@@ -7685,8 +7771,8 @@ def gmass(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=No
     than a certain threshold value it will return True (i.e. the cell should be resolved) if the density variation is less
     than the threshold it returns False (i.e. the cell should not be resolved)
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     x       : ndarray
               Cell centre coordinates of the cells in the first dimension
@@ -7747,8 +7833,8 @@ def gdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, p
     than a certain threshold value it will return True (i.e. the cell should be resolved) if the density variation is less
     than the threshold it returns False (i.e. the cell should not be resolved)
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     x       : ndarray
               Cell centre coordinates of the cells in the first dimension
@@ -7809,8 +7895,8 @@ def findContainerLeafID(cellCRD=None, cellHW=None, xi=None, yi=None, zi=None, ch
     Function to find the tree index of a leaf cell containing a given point in space, i.e. if the following is true : 
     xcell - dxcell <= xpoint < xcell + dxcell for each dimension. This function is to be used in multiprocessing.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     cellCRD         : ndarray
                       Array with dimensions [ncell, 3] containing the cell centre coordiantes of the tree
@@ -7892,8 +7978,8 @@ def findContainerLeafIDRec(x=None, y=None, z=None, dx=None, dy=None, dz=None, ch
     """
     Recursive function to find the leaf cell in the tree that contains a given point in space
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     x                 : ndarray
                         Tree cell center array in the first dimension
@@ -8194,8 +8280,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     The size and resolution of the regular image grid can be set at input. 
 
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
     data            : radmc3dData
                       Instance of radmc3dData containing the field variable to be displayed
@@ -8268,7 +8354,6 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                       If the coordinate sytem used in RADMC-3D is spherical, then the 2nd coordiante is the co-lattitude.
                       If lattitude is set to True then the 2nd coordinate in the RADMC-3D grid will be transformet to true
                       lattitude (i.e. pi/2.-colattitude). If set to false the original co-lattitude will be used. 
-
     """
 
     octree = False
@@ -8280,7 +8365,7 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         print ' No data to be plotted'
         return 
 
-    if data.grid == None: 
+    if data.grid is None: 
         print 'ERROR'
         print 'data structure does not contain spatial grid. Plots cannot be made without a grid'
         return
@@ -8491,7 +8576,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
 
         if octree:
             idata = interpolateOctree(data, x=plot_z, y=plot_x/xnorm, z=plot_y/ynorm, var=var, nproc=nproc)
-   
+
+
     #
     # Get the variable to be plotted
     #
@@ -8717,7 +8803,26 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 elif iplane == 2:
                     pdata = data.tauy[:,:,icrd3]
             cblabel = r'$\tau_{\rm \theta}$'
+   
+    #
+    # Apparently there is some inconsistency in the dimensionality of the gas arrays. I.e. when data is read from file
+    #  there is always four dimension with the last dimension, for dust used for the dust species index, set to one. 
+    #  I guess it was meant to be if we have multiple gas species. However, if data is created by the model functions
+    #  directly the gas density is usually returned as a three dimensional array. So the quick and dirty fix is to 
+    #  check for the dimensionality here and decrease it by one stripping the last dimension either by a specified 
+    #  'ispec' index 
+    #
     
+    if len(pdata.shape) == 3:
+        if pdata.shape[2] == 1:
+            pdata = pdata[:,:,0]
+        else:
+            print 'ERROR'
+            print 'The plotted data has four dimension (3 spatial + 1 species) but the species index is not set'
+            print 'specify ispec keyword which of the dimensinos should be plotted'
+            return
+
+
     #
     # If the dimensions are flipped in the plotted plane (i.e. yx, zy, or xz) flip the array dimensions
     #
@@ -8750,20 +8855,32 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     #
     # Now do the colorscale plotting
     #
+    dx = plot_x[1] - plot_x[0]
+    dy = plot_y[1] - plot_y[0]
     if log:
         if pdata.min()<=0:
             pdata = pdata.clip(1e-90)
-        p = ax.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+        #p = ax.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+        p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5, plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5), 
+                norm=LogNorm(vmin, vmax), interpolation='nearest', aspect='auto', **kwargs)
         # Enable rasterization to enable easy save to file
         p.set_rasterized(True)
     else: 
-        p = ax.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+        #p = ax.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+        p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5, plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5), 
+                vmin=vmin, vmax=vmax, interpolation='nearest', aspect='auto', **kwargs)
         # Enable rasterization to enable easy save to file
         p.set_rasterized(True)
 
     #
     # Set the axis limits
     #
+    if not octree:
+        if len(xlim) == 0:
+            xlim = (plot_x[0], plot_x[-1])
+        if len(ylim) == 0:
+            ylim = (plot_y[0], plot_y[-1])
+
     plb.xlim(xlim[0], xlim[1])
     plb.ylim(ylim[0], ylim[1])
     #

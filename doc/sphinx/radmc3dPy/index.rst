@@ -3,26 +3,50 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to radmc3dPy's documentation!
-=====================================
+Welcome to radmc3dPy!
+=====================
 
 radmc3dPy is a python package/user-interface to the 3D radiative transfer code `RADMC-3D <http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/>`_.
-As of now radmc3dPy provides functionality to
+radmc3dPy provides functionality to
 
 * set up continuum and gas models
-* handle a library of models (which are easy to extend user-defined models)
+* handle a library of models (easyily extendable with user-defined models)
 * read and write data files in ASCII and C-style binary format 
 * provide interface to the Mie-scattering code shipped with RADMC-3D to calculate dust opacities
-* set up spherical or cartesian spatial grids with "separable grid refinement"  (No AMR yet)
+* set up spherical or cartesian spatial grids both regular and octree AMR grids
 * write legacy VTK format (spherical grids only)
 * set up discrete and continuous starlike radiation sources
 * read and display images (single or multiple frequency, i.e. continuum or line channel maps, total intensity or full 4D polarization, ASCII or C-style binary)
-* write fits files with CASA-compatible fits headers
+* write fits files (CASA-compatible fits headers)
 * do simple image manipulations
     * calculation of moment maps for line channel maps
     * convolve image with a 2D Gaussian or an Airy-type psf
     * add coronographic masks
 * calculate interferometric visibilities of images for given projected baselines and position angles
+
+
+
+
+Changes
+-------
+
+**v0.29**
+
+*New features*
+
+* octree AMR support (read and write grid and data fields, generate models with an octree grid)
+* plot 2D contour maps of data fields along axis aligned slices (show the cell boundaries for AMR models) 
+* plot the polarisation direction (thanks Kees!)
+* read molecular data files (thanks Kees!)
+* plot spectrum (thanks Kees!)
+* functions to calculate dust and gas mass in a model
+* updated tutorials for models using an octree AMR grid
+
+**Planned features for v0.30**
+
+* python3 compatibility
+* nested mesh support
+* data inspector GUI
 
 
 Copyright
@@ -49,7 +73,7 @@ radmc3dPy requires the following packages to be installed:
 Download
 --------
 
-The latest version of radmc3dPy (0.28.2) can be downloaded from :download:`here <radmc3dPy-0.28.2.tar.gz>`
+The latest version of radmc3dPy (0.29.0) can be downloaded from :download:`here <radmc3dPy-0.29.0.tar.gz>`
 
 
 Contents
@@ -58,7 +82,11 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   tutorial
+   
+   tutorial_reggrid_cont
+   tutorial_reggrid_line
+   tutorial_octree_grid
+   tutorial_octree_models
    models
    parfile
 
@@ -67,5 +95,5 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+.. * :ref:`search`
 

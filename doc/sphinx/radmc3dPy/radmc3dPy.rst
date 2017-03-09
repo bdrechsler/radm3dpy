@@ -43,14 +43,6 @@ radmc3dPy.image module
     :undoc-members:
     :show-inheritance:
 
-radmc3dPy.makeopac module
--------------------------
-
-.. automodule:: radmc3dPy.makeopac
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 radmc3dPy.natconst module
 -------------------------
 

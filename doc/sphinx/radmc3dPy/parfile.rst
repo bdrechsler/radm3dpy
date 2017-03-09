@@ -196,7 +196,7 @@ Code
 
             * 0 - Scattering is switched off 
             * 1 - Isotropic scattering
-            * 2 - Anysotropic scattering with Henyei-Greenstein phase function 
+            * 2 - Anysotropic scattering with Henyey-Greenstein phase function 
             * 3 - Anysotropic scattering with tabulated phase function
             * 4 - Anysotropic scattering with polarization but the full scattering matrix is only used for the last scattering
             * 5 - Anysotropic scattering with scattering matrix, full treatment
