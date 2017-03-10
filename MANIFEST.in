@@ -1,9 +1,13 @@
 include doc/html/*
 include doc/html/_images/*
 include doc/html/_static/*
+include doc/html/_static/css/*
+include doc/html/_static/fonts/*
+include doc/html/_static/js/*
 include radmc3dPy/*.py
 include python_examples/datafiles/*
 include python_examples/run_lines_nlte_lvg_1d_1/*
+include python_examples/run_octree_ppdisk/*
 include python_examples/run_ppdisk_acc/*
 include python_examples/run_ppdisk_dust+gas/*
 include python_examples/run_simple_1/*
@@ -14,6 +18,8 @@ include python_examples/run_test_scattering_1/*
 
 include radmc3dPy/models/lines_nlte_lvg_1d_1.py
 include radmc3dPy/models/ppdisk.py
+include radmc3dPy/models/ppdisk_acc.py
+include radmc3dPy/models/ppdisk_amr.py
 include radmc3dPy/models/simple_1.py
 include radmc3dPy/models/sphere1d_1.py
 include radmc3dPy/models/sphere2d_1.py

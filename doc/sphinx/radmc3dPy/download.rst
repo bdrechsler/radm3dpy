@@ -7,7 +7,7 @@ Downloads
 You can find below links to download the various versions of radmc3dPy
 
 **Latest stable version**
-* :download:`v0.29 <radmc3dPy-0.29.0.tar.gz>`
+* :download:`v0.29 <radmc3dPy-0.29.tar.gz>`
     
     *New features*
 
