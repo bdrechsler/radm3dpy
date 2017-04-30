@@ -3,13 +3,13 @@
  (c) Attila Juhasz, 2011-2017
 
 """
-import analyze
-import setup 
-import image
-import ctrans
-import natconst
-import models
-import staratm
+from . import analyze
+from . import setup
+from . import image
+from . import ctrans
+from . import natconst
+from . import models
+from . import staratm
 
 __version__ = "0.30"
 __author__ = "Attila Juhasz"

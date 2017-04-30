@@ -26,21 +26,17 @@ as the get_model_names() function in the setup module removes the name 'template
 models. 
 
 """
-
+from __future__ import print_function
+import traceback
 try:
     import numpy as np
-except:
-    print 'ERROR'
-    print ' Numpy cannot be imported '
-    print ' To use the python module of RADMC-3D you need to install Numpy'
-
-from radmc3dPy.natconst import *
-
+except ImportError:
+    np = None
+    print(' Numpy cannot be imported ')
+    print(' To use the python module of RADMC-3D you need to install Numpy')
+    print(traceback.format_exc())
 
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
 def getModelDesc():
     """Provides a brief description of the model
     """
@@ -48,9 +44,6 @@ def getModelDesc():
     return "Example model template"
            
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
 def getDefaultParams():
     """Provides default parameter values 
 
@@ -65,19 +58,15 @@ def getDefaultParams():
     a parameter file is written. 
     """
 
-    defpar = {}
-
     defpar = [['mstar', '1.0*ms', 'Mass of the star(s)'],
-    ['gasspec_vturb', '1e5', 'Microturbulent line width'],
-    ['par_example1', '1.0', 'This comment field contains the meaning of the parameter'],
-    ['par_example2', '2.0', 'This comment field contains the meaning of the parameter'],
-    ]
+              ['gasspec_vturb', '1e5', 'Microturbulent line width'],
+              ['par_example1', '1.0', 'This comment field contains the meaning of the parameter'],
+              ['par_example2', '2.0', 'This comment field contains the meaning of the parameter'],
+              ]
 
     return defpar
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getGasTemperature(grid=None, ppar=None):
     """Calculates/sets the gas temperature
     
@@ -94,12 +83,10 @@ def getGasTemperature(grid=None, ppar=None):
     Returns the gas temperature in K
     """
 
-
     tgas = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1.0
     return tgas
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
+
 def getDustTemperature(grid=None, ppar=None):
     """Calculates/sets the dust temperature
     
@@ -116,12 +103,10 @@ def getDustTemperature(grid=None, ppar=None):
     Returns the dust temperature in K
     """
 
-
     tdust = np.zeros([grid.nx, grid.ny, grid.nz, 1], dtype=np.float64) + 1.0
     return tdust
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
+
 def getGasAbundance(grid=None, ppar=None, ispec=''):
     """Calculates/sets the molecular abundance of species ispec 
     The number density of a molecule is rhogas * abun 
@@ -145,21 +130,18 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
     gasabun = -1
     if ppar['gasspec_mol_name'].__contains__(ispec):
         ind = ppar['gasspec_mol_name'].index(ispec)
-        gasabun[:,:,:] = ppar['gasspec_mol_abun'][ind]
+        gasabun[:, :, :] = ppar['gasspec_mol_abun'][ind]
  
     elif ppar['gasspec_colpart_name'].__contains__(ispec):
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
         ind = ppar['gasspec_colpart_name'].index(ispec)
-        gasabun[:,:,:] = ppar['gasspec_colpart_abun'][ind]
+        gasabun[:, :, :] = ppar['gasspec_colpart_abun'][ind]
     else:
-        print 'ERROR'
-        print ' The abundance of "'+ispec+'" is not specified in the parameter file'
+        raise ValueError(' The abundance of "'+ispec+'" is not specified in the parameter file')
    
     return gasabun
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getGasDensity(grid=None, ppar=None):
     """Calculates the total gas density distribution 
     
@@ -180,9 +162,7 @@ def getGasDensity(grid=None, ppar=None):
 
     return rhogas
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getDustDensity(grid=None, ppar=None):
     """Calculates the dust density distribution 
     
@@ -199,14 +179,12 @@ def getDustDensity(grid=None, ppar=None):
     Returns the dust volume density in g/cm^3
     """
 
-    rhogas  = get_gas_density(grid=grid, ppar=ppar)
+    rhogas = getGasDensity(grid=grid, ppar=ppar)
     rhodust = np.zeros([grid.nx, grid.ny, grid.nz, 1], dtype=np.float64) 
-    rhodust[:,:,:,0] = rhogas * ppar['dusttogas']
+    rhodust[:, :, :, 0] = rhogas * ppar['dusttogas']
     return rhodust
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getVTurb(grid=None, ppar=None):
     """Calculates/sets the turbulent velocity field
     
@@ -226,9 +204,7 @@ def getVTurb(grid=None, ppar=None):
     vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + ppar['gasspec_vturb']
     return vturb
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getVelocity(grid=None, ppar=None):
     """Calculates/sets the gas velocity field
     
@@ -247,6 +223,3 @@ def getVelocity(grid=None, ppar=None):
 
     vel = np.zeros([grid.nx, grid.ny, grid.nz, 3], dtype=np.float64)
     return vel
-
-
-

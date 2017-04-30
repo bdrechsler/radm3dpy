@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import subprocess as sp
 import os
 
@@ -13,12 +15,11 @@ def getTemplateModel():
     mod_path = radmc3dPy.__file__.strip()[:-12]
 
     # Copy the model template to the current working directory
-
     command = 'cp -v '+mod_path+'/template.py '+os.getcwd()
     try:
         os.system(command)
     except Exception as ex:
-        print ex
+        print(ex)
 
         return False
     return True
@@ -48,51 +49,41 @@ def updateModelList():
 
     os.chdir(mod_path+'/models')
     for i in range(len(dum)):
-        sdum = dum[i].split('/')
+        sdum = dum[i].split("/")
         modname = sdum[len(sdum)-1][:-3]
 
-        if ((modname!='template')&(modname!='__init__')&(modname!='_libfunc')&(modname!='_modellist')):
+        if (modname!='template')&(modname!='__init__')&(modname!='_libfunc')&(modname!='_modellist'):
             # Try to import the model. If it can be imported without any error/exception add the model
             #  to the list of models
            
             mod_names.append(modname)
             try:
                 mdl = __import__(modname)
-            except:
-                print modname + ' cannot be imported. Skipping ...'
+            except ImportError:
+                print(modname + ' cannot be imported. Skipping ...')
                 mod_names.remove(modname)
     
 
     os.chdir(homeDir)
     
-    try:
-        wfile = open(mod_path+'/models/_modellist.py', 'w')
-    except:
-        print 'ERROR'
-        print mod_path+'/models/model_list.py cannot be opened'
-        print 'Problem with write permissions?'
-        return 
-   
-    for imod in range(len(mod_names)):
-            wfile.write('import %s\n'%mod_names[imod])
+    with open(mod_path+'/models/_modellist.py', 'w') as wfile:
 
+        for imod in range(len(mod_names)):
+                wfile.write('import %s\n'%mod_names[imod])
 
-    # Generate the model_list string
-    model_list = '_model_list = ['
-    for imod in range(len(mod_names)-1):
-            model_list = model_list + ('"%s",'%mod_names[imod])
-   
-    model_list = model_list + ('"%s"'%mod_names[len(mod_names)-1])
-    model_list = model_list + ']' 
-    wfile.write("%s\n"%model_list)
-    wfile.close()
+        # Generate the model_list string
+        model_list = '_model_list = ['
+        for imod in range(len(mod_names)-1):
+                model_list = model_list + ('"%s",'%mod_names[imod])
 
+        model_list = model_list + ('"%s"'%mod_names[len(mod_names)-1])
+        model_list = model_list + ']'
+        wfile.write("%s\n"%model_list)
 
-    print ' Modellist has been updated successfully.'
+    print(' Modellist has been updated successfully.')
     return 
 
 
-# ---------------------------------------------------------------------------------------------------------------------
 def getModelNames():
     """Returns the name of the available models.
 
@@ -112,7 +103,7 @@ def getModelNames():
         #modname = dum[i][id1:id2]
         modname = sdum[len(sdum)-1][:-3]
 
-        if ((modname!='template')&(modname!='__init__')&(modname!='_libfunc')&(modname!='_modellist')):
+        if (modname!='template')&(modname!='__init__')&(modname!='_libfunc')&(modname!='_modellist'):
             mod_names.append(modname)
 
     ## Get the name of all model files in the current working directory
@@ -131,35 +122,32 @@ def getModelNames():
     
 
 # ---------------------------------------------------------------------------------------------------------------------
-def getModelDesc(model=''):
+def getModelDesc(model=None):
     """Returns a brief description of the selected model.
+    
+    Parameters
+    ----------
+    model   : str   
+              Name of the model to get the description of
 
+    Returns
+    -------
+    A string with the description of the model
     """
 
-    if model.strip()=='':
-        print 'ERROR'
-        print 'No model name is given'
-        return
+    if model is None:
+        raise ValueError('Unknown model. No model name is given.')
 
     try:
         mdl = __import__(model)
-    except:
-        try:
-            mdl  = __import__('radmc3dPy.models.'+model, fromlist=['']) 
-        except:
-            print 'ERROR'
-            print ' '+model+'.py could not be imported'
-            print ' The model files should either be in the current working directory or'
-            print ' in the radmc3d python module directory'
-            return -1
+    except ImportError:
+        raise ImportError(model+'.py could not be imported. The model files should either be in the '
+                          + ' current working directory or in the radmc3d python module directory')
 
-    
     if callable(getattr(mdl, 'getModelDesc')):
         return mdl.getModelDesc()
     else:
-        print 'ERROR'
-        print ' '+model+'.py does not contain a getModelDesc() function.'
-        return
+        raise RuntimeError(model+'.py does not contain a getModelDesc() function.')
 
 
 

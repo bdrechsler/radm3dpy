@@ -28,31 +28,29 @@ by a given fractor.
 
 
 """
+from __future__ import print_function
+import traceback
 try:
     import numpy as np
-except:
-    print 'ERROR'
-    print ' Numpy cannot be imported '
-    print ' To use the python module of RADMC-3D you need to install Numpy'
+except ImportError:
+    np = None
+    print(' Numpy cannot be imported ')
+    print(' To use the python module of RADMC-3D you need to install Numpy')
+    print(traceback.format_exc())
 
-
-from radmc3dPy.natconst import *
 try:
     import matplotlib.pylab as plb
-except:
-    print ' WARNING'
-    print ' matploblib.pylab cannot be imported ' 
-    print ' To used the visualization functionality of the python module of RADMC-3D you need to install matplotlib'
-    print ' Without matplotlib you can use the python module to set up a model but you will not be able to plot things or'
-    print ' display images'
+except ImportError:
+    plb = None
+    print('Warning')
+    print('matplotlib.pylab cannot be imported')
+    print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
+    print('or display images')
 
-import radmc3dPy.analyze as analyze
-import sys
+from .. natconst import *
+from .. import analyze
 
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
 def getModelDesc():
     """Returns the brief description of the model.
     """
@@ -60,9 +58,6 @@ def getModelDesc():
     return "Generic protoplanetary disk model"
            
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
 def getDefaultParams():
     """Function to provide default parameter values of the model.
 
@@ -76,50 +71,47 @@ def getDefaultParams():
     a parameter file is written. 
     """
 
-    defpar = {}
-
-    defpar = [ 
-    ['xres_nlev', '3', 'Number of refinement levels'],
-    ['xres_nspan', '3', 'Number of the original grid cells to refine'],
-    ['xres_nstep', '3', 'Number of grid cells to create in a refinement level'],
-    ['nx', '[30,50]', 'Number of grid points in the first dimension'],
-    ['xbound', '[1.0*au,1.05*au, 100.0*au]', 'Number of radial grid points'],
-    ['ny', '[10,30,30,10]', 'Number of grid points in the first dimension'],
-    ['ybound', '[0., pi/3., pi/2., 2.*pi/3., pi]', 'Number of radial grid points'],
-    ['nz', '30', 'Number of grid points in the first dimension'],
-    ['zbound', '[0., 2.0*pi]', 'Number of radial grid points'],
-    ['gasspec_mol_name', "['co']", ''],
-    ['gasspec_mol_abun', '[1e-4]', ''],
-    ['gasspec_mol_dbase_type', "['leiden']", ''],
-    ['gasspec_mol_dissoc_taulim', '[1.0]', 'Continuum optical depth limit below which all molecules dissociate'],
-    ['gasspec_mol_freezeout_temp', '[19.0]', 'Freeze-out temperature of the molecules in Kelvin'],
-    ['gasspec_mol_freezeout_dfact', '[1e-3]', 'Factor by which the molecular abundance should be decreased in the frezze-out zone'],
-    ['gasspec_vturb', '0.2e5', 'Microturbulent line width'],
-    ['rin', '1.0*au', ' Inner radius of the disk'],
-    ['rdisk', '100.0*au', ' Outer radius of the disk'],
-    ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
-    ['hrpivot', "100.0*au", ' Reference radius at which Hp/R is taken'],
-    ['plh', '1./7.', ' Flaring index'],
-    ['plsig1', '-1.0', ' Power exponent of the surface density distribution as a function of radius'],
-    ['sig0', '0.0', ' Surface density at rdisk'],
-    ['mdisk', '1e-3*ms', ' Mass of the disk (either sig0 or mdisk should be set to zero or commented out)'],
-    ['bgdens', '1e-30', ' Background density (g/cm^3)'],
-    ['srim_rout', '0.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
-    ['srim_plsig', '0.0', 'Power exponent of the density reduction inside of srim_rout*rin'],
-    ['prim_rout', '0.0', 'Outer boundary of the puffed-up inner rim in terms of rin'],
-    ['hpr_prim_rout', '0.0', 'Pressure scale height at rin'],
-    ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
-    ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
-    ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
-    ['sigma_type', '0', ' Surface density type (0 - polynomial, 1 - exponential outer edge (viscous self-similar solution)'],
-    ['dusttogas', '0.01', ' Dust-to-gas mass ratio']]
-
+    defpar = [
+        ['xres_nlev', '3', 'Number of refinement levels'],
+        ['xres_nspan', '3', 'Number of the original grid cells to refine'],
+        ['xres_nstep', '3', 'Number of grid cells to create in a refinement level'],
+        ['nx', '[30,50]', 'Number of grid points in the first dimension'],
+        ['xbound', '[1.0*au,1.05*au, 100.0*au]', 'Number of radial grid points'],
+        ['ny', '[10,30,30,10]', 'Number of grid points in the first dimension'],
+        ['ybound', '[0., pi/3., pi/2., 2.*pi/3., pi]', 'Number of radial grid points'],
+        ['nz', '30', 'Number of grid points in the first dimension'],
+        ['zbound', '[0., 2.0*pi]', 'Number of radial grid points'],
+        ['gasspec_mol_name', "['co']", ''],
+        ['gasspec_mol_abun', '[1e-4]', ''],
+        ['gasspec_mol_dbase_type', "['leiden']", ''],
+        ['gasspec_mol_dissoc_taulim', '[1.0]', 'Continuum optical depth limit below which all molecules dissociate'],
+        ['gasspec_mol_freezeout_temp', '[19.0]', 'Freeze-out temperature of the molecules in Kelvin'],
+        ['gasspec_mol_freezeout_dfact', '[1e-3]',
+         'Factor by which the molecular abundance should be decreased in the frezze-out zone'],
+        ['gasspec_vturb', '0.2e5', 'Microturbulent line width'],
+        ['rin', '1.0*au', ' Inner radius of the disk'],
+        ['rdisk', '100.0*au', ' Outer radius of the disk'],
+        ['hrdisk', '0.1', ' Ratio of the pressure scale height over radius at hrpivot'],
+        ['hrpivot', "100.0*au", ' Reference radius at which Hp/R is taken'],
+        ['plh', '1./7.', ' Flaring index'],
+        ['plsig1', '-1.0', ' Power exponent of the surface density distribution as a function of radius'],
+        ['sig0', '0.0', ' Surface density at rdisk'],
+        ['mdisk', '1e-3*ms', ' Mass of the disk (either sig0 or mdisk should be set to zero or commented out)'],
+        ['bgdens', '1e-30', ' Background density (g/cm^3)'],
+        ['srim_rout', '0.0', 'Outer boundary of the smoothing in the inner rim in terms of rin'],
+        ['srim_plsig', '0.0', 'Power exponent of the density reduction inside of srim_rout*rin'],
+        ['prim_rout', '0.0', 'Outer boundary of the puffed-up inner rim in terms of rin'],
+        ['hpr_prim_rout', '0.0', 'Pressure scale height at rin'],
+        ['gap_rin', '[0e0*au]', ' Inner radius of the gap'],
+        ['gap_rout', '[0e0*au]', ' Outer radius of the gap'],
+        ['gap_drfact', '[0e0]', ' Density reduction factor in the gap'],
+        ['sigma_type', '0',
+         ' Surface density type (0 - polynomial, 1 - exponential outer edge (viscous self-similar solution)'],
+        ['dusttogas', '0.01', ' Dust-to-gas mass ratio']]
 
     return defpar
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getDustDensity(grid=None, ppar=None):
     """Calculates the dust density distribution in a protoplanetary disk.
    
@@ -143,8 +135,8 @@ def getDustDensity(grid=None, ppar=None):
 
 # Split up the disk density distribution according to the given abundances
 
-    if ppar.has_key('ngs'):
-        if ppar['ngs']>1:
+    if 'ngs' in ppar:
+        if ppar['ngs'] > 1:
             ngs = ppar['ngs']
             #
             # WARNING!!!!!!
@@ -156,60 +148,56 @@ def getDustDensity(grid=None, ppar=None):
             # with multiple grain sizes.
             #
             gdens = np.zeros(ngs, dtype=float) + 1.0
-            gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (np.arange(ppar['ngs'], dtype=np.float64) / (float(ppar['ngs'])-1.))
+            gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin'])**(np.arange(ppar['ngs'], dtype=np.float64)
+                                                                 / (float(ppar['ngs'])-1.))
             gmass = 4./3.*np.pi*gs**3. * gdens
             gsfact = gmass * gs**(ppar['gsdist_powex']+1)
             gsfact = gsfact / gsfact.sum()
         else:
             gsfact = [1.0]
-            ngs    = 1
-    elif ppar.has_key('mfrac'):
-        ngs    = len(ppar['mfrac'])
+            ngs = 1
+    elif 'mfrac' in ppar:
+        ngs = len(ppar['mfrac'])
         gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
     
     else:
         ngs = 1
         gsfact = [1.0]
     
-    #if ppar.has_key('dustkappa_ext'):
-        #ngs  = len(ppar['dustkappa_ext'])
-        #if ppar.has_key('mfrac'):
-            #gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
-        #else:
-            #ngs = 1
-            #gsfact = [1.0]
-            
-            
-    #else:
-        #ngs = ppar['ngs']
-        ##
-        ## WARNING!!!!!!
-        ## At the moment I assume that the multiple dust population differ from each other only in 
-        ## grain size but not in bulk density thus when I calculate the abundances / mass fractions 
-        ## they are independent of the grains bulk density since abundances/mass fractions are normalized
-        ## to the total mass. Thus I use 1g/cm^3 for all grain sizes.
-        ## TODO: Add the possibility to handle multiple dust species with different bulk densities and 
-        ## with multiple grain sizes.
-        ##
-        #gdens = zeros(ngs, dtype=float) + 1.0
-        #gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin']) ** (arange(ppar['ngs'], dtype=float64) / (float(ppar['ngs'])-1.))
-        #gmass = 4./3.*np.pi*gs**3. * gdens
-        #gsfact = gmass * gs**(ppar['gsdist_powex']+1)
-        #gsfact = gsfact / gsfact.sum()
+    # if ppar.has_key('dustkappa_ext'):
+        # ngs  = len(ppar['dustkappa_ext'])
+        # if ppar.has_key('mfrac'):
+        #     gsfact = ppar['mfrac'] / ppar['mfrac'].sum()
+        # else:
+        #     ngs = 1
+        #     gsfact = [1.0]
 
-    #if (ngs>1):
-       
+    # else:
+        # ngs = ppar['ngs']
+        #
+        # WARNING!!!!!!
+        # At the moment I assume that the multiple dust population differ from each other only in
+        # grain size but not in bulk density thus when I calculate the abundances / mass fractions
+        # they are independent of the grains bulk density since abundances/mass fractions are normalized
+        # to the total mass. Thus I use 1g/cm^3 for all grain sizes.
+        # TODO: Add the possibility to handle multiple dust species with different bulk densities and
+        # with multiple grain sizes.
+        #
+        # gdens = zeros(ngs, dtype=float) + 1.0
+        # gs = ppar['gsmin'] * (ppar['gsmax']/ppar['gsmin'])**(arange(ppar['ngs'], dtype=float64)
+        # / (float(ppar['ngs'])-1.))
+        # gmass = 4./3.*np.pi*gs**3. * gdens
+        # gsfact = gmass * gs**(ppar['gsdist_powex']+1)
+        # gsfact = gsfact / gsfact.sum()
+
     rho_old = np.array(rho)
     rho = np.zeros([grid.nx, grid.ny, grid.nz, ngs], dtype=np.float64)
     for igs in range(ngs):
-        rho[:,:,:,igs] = rho_old[:,:,:] * gsfact[igs]
-
+        rho[:, :, :, igs] = rho_old[:, :, :] * gsfact[igs]
 
     return rho
 
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
 def getGasDensity(grid=None, ppar=None):
     """Calculates the gas density distribution in a protoplanetary disk.
     
@@ -227,166 +215,162 @@ def getGasDensity(grid=None, ppar=None):
     """
     
     rr, th = np.meshgrid(grid.x, grid.y)
-    zz   = rr * np.cos(th)
+    zz = rr * np.cos(th)
     rcyl = rr * np.sin(th)
 
     # Calculate the pressure scale height as a function of r, phi
-    hp  = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+    hp = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
     dum = ppar['hrdisk'] * (rcyl/ppar['hrpivot'])**ppar['plh'] * rcyl
 
-    if ppar.has_key('prim_rout'):
-        if ppar['prim_rout']>=1.:
+    if 'prim_rout' in ppar:
+        if ppar['prim_rout'] >= 1.:
             dum_hrdisk = ppar['hrdisk'] * (rcyl/ppar['hrpivot'])**ppar['plh'] 
-            hpr0       = ppar['hrdisk'] * (ppar['prim_rout'] * ppar['rin']/ppar['hrpivot'])**ppar['plh']
-            dummy      = np.log10(hpr0 / ppar['hpr_prim_rout']) / np.log10(ppar['prim_rout'])
-            dum_prim   = ppar['hpr_prim_rout'] * (rcyl/ppar['rin'])**dummy
-            dum        = (dum_hrdisk**8. + dum_prim**8.)**(1./8.) * rcyl
+            hpr0 = ppar['hrdisk'] * (ppar['prim_rout'] * ppar['rin']/ppar['hrpivot'])**ppar['plh']
+            dummy = np.log10(hpr0 / ppar['hpr_prim_rout']) / np.log10(ppar['prim_rout'])
+            dum_prim = ppar['hpr_prim_rout'] * (rcyl/ppar['rin'])**dummy
+            dum = (dum_hrdisk**8. + dum_prim**8.)**(1./8.) * rcyl
 
-
-    dum = dum.swapaxes(0,1)
+    dum = dum.swapaxes(0, 1)
     for iz in range(grid.nz):
-        hp[:,:,iz] = dum
+        hp[:, :, iz] = dum
 
     # Calculate the surface density 
     sigma = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
     # Calculate sigma from sig0, rdisk and plsig1
-    if ppar.has_key('sig0'):
+    if 'sig0' in ppar:
         if ppar['sig0'] != 0.:
-            if ppar.has_key('sigma_type'):
-                if ppar['sigma_type']==0:
+            if 'sigma_type' in ppar:
+                if ppar['sigma_type'] == 0:
                     dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
                 else:
-                    expterm = np.exp( -(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
-                    dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) * expterm #np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                    expterm = np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                    dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) * expterm
 
+                    # r = np.arange(400.)+1.
+                    # sig0 = 0.05
+                    # gam = 0.7
+                    # rc = 200.
 
-                    #r = np.arange(400.)+1.
-                    #sig0 = 0.05
-                    #gam = 0.7
-                    #rc = 200.
+                    # dummy_sigma = sig0 * (r/rc)**(-gam) * np.exp(-(r/rc)**(2.-gam))
 
-                    #dummy_sigma = sig0 * (r/rc)**(-gam) * np.exp(-(r/rc)**(2.-gam))
-
-                    #plb.loglog(rcyl.flatten()/1.496e13, dum1.flatten())
-                    #plb.loglog(r, dummy_sigma*100., 'r-')
+                    # plb.loglog(rcyl.flatten()/1.496e13, dum1.flatten())
+                    # plb.loglog(r, dummy_sigma*100., 'r-')
                     
-                    #dum = raw_input()
-                    #exit()
-
+                    # dum = raw_input()
+                    # exit()
 
             else:
                 dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
 
-            if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
-                if (ppar['srim_rout']!=0.):
+            if ('srim_rout' in ppar) & ('srim_plsig' in ppar):
+                if ppar['srim_rout'] != 0.:
                     
-                    if ppar.has_key('sigma_type'):
-                        if ppar['sigma_type']==0:
+                    if 'sigma_type' in ppar:
+                        if ppar['sigma_type'] == 0:
                             # Adding the smoothed inner rim
                             sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                            dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
                         else:
-                            #sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                            sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**(-ppar['plsig1']) * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
-                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                            # sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                            sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin']
+                                                       / ppar['rdisk'])**(-ppar['plsig1']) \
+                                       * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                            dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
                     else:
                         # Adding the smoothed inner rim
                         sig_srim = ppar['sig0'] * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                        dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                        dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
 
-
-                    p    = -5.0
-                    dum  = (dum1**p + dum2**p)**(1./p)
+                    p = -5.0
+                    dum = (dum1**p + dum2**p)**(1./p)
                 else:
                     dum = dum1
             else:
                 dum = dum1
 
-            dum = dum.swapaxes(0,1)
+            dum = dum.swapaxes(0, 1)
 
             for iz in range(grid.nz):
-                sigma[:,:,iz] = dum
+                sigma[:, :, iz] = dum
         else:
-            #dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
-            if ppar.has_key('sigma_type'):
-                if ppar['sigma_type']==0:
-                    dum1 =1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+            # dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+            if 'sigma_type' in ppar:
+                if ppar['sigma_type'] == 0:
+                    dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
                 else:
-                    dum1 = 1.0 * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                    dum1 = 1.0 * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) \
+                           * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
             else:
-                dum1 =1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
+                dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
 
-            if (ppar.has_key('srim_rout') & ppar.has_key('srim_plsig')):
-                if (ppar['srim_rout']!=0.):
-
-                    if ppar.has_key('sigma_type'):
-                        if ppar['sigma_type']==0:
+            if ('srim_rout' in ppar) & ('srim_plsig' in ppar):
+                if ppar['srim_rout'] != 0.:
+                    if 'sigma_type' in ppar:
+                        if ppar['sigma_type'] == 0:
                             # Adding the smoothed inner rim
                             sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                            dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
                         else:
-                            #sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                            sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**(-ppar['plsig1']) * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
-                            dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                            sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**(-ppar['plsig1']) \
+                                       * np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
+                            dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
                     else:
                         # Adding the smoothed inner rim
                         sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                        dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                        dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
 
-                    # Adding the smoothed inner rim
-                    sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                    dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
+                    # # Adding the smoothed inner rim
+                    # sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
+                    # dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
 
-                    p    = -5.0
-                    dum  = (dum1**p + dum2**p)**(1./p)
+                    p = -5.0
+                    dum = (dum1**p + dum2**p)**(1./p)
                 else:
                     dum = dum1
             else:
                 dum = dum1
 
-            dum = dum.swapaxes(0,1)
+            dum = dum.swapaxes(0, 1)
 
             for iz in range(grid.nz):
-                sigma[:,:,iz] = dum
+                sigma[:, :, iz] = dum
 
-       
-        if ppar.has_key('sigma_type'):
-            if ppar['sigma_type']==0:
+        if 'sigma_type' in ppar:
+            if ppar['sigma_type'] == 0:
                 for iy in range(grid.ny):
-                    ii = (rcyl[iy,:]<ppar['rin'])|(rcyl[iy,:]>ppar['rdisk'])
-                    sigma[ii,iy,:] = 0.0
+                    ii = (rcyl[iy, :] < ppar['rin']) | (rcyl[iy, :] > ppar['rdisk'])
+                    sigma[ii, iy, :] = 0.0
         else:
             for iy in range(grid.ny):
-                ii = (rcyl[iy,:]<ppar['rin'])|(rcyl[iy,:]>ppar['rdisk'])
-                sigma[ii,iy,:] = 0.0
+                ii = (rcyl[iy, :] < ppar['rin']) | (rcyl[iy, :] > ppar['rdisk'])
+                sigma[ii, iy, :] = 0.0
 
     z0 = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
     rho = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
     for iz in range(grid.nz):
         for iy in range(grid.ny):
-            rho[:,iy,iz] = sigma[:,iy,iz] / (hp[:,iy,iz] * np.sqrt(2.0*np.pi)) * \
-                np.exp(-0.5 * ((zz[iy,:])-z0[:,iz,iy])*((zz[iy,:])-z0[:,iz,iy])/\
-                (hp[:,iy,iz]*hp[:,iy,iz])) + ppar['bgdens']
+            rho[:, iy, iz] = sigma[:, iy, iz] / (hp[:, iy, iz] * np.sqrt(2.0*np.pi)) * \
+                              np.exp(-0.5 * ((zz[iy, :])-z0[:, iz, iy])*((zz[iy, :])-z0[:, iz, iy])
+                                     / (hp[:, iy, iz]*hp[:, iy, iz])) + ppar['bgdens']
 
     # Normalize the disk to mdisk if it is given instead of sig0
-    if ppar.has_key('mdisk'):
-        if ppar['mdisk']!=0.:
+    if 'mdisk' in ppar:
+        if ppar['mdisk'] != 0.:
             # Calculate the volume of each grid cell
-            vol  = grid.getCellVolume()
-            mass = (rho*vol).sum(0).sum(0).sum(0)
-            rho  = rho * (ppar['mdisk']/mass)
+            vol = grid.getCellVolume()
+            mass = (rho * vol).sum(0).sum(0).sum(0)
+            rho = rho * (ppar['mdisk'] / mass)
 
-            if abs(ppar['ybound'][-1]-(np.pi/2.))<1e-8:
+            if np.abs(ppar['ybound'][-1]-(np.pi/2.)) < 1e-8:
                 rho = rho*0.5
-    if (ppar['gap_rout']>ppar['rin']):
+    if ppar['gap_rout'] > ppar['rin']:
         for igap in range(len(ppar['gap_rout'])):
             for ix in range(grid.nx):
-                if (grid.x[ix]>=ppar['gap_rin'][igap])&(grid.x[ix]<=ppar['gap_rout'][igap]):
-                    rho[ix,:,:] = rho[ix,:,:] * ppar['gap_drfact'][igap]
+                if (grid.x[ix] >= ppar['gap_rin'][igap]) & (grid.x[ix] <= ppar['gap_rout'][igap]):
+                    rho[ix, :, :] = rho[ix, :, :] * ppar['gap_drfact'][igap]
     return rho
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
+
 def getGasAbundance(grid=None, ppar=None, ispec=''):
     """Calculates the molecular abundance. 
     
@@ -415,57 +399,49 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
         try: 
             data = analyze.readData(ddens=True, dtemp=True, binary=False)
         except:
-            print 'WARNING!!'
-            print 'No data could be read in binary or in formatted ascii format'
-            print '  '
-            return 0
+            raise RuntimeError('Gas abundance cannot be calculated as the required dust density and/or temperature '
+                               + 'could not be read in binary or in formatted ascii format.')
 
     # Calculate continuum optical depth 
     data.getTau(axis='xy', wav=0.55)
     
-
     nspec = len(ppar['gasspec_mol_name'])
     if ppar['gasspec_mol_name'].__contains__(ispec):
 
-        sid   = ppar['gasspec_mol_name'].index(ispec)
+        sid = ppar['gasspec_mol_name'].index(ispec)
         # Check where the radial and vertical optical depth is below unity
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)  
         
         for spec in range(nspec):
-            gasabun[:,:,:] = ppar['gasspec_mol_abun'][sid]
+            gasabun[:, :, :] = ppar['gasspec_mol_abun'][sid]
            
-
         for iz in range(data.grid.nz):
             for iy in range(data.grid.ny):
-                ii = (data.taux[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
-                gasabun[ii,iy,iz] = 1e-90
+                ii = (data.taux[:, iy, iz] < ppar['gasspec_mol_dissoc_taulim'][sid])
+                gasabun[ii, iy, iz] = 1e-90
 
-                ii = (data.dusttemp[:,iy,iz,0]<ppar['gasspec_mol_freezeout_temp'][sid])
-                gasabun[ii,iy,iz] =  ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
+                ii = (data.dusttemp[:, iy, iz, 0] < ppar['gasspec_mol_freezeout_temp'][sid])
+                gasabun[ii, iy, iz] = ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
         
-        #for iz in range(data.grid.nz):
-            #for iy in range(data.grid.ny/2):
+        # for iz in range(data.grid.nz):
+            # for iy in range(data.grid.ny/2):
 
-                #ii = (data.tauy[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
-                #gasabun[ii,iy,iz] = 1e-90
-                #gasabun[ii,data.grid.ny-1-iy,iz] = 1e-90
+                # ii = (data.tauy[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
+                # gasabun[ii,iy,iz] = 1e-90
+                # gasabun[ii,data.grid.ny-1-iy,iz] = 1e-90
 
     else:
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-10
-        print 'WARNING !!!'
-        print 'Molecule name "'+ispec+'" is not found in gasspec_mol_name'
-        print 'A default 1e-10 abundance will be used'
-        print ' ' 
+        print('WARNING !!!')
+        print('Molecule name "'+ispec+'" is not found in gasspec_mol_name')
+        print('A default 1e-10 abundance will be used')
 
-
-
-    #gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) 
-    #gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
+    # gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
+    # gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
 
     return gasabun
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
+
 def getVTurb(grid=None, ppar=None):
     """Calculates the turbulent velocity field
     
@@ -484,9 +460,8 @@ def getVTurb(grid=None, ppar=None):
 
     vturb = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + ppar['gasspec_vturb']
     return vturb
-# ============================================================================================================================
-#
-# ============================================================================================================================
+
+
 def getVelocity(grid=None, ppar=None):
     """Calculates the velocity field in a protoplanetary disk.
     
@@ -503,20 +478,15 @@ def getVelocity(grid=None, ppar=None):
     Returns the gas velocity in cm/s
     """
 
-   
-    nr   = grid.nx
+    nr = grid.nx
     nphi = grid.nz
-    nz   = grid.ny
+    nz = grid.ny
     rcyl = grid.x
 
-    rr, th = np.meshgrid(grid.x, grid.y)
-    rcyl_rot = rr * np.sin(th)
-    
-    vel = np.zeros([nr,nz,nphi,3], dtype=np.float64)
+    vel = np.zeros([nr, nz, nphi, 3], dtype=np.float64)
     vkep = np.sqrt(gg*ppar['mstar'][0]/rcyl)
     for iz in range(nz):
         for ip in range(nphi):
-            vel[:,iz,ip,2] = vkep
-
+            vel[:, iz, ip, 2] = vkep
 
     return vel
