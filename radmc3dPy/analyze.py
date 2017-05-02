@@ -6309,7 +6309,7 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
             res.grid.readGrid()
         else:
             res.grid = radmc3dGrid()
-            res.grid.readGrid()
+            res.grid.readGrid(old=old)
 
     if ddens:
         res.readDustDens(binary=binary, old=old, octree=octree)
