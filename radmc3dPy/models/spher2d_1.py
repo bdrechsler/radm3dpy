@@ -2,6 +2,7 @@
 
 Original IDL model by Kees Dullemond, Python translation by Attila Juhasz
 """
+from __future__ import absolute_import
 from __future__ import print_function
 import traceback
 try:

@@ -1,6 +1,7 @@
 """This module contains functions to set up a RADMC-3D model for dust and/or line simulations.
 For help on the syntax or functionality of each function see the help of the individual functions
 """
+from __future__ import absolute_import
 from __future__ import print_function
 import traceback
 import inspect

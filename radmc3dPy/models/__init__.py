@@ -1,6 +1,7 @@
 """
 This module contains models and functions to manage the library/list of models
 """
+from __future__ import absolute_import
 from . _libfunc import *
 
 __all__ = ["updateModelList", "getModelNames", "getModelDesc"]

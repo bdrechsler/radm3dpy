@@ -26,6 +26,7 @@ as the get_model_names() function in the setup module removes the name 'template
 models. 
 
 """
+from __future__ import absolute_import
 from __future__ import print_function
 import traceback
 try:

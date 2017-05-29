@@ -30,6 +30,7 @@ from matplotlib.colors import LogNorm
 import matplotlib.patches as patches
 import matplotlib.lines as ml
 
+from . natconst import *
 from . import natconst as nc
 from . import ctrans
 from . import staratm
@@ -1490,13 +1491,6 @@ class radmc3dData(object):
                 data = np.swapaxes(data, 1, 2)
 
         else:
-            # if not os.path.isfile(fname):
-            #     print
-            #     'Error!'
-            #     print
-            #     fname + ' was not found!'
-            #     return -1
-
             if octree:
                 hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
 
@@ -1799,7 +1793,6 @@ class radmc3dData(object):
         #
         # Read the output of the previous 2d version of the code
         #
-
         else:
             with open('dustdens.inp', 'r') as rfile:
 
@@ -1816,6 +1809,8 @@ class radmc3dData(object):
                         for iy in range(nt):
                             self.rhodust[ix, iy, 0, idust] = float(rfile.readline())
                             self.rhodust[ix, self.grid.ny - 1 - iy, 0, idust] = self.rhodust[ix, iy, 0, idust]
+
+        return True
 
     def readDustTemp(self, fname='', binary=True, octree=False, old=False):
         """Reads the dust temperature.
@@ -1870,6 +1865,8 @@ class radmc3dData(object):
                         for iy in range(nt):
                             self.dusttemp[ix, iy, 0, idust] = float(rfile.readline())
                             self.dusttemp[ix, self.grid.ny - 1 - iy, 0, idust] = self.dusttemp[ix, iy, 0, idust]
+
+        return True
 
     def readGasVel(self, fname='', binary=True, octree=False):
         """Reads the gas velocity.  
@@ -1986,6 +1983,8 @@ class radmc3dData(object):
                                 self.gasvel[i, j, k, 1] = float(dum[1])
                                 self.gasvel[i, j, k, 2] = float(dum[2])
 
+        return True
+
     def readVTurb(self, fname='', binary=True, octree=False):
         """Reads the turbulent velocity field. 
 
@@ -2022,6 +2021,8 @@ class radmc3dData(object):
         if octree:
             self.vturb = np.squeeze(self.vturb)
 
+        return True
+
     def readGasDens(self, ispec='', binary=True, octree=False):
         """Reads the gas density.
 
@@ -2054,6 +2055,8 @@ class radmc3dData(object):
         self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         if octree:
             self.ndens_mol = np.squeeze(self.ndens_mol)
+
+        return True
 
     def readGasTemp(self, fname='', binary=True, octree=False):
         """Reads the gas temperature.
@@ -2091,6 +2094,8 @@ class radmc3dData(object):
         self.gastemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         if octree:
             self.gastemp = np.squeeze(self.gastemp)
+
+        return True
 
     def writeDustDens(self, fname='', binary=True, old=False, octree=False):
         """Writes the dust density.
@@ -4718,9 +4723,9 @@ class radmc3dPar(object):
                         varlist.append(vlist)
 
             iline = iline + 1
-            # -------------------------------------------------------------------------------------------------------
-            # Now evaluate the expressions in the value field and make the final dictionary
-            # -------------------------------------------------------------------------------------------------------
+        # -------------------------------------------------------------------------------------------------------
+        # Now evaluate the expressions in the value field and make the final dictionary
+        # -------------------------------------------------------------------------------------------------------
         self.ppar = {}
         glob = globals()
         glob['pi'] = np.pi
@@ -6333,7 +6338,7 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
     return res
 
 
-def readGrid(sgrid=True, wgrid=True):
+def readGrid(sgrid=True, wgrid=True, sgrid_fname='amr_grid.inp', wgrid_fname='wavelength_micron.inp'):
     """Reads the spatial and frequency grid.
     This function is an interface to radmc3dGrid.readGrid().
 
@@ -6345,6 +6350,12 @@ def readGrid(sgrid=True, wgrid=True):
 
     wgrid       : bool
                   If True the wavelength grid will be read
+    
+    sgrid_fname : str
+                  File containing the spatial grid (default: amr_grid.inp)
+    
+    wgrid_fname : str
+                  File containing the wavelength grid (default: wavelength_micron.inp)
 
     Returns
     -------
@@ -6355,7 +6366,7 @@ def readGrid(sgrid=True, wgrid=True):
     #
     # Check the grid type
     #
-    hdr = np.fromfile('amr_grid.inp', count=7, sep="\n", dtype=np.int)
+    hdr = np.fromfile(sgrid_fname, count=7, sep="\n", dtype=np.int)
     if hdr[1] == 0:
         grid = radmc3dGrid()
     elif hdr[1] == 1:
@@ -6363,10 +6374,12 @@ def readGrid(sgrid=True, wgrid=True):
     else:
         raise ValueError('Unsupported amr_style' + ("%d" % hdr[1]) + '\n '
                          + 'Only regular (0) or octree-like (1) AMR styles are supported')
+
     if wgrid:
-        grid.readWavelengthGrid()
+        grid.readWavelengthGrid(fname=wgrid_fname)
+
     if sgrid:
-        grid.readSpatialGrid()
+        grid.readSpatialGrid(fname=sgrid_fname)
 
     return grid
 
