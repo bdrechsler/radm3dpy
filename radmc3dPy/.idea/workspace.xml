@@ -1,27 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="03fccc7b-984c-44a0-924d-1e80eacf7d43" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/radmc3dPy.models.rst" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/conf.py" afterPath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/conf.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/modules.rst" afterPath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/modules.rst" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/radmc3dPy.rst" afterPath="$PROJECT_DIR$/../doc/sphinx/radmc3dPy/radmc3dPy.rst" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/analyze.py" afterPath="$PROJECT_DIR$/analyze.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ctrans.py" afterPath="$PROJECT_DIR$/ctrans.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/image.py" afterPath="$PROJECT_DIR$/image.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/__init__.py" afterPath="$PROJECT_DIR$/models/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/_libfunc.py" afterPath="$PROJECT_DIR$/models/_libfunc.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/lines_nlte_lvg_1d_1.py" afterPath="$PROJECT_DIR$/models/lines_nlte_lvg_1d_1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/ppdisk.py" afterPath="$PROJECT_DIR$/models/ppdisk.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/ppdisk_amr.py" afterPath="$PROJECT_DIR$/models/ppdisk_amr.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/simple_1.py" afterPath="$PROJECT_DIR$/models/simple_1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/spher1d_1.py" afterPath="$PROJECT_DIR$/models/spher1d_1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/spher2d_1.py" afterPath="$PROJECT_DIR$/models/spher2d_1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/template.py" afterPath="$PROJECT_DIR$/models/template.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/test_scattering_1.py" afterPath="$PROJECT_DIR$/models/test_scattering_1.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/staratm.py" afterPath="$PROJECT_DIR$/staratm.py" />
-    </list>
+    <list default="true" id="03fccc7b-984c-44a0-924d-1e80eacf7d43" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -35,7 +15,7 @@
       <file leaf-file-name="analyze.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/analyze.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="37632">
+            <state relative-caret-position="37716">
               <caret line="2694" column="8" lean-forward="false" selection-start-line="2694" selection-start-column="8" selection-end-line="2694" selection-end-column="8" />
               <folding>
                 <element signature="e#156#193#0" expanded="true" />
@@ -44,12 +24,24 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ctrans.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ctrans.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ctrans.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="70">
-              <caret line="5" column="0" lean-forward="false" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
+              <caret line="5" column="25" lean-forward="false" selection-start-line="5" selection-start-column="25" selection-end-line="5" selection-end-column="25" />
               <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="crd_trans.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/crd_trans.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="56">
+              <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+              <folding>
+                <element signature="e#185#223#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -293,8 +285,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="13" y="23" width="1657" height="1023" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25882354" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2619195" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32975295" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -322,13 +315,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/models/_modellist.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="3" lean-forward="false" selection-start-line="0" selection-start-column="3" selection-end-line="0" selection-end-column="3" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/analyze.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="18522">
@@ -694,7 +680,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/analyze.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="37632">
+        <state relative-caret-position="37716">
           <caret line="2694" column="8" lean-forward="false" selection-start-line="2694" selection-start-column="8" selection-end-line="2694" selection-end-column="8" />
           <folding>
             <element signature="e#156#193#0" expanded="true" />
@@ -705,8 +691,18 @@
     <entry file="file://$PROJECT_DIR$/ctrans.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="70">
-          <caret line="5" column="0" lean-forward="false" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
+          <caret line="5" column="25" lean-forward="false" selection-start-line="5" selection-start-column="25" selection-end-line="5" selection-end-column="25" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crd_trans.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="56">
+          <caret line="4" column="0" lean-forward="true" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <folding>
+            <element signature="e#185#223#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
