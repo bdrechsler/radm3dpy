@@ -32,7 +32,7 @@ import matplotlib.lines as ml
 
 from . natconst import *
 from . import natconst as nc
-from . import ctrans
+from . import crd_trans
 from . import staratm
 
 
@@ -2457,7 +2457,7 @@ class radmc3dData(object):
                 print(ix, nxi)
                 for iy in range(nyi):
                     for iz in range(nzi):
-                        crd = ctrans.ctransSph2Cart([x[ix], z[iz], y[iy]])
+                        crd = crd_trans.crd_transSph2Cart([x[ix], z[iz], y[iy]])
                         wfile.write('%.9e %9e %9e\n' % (crd[0], crd[1], crd[2]))
 
                         # ---------------------------------------------------------------------------------------------
@@ -2517,7 +2517,7 @@ class radmc3dData(object):
                     for iy in range(nyi):
                         for iz in range(nzi):
                             vsph = np.array([vgas[ix, iy, iz, 0], vgas[ix, iy, iz, 2], vgas[ix, iy, iz, 1]])
-                            vxyz = ctrans.vtransSph2Cart([x[ix], z[iz], y[iy]], vsph)
+                            vxyz = crd_trans.vtransSph2Cart([x[ix], z[iz], y[iy]], vsph)
 
                             wfile.write('%.9e %.9e %.9e\n' % (vxyz[0], vxyz[1], vxyz[2]))
 
@@ -2881,24 +2881,24 @@ class radmc3dGrid(object):
                     print(' No boundary for the third dimension is given, third dimension is deactivated.')
                     self.act_dim[2] = 0
             if not nzi:
-                if ('nz' in ppar) & (ppar['nz'] > 0.):
-                    if not isinstance(ppar['ny'], list):
+                if 'nz' in ppar:
+                    if not isinstance(ppar['nz'], list):
                         ppar['nz'] = [ppar['nz']]
-                    nzi = [i + 1 for i in ppar['nz']]
+                    if ppar['nz'][0] >  0:
+                        nzi = [i + 1 for i in ppar['nz']]
                     if ppar['nz'][0] == 0:
                         self.act_dim[2] = 0
                 else:
                     self.act_dim[2] = 0
                     nzi = [0]
-
         #
         # Type checking
         #
-        if isinstance(nxi, int):
+        if not isinstance(nxi, list):
             nxi = [nxi]
-        if isinstance(nyi, int):
+        if not isinstance(nyi, list):
             nyi = [nyi]
-        if isinstance(nzi, int):
+        if not isinstance(nzi, list):
             nzi = [nzi]
 
         if crd_sys == 'car':
@@ -3040,7 +3040,7 @@ class radmc3dGrid(object):
 
             if nyi is None:
                 raise ValueError('Unknown nyi. Number of grid points for the spherical co-lattitude grid is not '
-                                 ' specified. The grid cannot be generated')
+                                 + ' specified. The grid cannot be generated')
 
             if nzi is None:
                 raise ValueError('Unknown nzi. Number of grid points for the spherical azimuthal angle grid is not '
@@ -4914,10 +4914,10 @@ class radmc3dPar(object):
         #
         # Code parameters
         #
-        self.setPar(['nphot', 'long(1e6)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
-        self.setPar(['nphot_scat', 'long(3e5)', '  Nr of photons for the scattering Monte Carlo (for images)',
+        self.setPar(['nphot', 'int(1e6)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
+        self.setPar(['nphot_scat', 'int(3e5)', '  Nr of photons for the scattering Monte Carlo (for images)',
                      'Code parameters'])
-        self.setPar(['nphot_spec', 'long(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)',
+        self.setPar(['nphot_spec', 'int(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)',
                      'Code parameters'])
         self.setPar(
             ['scattering_mode_max', '1', '  0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering',
@@ -5032,32 +5032,32 @@ class radmc3dPar(object):
             #
 
             wfile.write(
-                '%s\n' % '#########################################################################################'
-                         + '##################################')
+                '%s\n' % ('#########################################################################################'
+                         + '##################################'))
             wfile.write('%s\n' % '# RADMC-3D PARAMETER SETUP')
             wfile.write('%s\n' % '# Created by the python module of RADMC-3D')
             wfile.write(
-                '%s\n' % '#########################################################################################'
-                         + '##################################')
+                '%s\n' % ('#########################################################################################'
+                         + '##################################'))
 
             #
             # Get the parameter block names and distionary keys
             #
-            par_keys = self.pblock.keys()
-            par_block = self.pblock.values()
+            par_keys = list(self.pblock.keys())
+            par_block = list(self.pblock.values())
 
             #
             # Write the parameterfile
             #
             for iblock in blocknames:
                 wfile.write(
-                    '%s\n' % '# -----------------------------------------------------------------------------------'
-                             + '--------------------------------------')
+                    '%s\n' % ('# -----------------------------------------------------------------------------------'
+                             + '--------------------------------------'))
                 txt = '# Block: ' + iblock
                 wfile.write('%s\n' % txt)
                 wfile.write(
-                    '%s\n' % '# -----------------------------------------------------------------------------------'
-                             + '--------------------------------------')
+                    '%s\n' % ('# -----------------------------------------------------------------------------------'
+                             + '--------------------------------------'))
 
                 keys = []
                 for i in range(len(par_block)):
@@ -5323,7 +5323,6 @@ class radmc3dRadSources(object):
         old   : bool, optional
                 If set to True the file format of the previous, 2D version of radmc will be used
         """
-
         if not old:
             if freq is not None:
                 self.grid.wav = nc.cc / np.array(freq) * 1e4

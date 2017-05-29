@@ -6,7 +6,7 @@
 from . import analyze
 from . import setup
 from . import image
-from . import ctrans
+from . import crd_trans
 from . import natconst
 from . import models
 from . import staratm
@@ -14,4 +14,4 @@ from . import staratm
 __version__ = "0.30"
 __author__ = "Attila Juhasz"
 __copyright__ = "Copyright (C) 2011-2017 Attila Juhasz"
-__all__ = ["analyze", "setup", "image", "ctrans", "natconst", "models", "staratm"]
+__all__ = ["analyze", "setup", "image", "crd_trans", "natconst", "models", "staratm"]

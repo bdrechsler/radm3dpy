@@ -288,8 +288,9 @@ def problemSetupDust(model=None, binary=True, writeDustTemp=False, old=False, df
         grid.writeWavelengthGrid(old=old)
         # Spatial grid
         grid.writeSpatialGrid(old=old)
-    # Input radiation field
-    radSources.writeStarsinp(ppar=ppar, old=old)
+
+    # Input radiation field (discrete stars)
+    radSources.writeStarsinp(ppar=ppar, old=old, wav=grid.wav)
 
     # Continuous starlike sources
     if stellarsrcEnabled:

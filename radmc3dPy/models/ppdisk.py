@@ -364,8 +364,8 @@ def getGasDensity(grid=None, ppar=None):
 
             if np.abs(ppar['ybound'][-1]-(np.pi/2.)) < 1e-8:
                 rho = rho*0.5
-    if ppar['gap_rout'] > ppar['rin']:
-        for igap in range(len(ppar['gap_rout'])):
+    for igap in range(len(ppar['gap_rout'])):
+        # if ppar['gap_rout'][igap] > ppar['rin']:
             for ix in range(grid.nx):
                 if (grid.x[ix] >= ppar['gap_rin'][igap]) & (grid.x[ix] <= ppar['gap_rout'][igap]):
                     rho[ix, :, :] = rho[ix, :, :] * ppar['gap_drfact'][igap]
