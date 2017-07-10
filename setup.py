@@ -23,7 +23,8 @@ def findFiles(src_dir, *wildcards):
             # Find the appropriate files within each directory
             fileList = []
             for wc in wildcards:
-                dum = Popen(['ls -1 '+dirList[i]+'/'+wc], shell=True, \
+                com = 'ls -1 '+dirList[i].decode('utf-8')+'/'+wc
+                dum = Popen([], shell=True, 
                         stdout=PIPE, stderr=PIPE).communicate()[0].split()
                 #dum = Popen(['find '+dirList[i]+' -name "'+wc+'"'], shell=True, \
                         #stdout=PIPE).communicate()[0].split()
@@ -36,7 +37,7 @@ def findFiles(src_dir, *wildcards):
 
     return foundList    
    
-fileList = findFiles('./radmc3dPy', '*.py')
+fileList = findFiles('./radmc3dPy', './doc/html/', '*.py')
 
 python_files = []
 for i in range(len(fileList)):
@@ -63,7 +64,7 @@ for i in range(len(python_files)):
         packageNames.append(txt)
 
 setup(name='radmc3dPy',
-        version='0.29',
+        version='0.30',
       description='Python module for RADMC3D',
       author='Attila Juhasz',
       author_email='juhasz@ast.cam.ac.uk',

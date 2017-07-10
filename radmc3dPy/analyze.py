@@ -1066,10 +1066,13 @@ class radmc3dOctree(object):
             crd_system = int(rfile.readline())
             if crd_system < 100:
                 self.crd_sys = 'car'
+                print("Reading cartesian grid")
             elif (crd_system >= 100) & (crd_system < 200):
                 self.crd_sys = 'sph'
+                print("Reading spherical grid")
             elif (crd_system >= 200) & (crd_system < 300):
                 self.crd_sys = 'cyl'
+                print("Reading cylindrical grid")
             else:
                 raise ValueError('Unsupported coordinate system in ' + fname)
 
@@ -1079,16 +1082,21 @@ class radmc3dOctree(object):
 
             dum = rfile.readline().split()
             self.act_dim = [int(dum[i]) for i in range(len(dum))]
+            print("Active dimensions : ", self.act_dim[0], self.act_dim[1], self.act_dim[2])
             if 1 in self.act_dim:
                 self.nChild = 2**(np.array(self.act_dim, dtype=int).sum())
             dum = rfile.readline().split()
             self.nxRoot, self.nyRoot, self.nzRoot = int(dum[0]), int(dum[1]), int(dum[2])
-
+            print("Base grid size : ", self.nxRoot, self.nyRoot, self.nzRoot)
             dum = rfile.readline()
 
             dum = rfile.readline().split()
             levelMax, nLeaf, nCell = int(dum[0]), int(dum[1]), int(dum[2])
             nBranch = nCell - nLeaf
+
+            print("Tree depth : ", levelMax)
+            print("Nr of leaves : ", nLeaf)
+            print("Nr of cells : ", nCell)
             dum = rfile.readline()
 
             self.levelMax = 0
@@ -1153,7 +1161,7 @@ class radmc3dOctree(object):
         self.nCell = self.nLeaf + self.nBranch
         self.generateLeafID()
 
-        # self.selfCheck()
+        self.selfCheck()
         return
 
     def _readGridNodeTypeOcTreeRec(self, cellID=None, rfile=None):
@@ -2401,10 +2409,15 @@ class radmc3dData(object):
                     If set to True the gas velocity will be written to the vtk file
         """
 
+        if isinstance(idust, int):
+            idust = [idust]
+
         if (ddens is True) | (dtemp is True):
             if idust is None:
-                raise ValueError('Unknown dust species. Dust density or temperature is to be written but '
-                                 + ' it has not been specified for which dust species.')
+                msg = 'Unknown dust species. Dust density or temperature is to be written but  ' \
+                      + 'it has not been specified for which dust species.'
+                raise ValueError(msg)
+
 
         if vtk_fname == '':
             vtk_fname = 'radmc3d_data.vtk'
@@ -2457,7 +2470,7 @@ class radmc3dData(object):
                 print(ix, nxi)
                 for iy in range(nyi):
                     for iz in range(nzi):
-                        crd = crd_trans.crd_transSph2Cart([x[ix], z[iz], y[iy]])
+                        crd = crd_trans.ctransSph2Cart([x[ix], z[iz], y[iy]])
                         wfile.write('%.9e %9e %9e\n' % (crd[0], crd[1], crd[2]))
 
                         # ---------------------------------------------------------------------------------------------
@@ -4389,6 +4402,7 @@ class radmc3dDustOpac(object):
             if isinstance(ext, str):
                 ext = [ext]
 
+        self.readOpac(ext=ext, old=False)
         #
         # Read the frequency.inp file
         #
@@ -4397,7 +4411,6 @@ class radmc3dDustOpac(object):
         freq = freq[1:]
         freq = freq[::-1]
         wav = nc.cc / freq * 1e4
-
         #
         # Check if the frequency grid is ordered in frequency or in wavelength
         #
@@ -6310,10 +6323,10 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
 
         if octree:
             res.grid = radmc3dOctree()
-            res.grid.readGrid()
+            res.grid.readSpatialGrid()
         else:
             res.grid = radmc3dGrid()
-            res.grid.readGrid(old=old)
+            res.grid.readSpatialGrid(old=old)
 
     if ddens:
         res.readDustDens(binary=binary, old=old, octree=octree)

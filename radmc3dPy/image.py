@@ -279,7 +279,7 @@ class radmc3dImage(object):
 
     # --------------------------------------------------------------------------------------------------
     def writeFits(self, fname='', dpc=1., coord='03h10m05s -10d05m30s', bandwidthmhz=2000.0,
-                  casa=False, nu0=0., stokes='I', fitsheadkeys=[]):
+                  casa=False, nu0=0., stokes='I', fitsheadkeys=[], ifreq=None):
         """Writes out a RADMC-3D image data in fits format. 
 
         Parameters
@@ -312,9 +312,14 @@ class radmc3dImage(object):
                         the keyword is already in the fits header (e.g. CDELT1) it will be updated/changed
                         to the value in fitsheadkeys, if the keyword is not present the keyword is added to 
                         the fits header. 
+                       
+        ifreq        : int
+                       Frequency index of the image array to write. If set only this frequency of a multi-frequency
+                       array will be written to file.
         """
         # --------------------------------------------------------------------------------------------------
         istokes = 0
+
 
         if self.stokes:
             if fname == '':
@@ -407,6 +412,10 @@ class radmc3dImage(object):
                     for inu in range(self.nfreq):
                         data[inu, :, :] = self.image[:, :, inu] * conv
 
+        if ifreq is not None:
+            if len(data.shape) == 3:
+                data = data[ifreq, :, :]
+
         naxis = len(data.shape)
         hdu = pf.PrimaryHDU(data.swapaxes(naxis - 1, naxis - 2))
         hdulist = pf.HDUList([hdu])
@@ -441,12 +450,20 @@ class radmc3dImage(object):
                 hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
 
             else:
-                hdulist[0].header.set('CRPIX3', 1.0, '')
-                hdulist[0].header.set('CDELT3', (self.freq[1] - self.freq[0]), '')
-                hdulist[0].header.set('CRVAL3', self.freq[0], '')
-                hdulist[0].header.set('CUNIT3', '      HZ', '')
-                hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
-                hdulist[0].header.set('RESTFRQ', self.freq[0])
+                if ifreq is None:
+                    hdulist[0].header.set('CRPIX3', 1.0, '')
+                    hdulist[0].header.set('CDELT3', (self.freq[1] - self.freq[0]), '')
+                    hdulist[0].header.set('CRVAL3', self.freq[0], '')
+                    hdulist[0].header.set('CUNIT3', '      HZ', '')
+                    hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
+                    hdulist[0].header.set('RESTFRQ', self.freq[0])
+                else:
+                    hdulist[0].header.set('CRPIX3', 1.0, '')
+                    hdulist[0].header.set('CDELT3', bandwidthmhz * 1e6, '')
+                    hdulist[0].header.set('CRVAL3', self.freq[ifreq], '')
+                    hdulist[0].header.set('CUNIT3', '      HZ', '')
+                    hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
+
         else:
             if self.nwav == 1:
                 hdulist[0].header.set('CRPIX3', 1.0, '')
@@ -455,11 +472,18 @@ class radmc3dImage(object):
                 hdulist[0].header.set('CUNIT3', '      HZ', '')
                 hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
             else:
-                hdulist[0].header.set('CRPIX3', 1.0, '')
-                hdulist[0].header.set('CDELT3', (self.freq[1] - self.freq[0]), '')
-                hdulist[0].header.set('CRVAL3', self.freq[0], '')
-                hdulist[0].header.set('CUNIT3', '      HZ', '')
-                hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
+                if ifreq is None:
+                    hdulist[0].header.set('CRPIX3', 1.0, '')
+                    hdulist[0].header.set('CDELT3', (self.freq[1] - self.freq[0]), '')
+                    hdulist[0].header.set('CRVAL3', self.freq[0], '')
+                    hdulist[0].header.set('CUNIT3', '      HZ', '')
+                    hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
+                else:
+                    hdulist[0].header.set('CRPIX3', 1.0, '')
+                    hdulist[0].header.set('CDELT3', bandwidthmhz * 1e6, '')
+                    hdulist[0].header.set('CRVAL3', self.freq[ifreq], '')
+                    hdulist[0].header.set('CUNIT3', '      HZ', '')
+                    hdulist[0].header.set('CTYPE3', 'FREQ-LSR', '')
 
         if nu0 > 0:
             hdulist[0].header.set('RESTFRQ', nu0, '')
@@ -980,7 +1004,7 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
 
     # Create the two axes
 
-    if pscale is None:
+    if pscale is not None:
         dx, dy = pscale[0], pscale[1]
     else:
         dx, dy = 1., 1.

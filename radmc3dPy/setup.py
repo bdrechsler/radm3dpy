@@ -298,18 +298,19 @@ def problemSetupDust(model=None, binary=True, writeDustTemp=False, old=False, df
         radSources.writeStellarsrcDensity(binary=binary)
 
     # totlum = radSources.getTotalLuminosities()
-    print('-------------------------------------------------------------')
-    print('Luminosities of radiation sources in the model :')
+    if not old:
+        print('-------------------------------------------------------------')
+        print('Luminosities of radiation sources in the model :')
 
-    totlum = radSources.getTotalLuminosities(readInput=True)
-    print('As calculated from the input files :')
-    print('Stars : ')
-    print("  Star #%d + hotspot        : %.6e" % (0, totlum['lnu_star'][0]))
-    for istar in range(1, radSources.nstar):
-        print("  Star #%d               : %.6e" % (istar, totlum['lnu_star'][istar]))
-    print("Continuous starlike source : %.6e" % totlum['lnu_accdisk'])
-    print(' ')
-    print('-------------------------------------------------------------')
+        totlum = radSources.getTotalLuminosities(readInput=True)
+        print('As calculated from the input files :')
+        print('Stars : ')
+        print("  Star #%d + hotspot        : %.6e" % (0, totlum['lnu_star'][0]))
+        for istar in range(1, radSources.nstar):
+            print("  Star #%d               : %.6e" % (istar, totlum['lnu_star'][istar]))
+        print("Continuous starlike source : %.6e" % totlum['lnu_accdisk'])
+        print(' ')
+        print('-------------------------------------------------------------')
 
     # Dust density distribution
     if ppar['grid_style'] == 1:

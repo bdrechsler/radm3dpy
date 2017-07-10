@@ -13,7 +13,7 @@ except ImportError:
     np = None
     print(traceback.format_exc())
 
-import natconst as nc
+from . import natconst as nc
 
 
 def getAtmModel(teff=0., logg=None, mstar=None, lstar=None, rstar=None, iwav=None, model='kurucz',
