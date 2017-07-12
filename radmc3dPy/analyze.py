@@ -5338,19 +5338,23 @@ class radmc3dRadSources(object):
         """
         if not old:
             if freq is not None:
-                self.grid.wav = nc.cc / np.array(freq) * 1e4
-                self.grid.freq = np.array(freq)
-                self.grid.nwav = self.grid.wav.shape[0]
-                self.grid.nfreq = self.grid.nwav
+                if wav is not None:
+                    raise ValueError('Either wav or freq should be set but not both.')
+                else:
+                    self.grid.wav = nc.cc / np.array(freq) * 1e4
+                    self.grid.freq = np.array(freq)
+                    self.grid.nwav = self.grid.wav.shape[0]
+                    self.grid.nfreq = self.grid.nwav
 
             elif wav is not None:
-                self.grid.wav = np.array(wav)
-                self.grid.freq = nc.cc / self.grid.wav * 1e4
-                self.grid.nwav = self.grid.wav.shape[0]
-                self.grid.nfreq = self.grid.nwav
+                if freq is not None:
+                    raise ValueError('Either wav or freq should be set but not both.')
+                else:
+                    self.grid.wav = np.array(wav)
+                    self.grid.freq = nc.cc / self.grid.wav * 1e4
+                    self.grid.nwav = self.grid.wav.shape[0]
+                    self.grid.nfreq = self.grid.nwav
 
-            else:
-                raise ValueError('Either wav or freq should be set but not both.')
 
             self.nstar = len(self.rstar)
             # self.pstar = ppar['pstar']
