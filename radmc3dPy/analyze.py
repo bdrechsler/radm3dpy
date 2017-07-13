@@ -4523,23 +4523,21 @@ class radmc3dDustOpac(object):
         #
         # Write the frequency.inp file
         #
-        wfile = open('frequency.inp', 'w')
-        wfile.write("%d\n" % freq.shape[0])
-        wfile.write("  \n")
-        for i in range(freq.shape[0]):
-            wfile.write("%.10e\n" % freq[i])
-        wfile.close()
+        with open('frequency.inp', 'w') as wfile:
+            wfile.write("%d\n" % freq.shape[0])
+            wfile.write("  \n")
+            for i in range(freq.shape[0]):
+                wfile.write("%.10e\n" % freq[i])
 
         #
         # Write the dust.inp file (makedust main control file)
         #
-        wfile = open('dust.inp', 'w')
-        for igs in range(ngs):
-            wfile.write("%s\n" % lnk_fname)
-            wfile.write("%s\n" % "MIE")
-            wfile.write("%d %f %f %f %d %f %f %f\n" %
-                        (1, 0.0, np.log10(gsize[igs]), np.log10(gsize[igs]), 1., -3.5, gdens, -2.0))
-        wfile.close()
+        with open('dust.inp', 'w') as wfile:
+            for igs in range(ngs):
+                wfile.write("%s\n" % lnk_fname)
+                wfile.write("%s\n" % "MIE")
+                wfile.write("%d %f %f %f %d %f %f %f\n" %
+                            (1, 0.0, np.log10(gsize[igs]), np.log10(gsize[igs]), 1., -3.5, gdens, -2.0))
 
         #
         # Run the Mie-code
