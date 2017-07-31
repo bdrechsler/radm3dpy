@@ -5540,6 +5540,11 @@ class radmc3dRadSources(object):
                                           iwav=self.grid.wav, model="nextgen")
                 self.fnustar[:, istar] = dum['lnu'] / (4. * np.pi * nc.pc**2)
 
+            elif self.staremis_type[istar].strip().lower() == "ames-dusty":
+                dum = staratm.getAtmModel(teff=self.tstar[istar], mstar=self.mstar[istar], rstar=self.rstar[istar],
+                                          iwav=self.grid.wav, model="ames-dusty")
+                self.fnustar[:, istar] = dum['lnu'] / (4. * np.pi * nc.pc**2)
+
             else:
                 raise ValueError('Unknown stellar atmosphere model : ', self.staremis_type[istar],
                                  ' Only "kurucz" or "nextgen" are supported.')

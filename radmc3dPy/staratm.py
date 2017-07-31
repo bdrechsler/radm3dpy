@@ -45,11 +45,11 @@ def getAtmModel(teff=0., logg=None, mstar=None, lstar=None, rstar=None, iwav=Non
     iwav        : ndarray
                   Wavelength grid for which the stellar atmosphere model should be calculated
 
-    model       : {'kurucz', 'nextgen'}
+    model       : {'kurucz', 'nextgen', 'ames-dusty'}
                   Name of the model atmosphere family
 
     modeldir    : str       
-                  Path to the Kurucz or NextGen atmosphere models
+                  Path to the atmosphere models
                 
     wmax        : float
                   Maximum wavelength until the model atmosphere is used on the interpolated grid
@@ -94,6 +94,11 @@ def getAtmModel(teff=0., logg=None, mstar=None, lstar=None, rstar=None, iwav=Non
         if modeldir is None:
             modeldir = '/disk2/juhasz/Data/NextGen/SPECTRA/'
         sp = getSpectrumNextGen(teff=teff, logg=logg, lstar=lstar, modeldir=modeldir)
+        ilnu = rebinSpectrum(wav=sp['wav'], fnu=sp['lnu'], iwav=iwav)
+    elif model.strip().lower() == 'ames-dusty':
+        if modeldir is None:
+            modeldir = '/disk2/juhasz/Data/Ames-Dusty/SPECTRA/'
+        sp = getSpectrumAmesDusty(teff=teff, logg=logg, lstar=lstar, modeldir=modeldir)
         ilnu = rebinSpectrum(wav=sp['wav'], fnu=sp['lnu'], iwav=iwav)
     else:
         raise ValueError('Unknown model : "'+model+'" \n Allowed (implemented) models are "kurucz" or "nextgen".')
@@ -458,6 +463,83 @@ def readKuruczGrid(fname=''):
 
     return {'wav': wav, 'inu': inu, 'inucont': inucont, 'teff': teff_grid, 'logg': logg_grid, 'nwav': nwav}
 
+def readAmesDustySpectrum(fname=''):
+    """
+    Reads the Ames-Dusty model atmosphere
+    Parameters
+    ----------
+    fname       : str
+                  File name containing the Ames-Dusty model atmosphere (e.g. lte30-3.5-0.0.AMES-dusty.7)
+
+    Returns
+    -------
+
+        Returns a dictionary with the following keys:
+
+        * wav     : ndarray
+                    Wavelength in micron
+
+        * nwav    : int
+                    Number of wavelength points
+
+        * inu     : ndarray
+                    Specific intensity of the stellar model atmosphere in erg/s/cm/cm/Hz/ster
+
+        * bnu     : list
+                    Specific intensity of a blackbody stellar model atmosphere with the same luminosity
+                    and the same effective temperature in erg/s/cm/cm/Hz/ster
+
+        * teff    : float
+                    Effective temperature of the model
+
+        * logg    : float
+                    Logarithm of the surface gravity of the model
+
+        * mph     : float
+                    Metallicity of the atmosphere model
+    """
+    print('Reading : ', fname)
+
+    # Get the effective temperature, logg and metallicity from the file name
+    ind = fname.find('lte')
+    fname_tags = fname[ind+3:ind+13].split('-')
+    teff = np.float(fname_tags[0]) * 100.
+    logg = np.float(fname_tags[1]) * 100.
+    mph = np.float(fname_tags[2]) * 100.
+
+
+    wav = []
+    inu = []
+    bnu = []
+    with open(fname, 'r') as rfile:
+        dum = rfile.readline()
+        while dum != '':
+            dum = str(dum).replace('D', 'E')
+            sdum = dum.split()
+            wav.append(np.float(sdum[0]))
+            inu.append(np.float(sdum[1]))
+            bnu.append(np.float(sdum[2]))
+            dum = rfile.readline()
+
+        wav = np.array(wav)
+        inu = np.array(inu)
+        bnu = np.array(bnu)
+        ii = wav.argsort()
+
+        wav = wav[ii]
+        inu = inu[ii]
+        bnu = bnu[ii]
+
+    # "Decode" the intensity arrays
+    inu = 10.**(inu - 8.0) * wav
+    bnu = 10.**(bnu - 8.0) * wav
+
+    # Convert the wavelength to micron from Angstrom
+    wav /= 1e4
+    nwav = wav.shape[0]
+
+    return {'teff': teff, 'logg': logg, 'mph': mph, 'nwav': nwav, 'wav': wav, 'inu': inu, 'bnu': bnu}
+
 def readNextGenSpectrum(fname=''):
     """
     Reads the NextGen model atmosphere.
@@ -761,3 +843,185 @@ def getSpectrumNextGen(teff=None, logg=None, mstar=None, lstar=None, rstar=None,
     bnu *= lstar / lum
 
     return {'wav': sp11['wav'], 'lnu': lnu, 'bnu': bnu}
+
+def getSpectrumAmesDusty(teff=None, logg=None, mstar=None, lstar=None, rstar=None, modeldir=None, wav=None):
+    """
+    Interpolates the Ames-Dusty model atmospheres in logg and Teff
+
+    Parameters
+    ----------
+
+    teff        : float
+                  Effective temperature of the star
+
+    logg        : float
+                  Logarithm of the surface gravity of the star
+
+    mstar       : float, optional
+                  Stellar mass in g (either logg or mstar and rstar should be specified)
+
+    lstar       : float, optional
+                  Luminosity of the star (either lstar or rstar should be specified)
+
+    rstar       : float, optional
+                  Radius of the star (either lstar or rstar should be specified)
+
+    modeldir    : str
+                  Path to the AmesDusty atmosphere model grid
+
+    wav         : ndarray
+                  Wavelength grid for which the stellar atmosphere model should be calculated
+
+    Returns
+    -------
+
+    Returns a dictionary with the following keys:
+
+        * wav     : ndarray
+                    Wavelength in micron (same as the input wav keyword)
+
+        * lnu     : ndarray
+                    Monochromatic luminosity of the stellar atmosphere in erg/s/Hz
+
+        * bnu     : ndarray
+                    Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and
+                    effective temperature as the stellar model in erg/s/Hz
+    """
+
+    #
+    # Sanity check
+    #
+    if teff is None:
+        raise ValueError('Unknown teff. Ames-Dusty spectrum cannot be calculated without the stellar effective'
+                         + 'temperature.')
+    if logg is None:
+        if mstar is None:
+            raise ValueError('Unknown logg and mstar. For Ames-Dusty atmosphere models either logg or mstar and '
+                             + ' rstar/lstar should be specified')
+        else:
+            if rstar is None:
+                if lstar is None:
+                    raise ValueError('Unknown logg, rstar, lstar thus logg cannot be calculated. For Ames-Dusty '
+                                     + 'atmosphere models either logg should be given or a combination of mstar, '
+                                     + 'lstar, rstar should be specified from which logg can be calculated for a '
+                                     + 'given effective temperature. ')
+                else:
+                    rstar = np.sqrt(lstar / (4. * np.pi * nc.ss * teff**4.))
+            else:
+                lstar = 4. * np.pi * rstar**2 * nc.ss * teff**4
+
+        logg = np.log10(nc.gg * mstar / rstar**2)
+    else:
+        if rstar is None:
+            if lstar is None:
+                raise ValueError('Unknown rstar and lstar thus luminosity cannot be calculated. For Ames-Dusty '
+                                 + 'atmosphere models either lstar or rstar should be given')
+            else:
+                rstar = np.sqrt(lstar / (4. * np.pi * nc.ss * teff**4.))
+        else:
+            lstar = 4. * np.pi * rstar**2 * nc.ss * teff**4
+
+    mstar = 10.**logg * rstar**2 / nc.gg
+
+    assert (teff >= 0.), 'Negative effective temperature!'
+    assert (mstar >= 0.), 'Negative stellar mass!'
+    assert (lstar >= 0.), 'Negative stellar luminosity!'
+    assert (rstar >= 0.), 'Negative stellar radius!'
+
+    print('-------------------------------------------')
+    print('Interpolating in Ames-Dusty model atmospheres')
+    print('Stellar parameters: ')
+    print('-------------------------------------------')
+    print('Teff [K]          : ', teff)
+    print('Radius [Rsun]     : ', rstar / nc.rs)
+    print('Luminosity [Lsun] : ', lstar / nc.ls)
+    print('Mass [Msun]       : ', mstar / nc.ms)
+    print('logg              : ', logg)
+    print('-------------------------------------------')
+
+    teff_grid = np.append((np.arange(31.) + 9.), (np.arange(30.) * 2. + 40.))
+    logg_grid = np.arange(6.) * 0.5 + 3.5
+
+    # Bracket the input teff and logg values
+    ii = abs(teff_grid - teff / 100.).argmin()
+    idt1 = ii
+    if teff_grid[ii] > teff / 100.:
+        idt1 = ii - 1
+    else:
+        idt1 = ii
+    idt2 = idt1 + 1
+
+    ii = abs(logg_grid - logg).argmin()
+    if logg < logg_grid[0]:
+        idg1 = 0
+        idg2 = 0
+    elif logg > logg_grid[-1]:
+        idg1 = logg_grid.shape[0] - 1
+        idg2 = logg_grid.shape[0] - 1
+    else:
+        idg1 = ii
+        if logg_grid[ii] > logg:
+            idg1 = ii - 1
+        else:
+            idg1 = ii
+        idg2 = idg1 + 1
+
+    print('Bracketing spectrum : ', teff, logg)
+    print('Teff  : ', teff_grid[idt1], teff_grid[idt2])
+    print('log(g): ', logg_grid[idg1], logg_grid[idg2])
+
+    # Generate the spectral file names
+    mph = '0.0'
+    fname_11 = 'lte' + ("%d" % teff_grid[idt1]) + '-' + ("%.1f" % logg_grid[idg1]) + '-' + mph + '.AMES-dusty.7.gz'
+    fname_12 = 'lte' + ("%d" % teff_grid[idt1]) + '-' + ("%.1f" % logg_grid[idg2]) + '-' + mph + '.AMES-dusty.7.gz'
+    fname_22 = 'lte' + ("%d" % teff_grid[idt2]) + '-' + ("%.1f" % logg_grid[idg2]) + '-' + mph + '.AMES-dusty.7.gz'
+    fname_21 = 'lte' + ("%d" % teff_grid[idt2]) + '-' + ("%.1f" % logg_grid[idg1]) + '-' + mph + '.AMES-dusty.7.gz'
+
+    # Create a directory
+    if os.path.exists("./tmp"):
+        shutil.rmtree("./tmp")
+
+    os.system('mkdir tmp')
+    os.system('cp -v ' + modeldir + '/' + fname_11 + ' ./tmp')
+    os.system('cp -v ' + modeldir + '/' + fname_12 + ' ./tmp')
+    os.system('cp -v ' + modeldir + '/' + fname_22 + ' ./tmp')
+    os.system('cp -v ' + modeldir + '/' + fname_21 + ' ./tmp')
+
+    # Unzip the files
+    os.chdir('./tmp')
+    os.system('gunzip ' + fname_11)
+    os.system('gunzip ' + fname_12)
+    os.system('gunzip ' + fname_22)
+    os.system('gunzip ' + fname_21)
+    os.chdir('../')
+
+    # Read the spectra
+    sp11 = readAmesDustySpectrum(fname='./tmp/' + fname_11[:-3])
+    sp12 = readAmesDustySpectrum(fname='./tmp/' + fname_12[:-3])
+    sp22 = readAmesDustySpectrum(fname='./tmp/' + fname_22[:-3])
+    sp21 = readAmesDustySpectrum(fname='./tmp/' + fname_21[:-3])
+
+    # Do the interpolation
+    c11 = (teff_grid[idt2] - teff / 100.) * (logg_grid[idg2] - logg)
+    c12 = (teff_grid[idt2] - teff / 100.) * (logg - logg_grid[idg1])
+    c22 = (teff / 100. - teff_grid[idt1]) * (logg - logg_grid[idg1])
+    c21 = (teff / 100. - teff_grid[idt1]) * (logg_grid[idg2] - logg)
+    c00 = 1. / ((teff_grid[idt2] - teff_grid[idt1]) * (logg_grid[idg2] - logg_grid[idg1]))
+
+    lnu = c00 * (c11 * sp11['inu'] + c12 * sp12['inu'] + c22 * sp22['inu'] + c21 * sp21['inu'])
+    bnu = c00 * (c11 * sp11['bnu'] + c12 * sp12['bnu'] + c22 * sp22['bnu'] + c21 * sp21['bnu'])
+
+    shutil.rmtree('./tmp')
+
+    #
+    # Scale the spectrum to give the same luminosity as required
+    #
+    nu = nc.cc / sp11['wav'] * 1e4
+    lum = (0.5 * abs(nu[1:] - nu[:-1]) * (lnu[1:] + lnu[:-1])).sum()
+    lnu *= lstar / lum
+
+    lum = (0.5 * abs(nu[1:] - nu[:-1]) * (bnu[1:] + bnu[:-1])).sum()
+    bnu *= lstar / lum
+
+    return {'wav': sp11['wav'], 'lnu': lnu, 'bnu': bnu}
+
