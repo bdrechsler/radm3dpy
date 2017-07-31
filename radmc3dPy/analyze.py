@@ -759,7 +759,6 @@ class radmc3dOctree(object):
             cID = np.arange(self.x.shape[0], dtype=int)
             ii = (self.level == ilev)
 
-
             if True in ii:
                 #
                 # Check which cells to resolve
