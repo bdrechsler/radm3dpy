@@ -5292,28 +5292,28 @@ class radmc3dRadSources(object):
 
             self.grid.wav = np.array(wav, dtype=float)
             self.grid.freq = nc.cc / self.grid.wav * 1e4
-            dum = rfile.readline()
-            dum = rfile.readline()
 
-            # If we have only the stellar temperature
-            if float(dum) < 0:
-                self.tstar.append(-float(dum))
-                for istar in range(1, self.nstar):
+            # Empty line
+            dum = rfile.readline()
+            self.fnustar = np.zeros([self.grid.nfreq, self.nstar], dtype=float)
+            for istar in range(self.nstar):
+                # First data line containing the stellar spectrum or the effective temperature (if negative)
+                dum = rfile.readline()
+                # If we have only the stellar temperature
+                if float(dum) < 0:
                     self.tstar.append(-float(dum))
-                #
-                # Now calculates the stellar spectrum
-                #
-                self.getStarSpectrum()
+                    #
+                    # Now calculates the stellar spectrum
+                    #
+                    self.fnustar[:, istar] = 2. * nc.hh * self.grid.freq**3. / nc.cc**2 / (
+                                         np.exp(nc.hh * self.grid.freq / nc.kk / self.tstar[istar]) - 1.0) \
+                                         * np.pi * self.rstar[istar]**2. / nc.pc**2.
 
-            # If we have the full frequency-dependent spectrum
-            else:
-                self.fnustar = np.zeros([self.grid.nfreq, self.nstar], dtype=float)
-                self.fnustar[0, 0] = float(dum)
-                # for ifreq in range(1, self.grid.nfreq):
-                #     self.fnustar[ifreq, istar] = float(rfile.readline())
-
-                for istar in range(1, self.nstar):
-                    for ifreq in range(self.grid.nfreq):
+                # If we have the full frequency-dependent spectrum
+                else:
+                    self.tstar.append(0.0)
+                    self.fnustar[0, istar] = float(dum)
+                    for ifreq in range(1, self.grid.nfreq):
                         self.fnustar[ifreq, istar] = float(rfile.readline())
 
     def writeStarsinp(self, ppar=None, wav=None, freq=None, old=False):
@@ -6351,6 +6351,26 @@ def readData(ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, isp
 
     return res
 
+def readStars(fname=''):
+    """
+    Reads the data (mass, radius, temperature, spectrum) of discrete stellar sources
+
+    Parameters
+    ----------
+    fname       : str
+                  Name of the file to be read (if omitted the default value is stars.inp)
+
+    Returns
+    -------
+    An instance of radmc3dRadSources containing the stellar data
+    """
+    if fname == '':
+        fname = 'stars.inp'
+
+    res = radmc3dRadSources()
+    res.readStarsinp(fname=fname)
+
+    return res
 
 def readGrid(sgrid=True, wgrid=True, sgrid_fname='amr_grid.inp', wgrid_fname='wavelength_micron.inp'):
     """Reads the spatial and frequency grid.
