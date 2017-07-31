@@ -759,14 +759,15 @@ class radmc3dOctree(object):
             cID = np.arange(self.x.shape[0], dtype=int)
             ii = (self.level == ilev)
 
+
             if True in ii:
                 #
                 # Check which cells to resolve
                 #
                 resolve = dfunc(self.x[ii], self.y[ii], self.z[ii], self.dx[ii][0], self.dy[ii][0], self.dz[ii][0],
                                 model=self.model, ppar=ppar, **kwargs)
-                jj = (resolve is True) & (self.level[ii] < self.levelMaxLimit)
 
+                jj = resolve[self.level[ii] < self.levelMaxLimit]
                 #
                 # If there are some to resolve do so
                 #
@@ -3373,7 +3374,6 @@ class radmc3dGrid(object):
                 # Read the spatial grid
 
             with open(fname, 'r') as rfile:
-
                 form = float(rfile.readline())
                 grid_style = float(rfile.readline())
                 crd_system = int(rfile.readline())
@@ -7028,7 +7028,6 @@ def gdensMinMax(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, p
     decision = np.zeros(ncell, dtype=bool)
     if True in jj:
         decision[jj] = True
-
     return decision
 
 
