@@ -1330,6 +1330,34 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                     dum_image.image = np.sqrt(
                         image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2 + image.image[:, :, 3, :]**2)
 
+            if stokes.strip().upper() == 'P':
+                if dum_image.nwav == 1:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1]**2 + image.image[:, :, 2]**2 + image.image[:, :, 3]**2) / \
+                                      image.image[:, :, 0]
+
+                else:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2 + image.image[:, :, 3, :]**2) / \
+                                      image.image[:, :, 0, :]
+
+            if stokes.strip().upper() == 'PIL':
+                if dum_image.nwav == 1:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1]**2 + image.image[:, :, 2]**2)
+                else:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2)
+
+            if stokes.strip().upper() == 'PL':
+                if dum_image.nwav == 1:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1]**2 + image.image[:, :, 2]**2) / image.image[:, :, 0]
+
+                else:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2) / image.image[:, :, 0, :]
+
         if cmask_rad is not None:
             dum_image = cmask(dum_image, rad=cmask_rad, au=au, arcsec=arcsec, dpc=dpc)
         else:
