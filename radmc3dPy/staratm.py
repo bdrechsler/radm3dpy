@@ -655,7 +655,7 @@ def rebinSpectrum(wav=None, fnu=None, iwav=None):
 
     ifnu = np.zeros(iiwav.shape[0] - 1, dtype=float)
     for i in range(iiwav.shape[0] - 1):
-        print(i, iiwav.shape[0])
+        #print(i, iiwav.shape[0])
         ii = ((wav > iiwav[i]) & (wav <= iiwav[i + 1]))
         if ii.__contains__(True):
             x = wav[ii]

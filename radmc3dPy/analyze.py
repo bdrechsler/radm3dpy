@@ -3681,11 +3681,11 @@ class radmc3dDustOpac(object):
             if idust is not None:
                 raise ValueError('Either idust or ext should be specified, but not both')
 
-        # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
-        mopac = self.readMasterOpac()
-
         # Find the file name extensions in the master opacity file if idust is specified instead of ext
         if idust:
+            # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
+            mopac = self.readMasterOpac()
+
             ext = []
             for ispec in idust:
                 if (ispec + 1) > len(mopac['ext']):
@@ -3696,14 +3696,18 @@ class radmc3dDustOpac(object):
         # If only the extension is specified look for the master opacity file and find the index of this dust species
         #  or set the index to -1 if no such dust species is present in the master opacity file
         else:
-            idust = []
-            for iext in ext:
-                try:
-                    dum2 = mopac['ext'].index(iext)
-                except:
-                    dum2 = -1
-                idust.append(dum2)
+            # # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
+            # mopac = self.readMasterOpac()
+            #
+            # idust = []
+            # for iext in ext:
+            #     try:
+            #         dum2 = mopac['ext'].index(iext)
+            #     except:
+            #         dum2 = -1
+            #     idust.append(dum2)
 
+            idust = [i for i in range(len(ext))]
         # Now read all dust opacities
         for i in range(len(ext)):
             if scatmat[i]:

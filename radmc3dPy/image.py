@@ -1250,8 +1250,12 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
     cmap          : matplotlib color map
 
-    stokes        : {'I', 'Q', 'U', 'V', 'PI'}
-                   What to plot for full stokes images, Stokes I/Q/U/V or PI - polarised intensity
+    stokes        : {'I', 'Q', 'U', 'V', 'PI', 'P'}
+                   What to plot for full stokes images, Stokes I/Q/U/V,
+                   PI  - polarised intensity (PI = sqrt(Q^2 + U^2 + V^2))
+                   P   - polarisation fraction (i.e. sqrt(Q^2 + U^2 + V^2) / I)
+                   PIL - polarised intensity (PI = sqrt(Q^2 + U^2))
+                   PL  - fraction of linear polarisation (i.e. sqrt(Q^2 + U^2) / I)
 
 
     fig           : matplotlig.figure.Figure, optional
@@ -1466,6 +1470,34 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                 else:
                     dum_image.image = np.sqrt(
                         image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2 + image.image[:, :, 3, :]**2)
+
+            if stokes.strip().upper() == 'P':
+                if dum_image.nwav == 1:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1]**2 + image.image[:, :, 2]**2 + image.image[:, :, 3]**2) / \
+                                      image.image[:, :, 0]
+
+                else:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2 + image.image[:, :, 3, :]**2) / \
+                                      image.image[:, :, 0, :]
+
+            if stokes.strip().upper() == 'PIL':
+                if dum_image.nwav == 1:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1]**2 + image.image[:, :, 2]**2)
+                else:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2)
+
+            if stokes.strip().upper() == 'PL':
+                if dum_image.nwav == 1:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1]**2 + image.image[:, :, 2]**2) / image.image[:, :, 0]
+
+                else:
+                    dum_image.image = np.sqrt(
+                        image.image[:, :, 1, :]**2 + image.image[:, :, 2, :]**2) / image.image[:, :, 0, :]
         else:
             dum_image.image = image.image[:, :, 0, :]
 
