@@ -24,13 +24,12 @@ def findFiles(src_dir, *wildcards):
             fileList = []
             for wc in wildcards:
                 com = 'ls -1 '+dirList[i].decode('utf-8')+'/'+wc
-                dum = Popen([], shell=True, 
+                dum = Popen([com], shell=True, 
                         stdout=PIPE, stderr=PIPE).communicate()[0].split()
-                #dum = Popen(['find '+dirList[i]+' -name "'+wc+'"'], shell=True, \
-                        #stdout=PIPE).communicate()[0].split()
 
                 if len(dum)>0:
-                    fileList.extend(dum)
+                    flist = [s.decode('utf-8') for s in dum]
+                    fileList.extend(flist)
 
             if len(fileList)>0:
                 foundList.append((dirList[i], fileList))
