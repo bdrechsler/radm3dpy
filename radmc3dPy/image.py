@@ -809,7 +809,8 @@ class radmc3dImage(object):
         self.y = ((np.arange(self.ny, dtype=np.float64) + 0.5) - self.ny / 2) * self.sizepix_y
 
     def imConv(self, dpc=1., psfType='gauss', fwhm=None, pa=None, tdiam_prim=8.2, tdiam_sec=0.94):
-        """Convolves a RADMC-3D image with a two dimensional Gaussian psf.
+        """Convolves a RADMC-3D image with a two dimensional Gaussian psf. The output images will have the same
+        brightness units as the input images.
 
         Parameters
         ----------
@@ -931,17 +932,13 @@ class radmc3dImage(object):
                     cimage[:, :, ifreq] = np.abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
         # cimage = squeeze(cimage)
-        # Calculate the fwhm of the Airy pattern by approximating it with a 1D Gaussian
-        if psfType.lower().strip() == 'airy':
-            dum = 0.44 * (self.wav * 1e-6 / tdiam_prim / np.pi * 180. * 3600.) * 2. * np.sqrt(2. * np.log(2.))
-            fwhm = [dum, dum]
-            pa = 0.
 
         # Return the convolved image (copy the image class and replace the image attribute to the convolved image)
         res = copy.deepcopy(self)
-        conv = res.sizepix_x * res.sizepix_y / (dpc * nc.pc)**2. / (fwhm[0] * fwhm[1] * np.pi / (4. * np.log(2.)))
-        res.image = cimage * conv
-        res.imageJyppix = res.image * 1e23
+        res.image = cimage
+        conv = self.sizepix_x * self.sizepix_y / nc.pc**2. * 1e23
+        res.imageJyppix = res.image * conv
+
         res.psf = psf
         res.fwhm = fwhm
         res.pa = pa
@@ -1019,8 +1016,7 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
         # Calculate the standard deviation of the Gaussians
         sigmax = fwhm[0] / (2.0 * np.sqrt(2.0 * np.log(2.)))
         sigmay = fwhm[1] / (2.0 * np.sqrt(2.0 * np.log(2.)))
-        norm = 1. / (2. * np.pi * sigmax * sigmay)
-
+        norm = (2. * np.pi * sigmax * sigmay) / dx / dy
         # Pre-compute sin and cos angles
 
         sin_pa = np.sin(pa / 180. * np.pi - np.pi / 2.)
@@ -1042,7 +1038,9 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
                 psf[ix, iy] = np.exp(-0.5 * xx * xx / sigmax / sigmax - 0.5 * yy * yy / sigmay / sigmay)
 
         # Normalize the PSF
-        psf = psf / norm
+        # print('PSF NORM : ', norm)
+        # print(psf.sum(), x.max(), sigmax)
+        psf /= norm
 
     elif psfType.strip().lower() == 'airy':
 
@@ -1076,6 +1074,11 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
                     u[ii] = 1e-5
                 psf[ix, :] = 1.0 / (1.0 - eps**2)**2 * ((2.0 * spc.j1(u) / u)
                                                         - (eps**2 * 2.0 * spc.j1(eps * u) / (eps * u)))**2
+        # if psfType.lower().strip() == 'airy':
+        dum = 0.44 * (wav * 1e-6 / tdiam_prim / np.pi * 180. * 3600.) * 2. * np.sqrt(2. * np.log(2.))
+        fwhm = [dum, dum]
+        norm = fwhm[0] * fwhm[1] * np.pi / (4. * np.log(2.)) / dx / dy
+        psf /= norm
 
     res = {'psf': psf, 'x': x, 'y': y}
 
