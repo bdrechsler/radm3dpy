@@ -2276,11 +2276,11 @@ class radmc3dData(object):
                   If the data is defined on an octree-like AMR
         """
 
-        print('Writing ' + fname)
         if binary:
             if fname == '':
                 fname = 'gas_velocity.binp'
 
+            print('Writing ' + fname)
             with open(fname, 'w') as wfile:
 
                 if octree:
@@ -2311,6 +2311,8 @@ class radmc3dData(object):
         else:
             if fname == '':
                 fname = 'gas_velocity.inp'
+
+            print('Writing ' + fname)
 
             # If we have an octree grid
             if octree:
@@ -4871,7 +4873,7 @@ class radmc3dPar(object):
         #
         # Grid parameters
         #
-        self.setPar(['crd_sys', "'sph'", '  Coordinate system used (car/cyl)', 'Grid parameters'])
+        self.setPar(['crd_sys', "'sph'", '  Coordinate system used (car/sph)', 'Grid parameters'])
         self.setPar(
             ['grid_style', '0', '  0 - Regular grid, 1 - Octree AMR, 10 - Layered/nested grid (not yet supported)',
              'Grid parameters'])
@@ -6405,22 +6407,26 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname='amr_grid.inp', wgrid_fname='wa
     Returns an instance of the radmc3dGrid (for regular grid) or radmc3dOctree (for octree AMR) class 
     """
 
-    #
-    # Check the grid type
-    #
-    hdr = np.fromfile(sgrid_fname, count=7, sep="\n", dtype=np.int)
-    if hdr[1] == 0:
-        grid = radmc3dGrid()
-    elif hdr[1] == 1:
-        grid = radmc3dOctree()
-    else:
-        raise ValueError('Unsupported amr_style' + ("%d" % hdr[1]) + '\n '
-                         + 'Only regular (0) or octree-like (1) AMR styles are supported')
+    grid = None
 
     if wgrid:
+        grid = radmc3dGrid()
         grid.readWavelengthGrid(fname=wgrid_fname)
 
     if sgrid:
+        if grid is None:
+            grid = radmc3dGrid()
+        #
+        # Check the grid type
+        #
+        hdr = np.fromfile(sgrid_fname, count=7, sep="\n", dtype=np.int)
+        if hdr[1] == 0:
+            grid = radmc3dGrid()
+        elif hdr[1] == 1:
+            grid = radmc3dOctree()
+        else:
+            raise ValueError('Unsupported amr_style' + ("%d" % hdr[1]) + '\n '
+                             + 'Only regular (0) or octree-like (1) AMR styles are supported')
         grid.readSpatialGrid(fname=sgrid_fname)
 
     return grid
@@ -7531,6 +7537,10 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     ax              : matplotlib.axes.Axes
                       Matplotlib axis to plot to
 
+
+    Keyword Arguments :
+                      All other keyword arugments will be passed to pcolormesh()
+
     """
 
     octree = False
@@ -7649,7 +7659,12 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 ynorm = linunit_norm
             else:
                 xlabel = 'r ' + linunit_label
-                ylabel = '$\\theta$ ' + angunit_label
+
+                if lattitude:
+                    ylabel = '$\\pi/2-\\theta$ ' + angunit_label
+                else:
+                    ylabel = '$\\theta$ ' + angunit_label
+
                 xnorm = linunit_norm
                 ynorm = angunit_norm
 
@@ -7722,7 +7737,10 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
             ynorm = linunit_norm
 
         else:
-            xlabel = '$\\theta$ ' + angunit_label
+            if lattitude:
+                xlabel = '$\\pi/2-\\theta$ ' + angunit_label
+            else:
+                xlabel = '$\\theta$ ' + angunit_label
             ylabel = '$\phi$ ' + angunit_label
             xnorm = angunit_norm
             ynorm = angunit_norm
@@ -7735,7 +7753,10 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 ynorm = linunit_norm
             else:
                 xlabel = '$\phi$ ' + angunit_label
-                ylabel = '$\\theta$ ' + angunit_label
+                if lattitude:
+                    ylabel = '$\\pi/2-\\theta$ ' + angunit_label
+                else:
+                    ylabel = '$\\theta$ ' + angunit_label
                 xnorm = angunit_norm
                 ynorm = angunit_norm
 
@@ -7757,17 +7778,17 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
 
             else:
                 if iplane == 0:
-                    if ispec > 0:
+                    if ispec >= 0:
                         pdata = data.rhodust[icrd3, :, :, ispec]
                     else:
                         pdata = data.rhodust[icrd3, :, :, :].sum(2)
                 elif iplane == 1:
-                    if ispec > 0:
+                    if ispec >= 0:
                         pdata = data.rhodust[:, icrd3, :, ispec]
                     else:
                         pdata = data.rhodust[:, icrd3, :, :].sum(2)
                 elif iplane == 2:
-                    if ispec > 0:
+                    if ispec >= 0:
                         pdata = data.rhodust[:, :, icrd3, ispec]
                     else:
                         pdata = data.rhodust[:, :, icrd3, :].sum(2)
@@ -7786,20 +7807,20 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
 
             else:
                 if iplane == 0:
-                    if ispec > 0:
+                    if ispec >= 0:
                         pdata = data.dusttemp[icrd3, :, :, ispec]
                     else:
                         raise IndexError('Negative dust species index.')
                 elif iplane == 1:
-                    if ispec > 0:
+                    if ispec >= 0:
                         pdata = data.dusttemp[:, icrd3, :, ispec]
                     else:
                         raise IndexError('Negative dust species index.')
                 elif iplane == 2:
-                    if ispec > 0:
+                    if ispec >= 0:
                         pdata = data.dusttemp[:, :, icrd3, ispec]
                     else:
-                        raise IndexError('Negative dust species index.')
+                        raise IndexError('Negative dust species index : ', ispec)
             cblabel = r'$T_{\rm dust}$ [K]'
 
     elif var == 'gdens':
@@ -7967,15 +7988,6 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     #
     # Get the data min/max values
     #
-    if 'vmin' not in kwargs:
-        vmin = pdata.min()
-    else:
-        vmin = kwargs['vmin']
-
-    if 'vmax' not in kwargs:
-        vmax = pdata.max()
-    else:
-        vmax = kwargs['vmax']
 
     if ax is None:
         ax = plb.gca()
@@ -7986,6 +7998,16 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     # dx = plot_x[1] - plot_x[0]
     # dy = plot_y[1] - plot_y[0]
     if log:
+        if 'vmin' not in kwargs:
+            vmin = pdata.min()
+        else:
+            vmin = kwargs['vmin']
+
+        if 'vmax' not in kwargs:
+            vmax = pdata.max()
+        else:
+            vmax = kwargs['vmax']
+
         if pdata.min() <= 0:
             pdata = pdata.clip(1e-90)
         p = ax.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
@@ -7995,7 +8017,7 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         # Enable rasterization to enable easy save to file
         p.set_rasterized(True)
     else:
-        p = ax.pcolormesh(plot_x, plot_y, pdata.T, vmin=vmin, vmax=vmax, **kwargs)
+        p = ax.pcolormesh(plot_x, plot_y, pdata.T, **kwargs)
         # p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5,
         # plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5),
         # vmin=vmin, vmax=vmax, interpolation='nearest', aspect='auto', **kwargs)

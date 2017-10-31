@@ -6,6 +6,7 @@ from __future__ import print_function
 import traceback
 import inspect
 import sys
+import warnings
 
 try:
     import numpy as np
@@ -17,6 +18,547 @@ except ImportError:
 
 from . import natconst as nc
 from . import analyze
+
+
+class radmc3dModel(object):
+    """
+
+    Parameters
+    ----------
+     model           : str
+                      Name of the model that should be used to create the density structure.
+                      The file should be in a directory from where it can directly be imported
+                      (i.e. the directory should be in the PYTHON_PATH environment variable or
+                      it should be in the current working directory)
+                      and the file name should be 'model_xxx.py', where xxx stands for the string
+                      that should be specified in this variable
+
+    binary          : bool, optional
+                      If True input files will be written in binary format, if False input files are
+                      written as formatted ascii text.
+
+    old             : bool, optional
+                      If set to True the input files for the old 2D version of radmc will be created
+
+    dfunc           : function, optional
+                      Decision function for octree-like amr tree building. It should take linear arrays of
+                      cell centre coordinates (x,y,z) and cell half-widhts (dx,dy,dz) in all three dimensions,
+                      a radmc3d model, a dictionary with all parameters from problem_params.inp and an other
+                      keyword argument (**kwargs). It should return a boolean ndarray of the same length as
+                      the input coordinates containing True if the cell should be resolved and False if not.
+                      An example for the implementation of such decision function can be found in radmc3dPy.analyze
+                      module (radmc3dPy.analyze.gdensMinMax()).
+
+    dfpar           : dictionary
+                      Dicionary of keyword arguments to be passed on to dfunc. These parameters will not be written
+                      to problem_params.inp. Parameters can also be passed to dfunc via normal keyword arguments
+                      gathered in **kwargs, however all keyword arguments in **kwargs will be written to
+                      problem_params.inp
+
+    parfile_update  : bool
+                      If True the parameter file (problem_params.inp) will be updated / overwritten with any parameters
+                      that are possibly passed as keyword arguments. For False the problem_params.inp file will not be
+                      overwritten irrespectively of the parameter values the data members of the radmc3dModel instance
+                      would contain.
+
+    Keyword Arguments  :
+                      Any varible name in problem_params.inp can be used as a keyword argument.
+                      At first all variables are read from problem_params.in to a dictionary called ppar. Then
+                      if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary
+                      is searched for this key. If found the value belonging to that key in the ppar dictionary
+                      is changed to the value of the keyword argument. If no such key is found then the dictionary
+                      is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+                      with the new parameter values.
+
+    """
+
+    def __init__(self, model=None, binary=None, old=False, dfunc=None, dfpar=None, parfile_update=True, **kwargs):
+
+
+        self.par = None
+
+        # If kwargs set update the problem_params.inp file
+        if kwargs:
+            try:
+                self.par = analyze.readParams()
+            except:
+                analyze.writeDefaultParfile(model=model)
+                self.par = analyze.readParams()
+
+            for ikey in kwargs.keys():
+                self.par.ppar[ikey] = kwargs[ikey]
+
+                if isinstance(kwargs[ikey], float):
+                    self.par.setPar([ikey, ("%.7e" % kwargs[ikey]), '', ''])
+                elif isinstance(kwargs[ikey], int):
+                    self.par.setPar([ikey, ("%d" % kwargs[ikey]), '', ''])
+                elif isinstance(kwargs[ikey], str):
+                    self.par.setPar([ikey, kwargs[ikey], '', ''])
+                elif isinstance(kwargs[ikey], list):
+                    dum = '['
+                    for i in range(len(kwargs[ikey])):
+                        if type(kwargs[ikey][i]) is float:
+                            dum = dum + ("%.7e" % kwargs[ikey][i])
+                        elif type(kwargs[ikey][i]) is int:
+                            dum = dum + ("%d" % kwargs[ikey][i])
+                        elif type(kwargs[ikey][i]) is str:
+                            dum = dum + (kwargs[ikey][i])
+                        else:
+                            raise TypeError('Unknown data type in ' + ikey)
+
+                        if i < len(kwargs[ikey]) - 1:
+                            dum = dum + ', '
+                    dum = dum + ']'
+                    self.par.setPar([ikey, dum, '', ''])
+
+        # If a binary setup is used update also the radmc3d output file format to binary
+        if binary is not None:
+            if binary:
+                if self.par is None:
+                    try:
+                        self.par = analyze.readParams()
+                    except:
+                        analyze.writeDefaultParfile(model=model)
+                        self.par = analyze.readParams()
+                    self.par.setPar(['rto_style', '1', '  Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary',
+                                     'Code parameters'])
+
+        if parfile_update:
+            if self.par is not None:
+                self.par.writeParfile()
+            else:
+                 warnings.warn("The parameter file (problem_params.inp) has not been read. Nothing to update",
+                               RuntimeWarning)
+
+        if model is not None:
+            self.model = model
+        else:
+            self.model = None
+
+        if binary is not None:
+            self.binary = binary
+        else:
+            self.binary = True
+
+        if old is not None:
+            self.old = old
+        else:
+            self.old = False
+
+        self.data = None
+        self.grid = None
+        self.radsources = None
+        self.opac = None
+        self.dfunc = dfunc
+        self.dfpar = dfpar
+
+    def readParams(self):
+
+        self.par = analyze.readParams()
+
+        # Check the grid style. If it's 1 (i.e. AMR is active) make sure old is set to False
+        if (self.par.ppar['grid_style'] == 1) & (self.old == True):
+            print('WARNING')
+            print('Grid style in problem_params.inp is set to 1, i.e. AMR is active, but the model appears to have')
+            print('the "old" keyword set to True, meaning the model is meant for RADMC, the predecessor code of ')
+            print('RADMC3D. Thus for now, the old style is switched to False.')
+
+            self.old = False
+
+
+    def makeVar(self, ddens=False, dtemp=False, gdens=False, gtemp=False, gvel=False, vturb=False,
+                     writeToFile=False):
+        """
+        Generates variables and possibly writes them to file
+
+        Parameters
+        ----------
+        ddens           : bool, optional
+                          If True generates the dust density
+
+        dtemp           : bool, optional
+                          If True generates the dust temperature (normally this would be calculated by RADMC-3D, but
+                            in some cases, e.g. debugging, it might come handy)
+
+        gdens           : bool, optional
+                          If True generates the gas density
+
+        gtemp           : bool, optional
+                          If True generates the gas temperature
+
+        gvel            : bool, optional
+                          If True generates the gas velocity
+
+        vturb           : bool, optional
+                          If True generates the microturbulent velocity field
+
+        writeToFile     : bool, optional
+                          If True the generated variable(s) will be written to file
+
+        """
+
+        #
+        # Get the model
+        #
+        try:
+            mdl = __import__(self.model)
+        except ImportError:
+            try:
+                mdl = __import__('radmc3dPy.models.' + self.model, fromlist=[''])
+            except ImportError:
+                print(' ' + self.model + '.py could not be imported')
+                print(' The model files should either be in the current working directory or')
+                print(' in the radmc3d python module directory')
+                return
+        # --------------------------------------------------------------------------------------------
+        # Create the dust density distribution
+        # --------------------------------------------------------------------------------------------
+        if ddens:
+            if dir(mdl).__contains__('getDustDensity'):
+                if callable(getattr(mdl, 'getDustDensity')):
+                    if self.data is None:
+                        self.data = analyze.radmc3dData(self.grid)
+
+                    self.data.rhodust = mdl.getDustDensity(grid=self.grid, ppar=self.par.ppar)
+                else:
+                    raise RuntimeError('Dust density cannot be calculated in model ' + self.model)
+            else:
+                raise RuntimeError(' ' + self.model + '.py does not contain a getDustDensity() function, therefore, '
+                                   + ' dust_density.inp cannot be written')
+
+            if writeToFile:
+                if self.par.ppar['grid_style'] == 1:
+                    self.data.writeDustDens(binary=self.binary, octree=True)
+                else:
+                    self.data.writeDustDens(binary=self.binary, old=self.old)
+        # --------------------------------------------------------------------------------------------
+        # Create the dust temperature distribution if the model has such function
+        # --------------------------------------------------------------------------------------------
+        if dtemp:
+            if dir(mdl).__contains__('getDustTemperature'):
+                if callable(getattr(mdl, 'getDustTemperature')):
+                    if self.data is None:
+                        self.data = analyze.radmc3dData(self.grid)
+                    self.data.dusttemp = mdl.getDustTemperature(grid=self.grid, ppar=self.par.ppar)
+                else:
+                    raise RuntimeError('Dust temperature cannot be calculated in model ' + self.model + ' but it was '
+                                       + ' requested to be written')
+            else:
+                raise RuntimeError(' ' + self.model + '.py does not contain a getDustTemperature() function, therefore,'
+                                   + ' dust_temperature.inp cannot be written')
+
+            if writeToFile:
+                if self.par.ppar['grid_style'] == 1:
+                    self.data.writeDustTemp(binary=self.binary, octree=True)
+                else:
+                    self.data.writeDustTemp(binary=self.binary)
+
+        # --------------------------------------------------------------------------------------------
+        # Create the molecular abundance
+        # --------------------------------------------------------------------------------------------
+        if gdens:
+            if dir(mdl).__contains__('getGasDensity') & dir(mdl).__contains__('getGasAbundance'):
+                if callable(getattr(mdl, 'getGasDensity')) & callable(getattr(mdl, 'getGasAbundance')):
+                    for imol in range(len(self.par.ppar['gasspec_mol_name'])):
+                        self.data.rhogas = mdl.getGasDensity(grid=self.grid, ppar=self.par.ppar)
+                        gasabun = mdl.getGasAbundance(grid=self.grid, ppar=self.par.ppar,
+                                                      ispec=self.par.ppar['gasspec_mol_name'][imol])
+                        self.data.ndens_mol = self.data.rhogas / (2.4 * nc.mp) * gasabun
+
+                    if abs(self.par.ppar['lines_mode']) > 2:
+                        for icp in range(len(self.par.ppar['gasspec_colpart_name'])):
+                            self.data.rhogas = mdl.getGasDensity(grid=self.grid, ppar=self.par.ppar)
+                            gasabun = mdl.getGasAbundance(grid=self.grid, ppar=self.par.ppar,
+                                                          ispec=self.par.ppar['gasspec_colpart_name'][icp])
+                            self.data.ndens_mol = self.data.rhogas / (2.4 * nc.mp) * gasabun
+
+            else:
+                raise RuntimeError(' ' + self.model + '.py does not contain a getGasAbundance() function, therefore, '
+                                   + ' numberdens_***.inp cannot be written')
+
+            if writeToFile:
+                # Write the gas density
+                if self.par.ppar['grid_style'] == 1:
+                    for imol in range(len(self.par.ppar['gasspec_mol_name'])):
+                        self.data.writeGasDens(ispec=self.par.ppar['gasspec_mol_name'][imol], binary=self.binary,
+                                               octree=True)
+
+                    if abs(self.par.ppar['lines_mode']) > 2:
+                        for icp in range(len(self.par.ppar['gasspec_colpart_name'])):
+                            self.data.writeGasDens(ispec=self.par.ppar['gasspec_colpart_name'][icp],
+                                                   binary=self.binary, octree=True)
+                else:
+                    for imol in range(len(self.par.ppar['gasspec_mol_name'])):
+                        self.data.writeGasDens(ispec=self.par.ppar['gasspec_mol_name'][imol], binary=self.binary)
+
+                    if abs(self.par.ppar['lines_mode']) > 2:
+                        for icp in range(len(self.par.ppar['gasspec_colpart_name'])):
+                            self.data.writeGasDens(ispec=self.par.ppar['gasspec_colpart_name'][icp], binary=self.binary)
+
+        # --------------------------------------------------------------------------------------------
+        # Get the gas velocity field
+        # --------------------------------------------------------------------------------------------
+        if gvel:
+            if dir(mdl).__contains__('getVelocity'):
+                if callable(getattr(mdl, 'getVelocity')):
+                    self.data.gasvel = mdl.getVelocity(grid=self.grid, ppar=self.par.ppar)
+            else:
+                raise RuntimeError(' ' + self.model + '.py does not contain a getVelocity() function, therefore, '
+                                   + ' gas_velocity.inp cannot be written')
+
+            if writeToFile:
+                # Write the gas velocity
+                if self.par.ppar['grid_style'] == 1:
+                    self.data.writeGasVel(binary=self.binary, octree=True)
+                else:
+                    self.data.writeGasVel(binary=self.binary)
+        # --------------------------------------------------------------------------------------------
+        # Get the kinetik gas temperature
+        # --------------------------------------------------------------------------------------------
+        # Write the gas temperature if specified
+        if gtemp:
+            if dir(mdl).__contains__('getGasTemperature'):
+                if callable(getattr(mdl, 'getGasTemperature')):
+                    self.data.gastemp = mdl.getGasTemperature(grid=self.grid, ppar=self.par.ppar)
+            else:
+                raise RuntimeError(' ' + self.model + '.py does not contain a getGasTemperature() function, therefore,'
+                                   + ' gas_temperature.inp cannot be written')
+
+            if writeToFile:
+                # Write the gas temperature
+                if self.par.ppar['grid_style'] == 1:
+                    self.data.writeGasTemp(binary=self.binary, octree=True)
+                else:
+                    self.data.writeGasTemp(binary=self.binary)
+        # --------------------------------------------------------------------------------------------
+        # Get the turbulent velocity field
+        # --------------------------------------------------------------------------------------------
+        if vturb:
+            if dir(mdl).__contains__('getVTurb'):
+                if callable(getattr(mdl, 'getVTurb')):
+                    self.data.vturb = mdl.getVTurb(grid=self.grid, ppar=self.par.ppar)
+            else:
+                print(' ' + self.model + '.py does not contain a getVTurb() function, therefore, zero microturbulent '
+                      + ' velocity will be assumed everywhere in the model.')
+                if self.par.ppar['grid_style'] == 1:
+                    self.data.vturb = np.zeros([self.grid.x.nLeaf], dtype=np.float64)
+                    self.data.vturb[:] = 0.
+                else:
+                    self.data.vturb = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz], dtype=np.float64)
+                    self.data.vturb[:, :, :] = 0.
+
+            if writeToFile:
+                if self.par.ppar['grid_style'] == 1:
+                    self.data.writeVTurb(binary=self.binary, octree=True)
+                else:
+                    self.data.writeVTurb(binary=self.binary)
+
+    def makeGrid(self, sgrid=True, wgrid=True, writeToFile=False, **kwargs):
+        """
+        Generates a spatial and/or wavelength grid
+
+        Parameters
+        ----------
+        wgrid           : bool
+                          Set to True to generate the wavelength grid
+
+        sgrid           : bool
+                          Set to True to generate the spatial grid
+
+        writeToFile     : bool
+                          If True the grid will be written to amr_grid.inp and/or wavelength_micron.inp
+
+        **kwargs        : Any varible name in problem_params.inp can be used as a keyword argument.
+                          At first all variables are read from problem_params.in to a dictionary called ppar. Then
+                          if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary
+                          is searched for this key. If found the value belonging to that key in the ppar dictionary
+                          is changed to the value of the keyword argument. If no such key is found then the dictionary
+                          is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+                          with the new parameter values.
+
+        """
+
+        self.grid = None
+        #
+        # If we generate the spatial grid
+        #
+        if sgrid:
+            #
+            # Check if AMR is activated or not
+            #
+            if self.par.ppar['grid_style'] == 1:
+                self.grid = analyze.radmc3dOctree()
+
+                # Pass all parameters from dfpar to ppar
+                if self.dfpar is not None:
+                    for ikey in self.dfpar.keys():
+                        self.par.ppar[ikey] = self.dfpar[ikey]
+
+                # Spatial grid
+                self.grid.makeSpatialGrid(ppar=self.par.ppar, dfunc=self.dfunc, model=self.model, **kwargs)
+            else:
+                self.grid = analyze.radmc3dGrid()
+                # Spatial grid
+                self.grid.makeSpatialGrid(ppar=self.par.ppar)
+
+        #
+        # If we generate the wavelength grid
+        #
+        if wgrid:
+            if self.grid is None:
+                if self.par.ppar['grid_style'] == 1:
+                    self.grid = analyze.radmc3dOctree()
+                else:
+                    self.grid = analyze.radmc3dGrid()
+
+            # Wavelength grid
+            self.grid.makeWavelengthGrid(ppar=self.par.ppar)
+
+        #
+        # Now write out the grid into file
+        #
+        if writeToFile:
+            #
+            # For AMR grids there is no 'old' option as radmc the predecessor code could not handle AMR-style grid
+            # refinement
+            #
+            if self.par.ppar['grid_style'] == 1:
+                # Frequency grid
+                self.grid.writeWavelengthGrid(old=False)
+                # Spatial grid
+                self.grid.writeSpatialGrid(old=False)
+            else:
+                # Frequency grid
+                self.grid.writeWavelengthGrid(old=self.old)
+                # Spatial grid
+                self.grid.writeSpatialGrid(old=self.old)
+
+    def makeRadSources(self, writeToFile=True):
+        """
+
+        Parameters
+        ----------
+        writeToFile     : bool
+                          If True the radiation will be written to stars.inp and or stellarsrc_density.inp,
+                          stellarsrc_templates.inp
+
+        """
+        try:
+            mdl = __import__(self.model)
+        except ImportError:
+            try:
+                mdl = __import__('radmc3dPy.models.' + self.model, fromlist=[''])
+            except ImportError:
+                print(' ' + self.model + '.py could not be imported')
+                print(' The model files should either be in the current working directory or')
+                print(' in the radmc3d python module directory')
+                return
+
+        self.radsources = analyze.radmc3dRadSources(ppar=self.par.ppar, grid=self.grid)
+        self.radsources.getStarSpectrum(tstar=self.par.ppar['tstar'], rstar=self.par.ppar['rstar'], grid=self.grid)
+
+        # Check if the model has functions to set up continuous starlike sources
+        if 'incl_cont_stellarsrc' in self.par.ppar:
+            stellarsrcEnabled = self.par.ppar['incl_cont_stellarsrc']
+
+            if stellarsrcEnabled:
+                if dir(mdl).__contains__('getStellarsrcDensity'):
+                    if callable(getattr(mdl, 'getStellarsrcDensity')):
+                        if dir(mdl).__contains__('getStellarsrcTemplates'):
+                            if callable(getattr(mdl, 'getStellarsrcTemplates')):
+                                stellarsrcEnabled = True
+                            else:
+                                stellarsrcEnabled = False
+                        else:
+                            stellarsrcEnabled = False
+                    else:
+                        stellarsrcEnabled = False
+                else:
+                    stellarsrcEnabled = False
+        else:
+            stellarsrcEnabled = False
+
+        if stellarsrcEnabled:
+            dum = mdl.getStellarsrcTemplates(grid=self.grid, ppar=self.par.ppar)
+            if dum[0, 0] <= 0.:
+                self.radsources.csntemplate = dum.shape[0]
+                self.radsources.cstemp = []
+                self.radsources.cstemptype = 1
+                self.radsources.cststar = dum[:, 0]
+                self.radsources.csrstar = dum[:, 1]
+                self.radsources.csmstar = dum[:, 2]
+            else:
+                self.radsources.csntemplate = dum.shape[0]
+                self.radsources.cstemp = dum
+                self.radsources.cstemptype = 2
+                self.radsources.cststar = []
+                self.radsources.csrstar = []
+                self.radsources.csmstar = []
+
+            self.radsources.csdens = mdl.getStellarsrcDensity(grid=self.grid, ppar=self.par.ppar)
+
+        if writeToFile:
+            # Input radiation field (discrete stars)
+            self.radsources.writeStarsinp(ppar=self.par.ppar, old=self.old, wav=self.grid.wav)
+
+            # Continuous starlike sources
+            if stellarsrcEnabled:
+                self.radsources.writeStellarsrcTemplates()
+                self.radsources.writeStellarsrcDensity(binary=self.binary)
+
+            # totlum = radSources.getTotalLuminosities()
+            if not self.old:
+                print('-------------------------------------------------------------')
+                print('Luminosities of radiation sources in the model :')
+
+                totlum = self.radsources.getTotalLuminosities(readInput=True)
+                print('As calculated from the input files :')
+                print('Stars : ')
+                print("  Star #%d + hotspot        : %.6e" % (0, totlum['lnu_star'][0]))
+                for istar in range(1, self.radsources.nstar):
+                    print("  Star #%d               : %.6e" % (istar, totlum['lnu_star'][istar]))
+                print("Continuous starlike source : %.6e" % totlum['lnu_accdisk'])
+                print(' ')
+                print('-------------------------------------------------------------')
+
+    def makeDustOpac(self):
+        """
+        Generates dust opacities and writes them to file
+        """
+
+        if 'dustkappa_ext' in self.par.ppar:
+            self.opac = analyze.radmc3dDustOpac()
+            # Master dust opacity file
+            self.opac.writeMasterOpac(ext=self.par.ppar['dustkappa_ext'],
+                                      scattering_mode_max=self.par.ppar['scattering_mode_max'], old=self.old)
+            if self.old:
+                if self.grid is None:
+                    raise ValueError('Unknown wavelength grid. For old style dust opacity the wavelength grid '
+                                     + 'must be set.')
+                # Frequency grid
+                self.grid.writeWavelengthGrid(old=self.old)
+                # Create the dust opacity files
+                self.opac.makeopacRadmc2D(ext=self.par.ppar['dustkappa_ext'])
+        else:
+            # if old:
+            # print 'ERROR'
+            # print 'Calculating dust opacities for radmc (2D version) is not yet implemented)'
+            self.opac = analyze.radmc3dDustOpac()
+            # Calculate the opacities and write the master opacity file
+            self.opac.makeOpac(ppar=self.par.ppar, old=self.old)
+
+    def writeRadmc3dInp(self):
+        """
+        Writes the radmc3d.inp master command file for RADMC-3D
+        """
+        writeRadmc3dInp(self.par)
+
+    def writeLinesInp(self):
+        """
+        Writes the lines.inp master command file for line simulation in RADMC-3D
+        """
+
+        writeLinesInp(ppar=self.par.ppar)
 
 
 def problemSetupDust(model=None, binary=True, writeDustTemp=False, old=False, dfunc=None, dfpar=None, **kwargs):
@@ -225,7 +767,6 @@ def problemSetupDust(model=None, binary=True, writeDustTemp=False, old=False, df
                     stellarsrcEnabled = False
             else:
                 stellarsrcEnabled = False
-
     else:
         stellarsrcEnabled = False
 

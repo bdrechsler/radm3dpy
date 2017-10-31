@@ -247,19 +247,6 @@ def getGasDensity(grid=None, ppar=None):
                     expterm = np.exp(-(rcyl/ppar['rdisk'])**(2.0 - ppar['plsig1']))
                     dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**(-ppar['plsig1']) * expterm
 
-                    # r = np.arange(400.)+1.
-                    # sig0 = 0.05
-                    # gam = 0.7
-                    # rc = 200.
-
-                    # dummy_sigma = sig0 * (r/rc)**(-gam) * np.exp(-(r/rc)**(2.-gam))
-
-                    # plb.loglog(rcyl.flatten()/1.496e13, dum1.flatten())
-                    # plb.loglog(r, dummy_sigma*100., 'r-')
-                    
-                    # dum = raw_input()
-                    # exit()
-
             else:
                 dum1 = ppar['sig0'] * (rcyl/ppar['rdisk'])**ppar['plsig1']
 
@@ -424,12 +411,6 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
                 ii = (data.dusttemp[:, iy, iz, 0] < ppar['gasspec_mol_freezeout_temp'][sid])
                 gasabun[ii, iy, iz] = ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
         
-        # for iz in range(data.grid.nz):
-            # for iy in range(data.grid.ny/2):
-
-                # ii = (data.tauy[:,iy,iz]<ppar['gasspec_mol_dissoc_taulim'][sid])
-                # gasabun[ii,iy,iz] = 1e-90
-                # gasabun[ii,data.grid.ny-1-iy,iz] = 1e-90
 
     else:
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-10

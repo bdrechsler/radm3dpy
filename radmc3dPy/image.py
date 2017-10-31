@@ -1037,9 +1037,6 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
 
                 psf[ix, iy] = np.exp(-0.5 * xx * xx / sigmax / sigmax - 0.5 * yy * yy / sigmay / sigmay)
 
-        # Normalize the PSF
-        # print('PSF NORM : ', norm)
-        # print(psf.sum(), x.max(), sigmax)
         psf /= norm
 
     elif psfType.strip().lower() == 'airy':
@@ -1074,7 +1071,7 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
                     u[ii] = 1e-5
                 psf[ix, :] = 1.0 / (1.0 - eps**2)**2 * ((2.0 * spc.j1(u) / u)
                                                         - (eps**2 * 2.0 * spc.j1(eps * u) / (eps * u)))**2
-        # if psfType.lower().strip() == 'airy':
+
         dum = 0.44 * (wav * 1e-6 / tdiam_prim / np.pi * 180. * 3600.) * 2. * np.sqrt(2. * np.log(2.))
         fwhm = [dum, dum]
         norm = fwhm[0] * fwhm[1] * np.pi / (4. * np.log(2.)) / dx / dy
