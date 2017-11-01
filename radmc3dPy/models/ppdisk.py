@@ -30,6 +30,7 @@ by a given fractor.
 """
 from __future__ import absolute_import
 from __future__ import print_function
+import warnings
 import traceback
 try:
     import numpy as np
@@ -410,13 +411,11 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
 
                 ii = (data.dusttemp[:, iy, iz, 0] < ppar['gasspec_mol_freezeout_temp'][sid])
                 gasabun[ii, iy, iz] = ppar['gasspec_mol_abun'][sid] * ppar['gasspec_mol_freezeout_dfact'][sid]
-        
 
     else:
         gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64) + 1e-10
-        print('WARNING !!!')
-        print('Molecule name "'+ispec+'" is not found in gasspec_mol_name')
-        print('A default 1e-10 abundance will be used')
+        txt = 'Molecule name "'+ispec+'" is not found in gasspec_mol_name \n A default 1e-10 abundance will be used'
+        warnings.warn(txt, RuntimeWarning)
 
     # gasabun = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
     # gasabun[:,:,:] = ppar['gasspec_mol_abun'][0] / (2.4*mp)
@@ -466,7 +465,7 @@ def getVelocity(grid=None, ppar=None):
     rcyl = grid.x
 
     vel = np.zeros([nr, nz, nphi, 3], dtype=np.float64)
-    vkep = np.sqrt(gg*ppar['mstar'][0]/rcyl)
+    vkep = np.sqrt(gg * ppar['mstar'][0]/rcyl)
     for iz in range(nz):
         for ip in range(nphi):
             vel[:, iz, ip, 2] = vkep
