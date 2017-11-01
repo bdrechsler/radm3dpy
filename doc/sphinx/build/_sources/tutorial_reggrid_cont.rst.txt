@@ -135,6 +135,12 @@ parameters belong to the radiation sources, which to the grid, etc. For a detail
 syntax of the master parameter file see :ref:`parfile`.
 
 
+.. _tutorial-reggrid-cont-simple_setup:
+
+Simple setup
+++++++++++++
+
+
 Let us now set up the model, i.e. create all necessary input files for RADMC-3D. This can be done with the :meth:`~radmc3dPy.setup.problemSetupDust` method.
 As the single mandatory argument we need to pass the name of the model. With the ``binary=True`` keyword argument we can set the format of the 
 input files to be formatted ASCII (``binary=False``) or C-style binary (``binary=True``). The default is binary output.
@@ -214,6 +220,24 @@ If, on the other hand, python expressions are passed by their numerical values t
     ...
     mdisk                     = 1.9900000e+29  # Mass of the disk (either sig0 or mdisk should be set to zero or commented out)
     ...
+
+.. _tutorial-reggrid-cont-modular_setup:
+
+Modular setup
++++++++++++++
+
+As we can see the :meth:`~radmc3dPy.setup.problemSetupDust` is a very convenient way to generate all necessary input files at once. 
+However, sometimes it can be useful to generate input files separately. This can be the case for large models if we wish to e.g. change
+the wavelength grid without having to re-generate also the density structure. This can be done using the :class:`~radmc3dPy.setup.radmc3dModel`
+class in the following way. First we need to create an instance of this model class:::
+
+    >>>model = radmc3dPy.setup.radmc3dModel(model='ppdisk', mdisk='1e-5*ms', gap_rin='[10.0*au]', gap_rout='[40.*au]', gap_drfact='[1e-5]', nz='0')
+
+Similar to :meth:`~radmc3dPy.setup.problemSetupDust` we can pass parameters and values as keyword argument to update their values. First during
+initialization the parameter file 'problem_params.inp' is read if it exists, otherwise the default parameters of the model will be loaded. Then
+the parameter values are updated if any keyword argument was set. If parameter values are updated by default the ``problem_params.inp`` file will
+be updated/overwritten. To prevent the update of the parameter file we pass the ``parfile_update=False`` keyword. 
+
 
 
 .. _tutorial-reggrid-cont-read-structure:

@@ -8,9 +8,11 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>radmc3dPy package &mdash; radmc3dPy 0.29.0 documentation</title>
+  <title>radmc3dPy package &mdash; radmc3dPy 0.30.0 documentation</title>
   
 
+  
+  
   
   
 
@@ -33,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="radmc3dPy 0.29.0 documentation" href="index.html"/> 
+    <link rel="top" title="radmc3dPy 0.30.0 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -42,6 +44,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -61,7 +64,7 @@
             
             
               <div class="version">
-                0.29
+                0.30
               </div>
             
           
@@ -83,7 +86,10 @@
     
             
             
-                <ul>
+              
+            
+            
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changes.html">Changes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="download.html">Downloads</a></li>
@@ -108,8 +114,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">radmc3dPy</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">radmc3dPy</a>
+        
       </nav>
 
 
@@ -118,21 +126,38 @@
         <div class="rst-content">
           
 
- 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
-      
-    <li>radmc3dPy package</li>
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>radmc3dPy package</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
+            
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -575,8 +600,12 @@ transformet to true lattitude (i.e. pi/2.-colattitude). If set to false the orig
 will be used.</p>
 </div></blockquote>
 <p><strong>ax</strong> : matplotlib.axes.Axes</p>
-<blockquote class="last">
+<blockquote>
 <div><p>Matplotlib axis to plot to</p>
+</div></blockquote>
+<p><strong>Keyword Arguments :</strong></p>
+<blockquote class="last">
+<div><p>All other keyword arugments will be passed to pcolormesh()</p>
 </div></blockquote>
 </td>
 </tr>
@@ -3216,7 +3245,7 @@ models to save time.</p>
 
 <dl class="function">
 <dt id="radmc3dPy.analyze.readGrid">
-<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readGrid</code><span class="sig-paren">(</span><em>sgrid=True</em>, <em>wgrid=True</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readGrid" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readGrid</code><span class="sig-paren">(</span><em>sgrid=True</em>, <em>wgrid=True</em>, <em>sgrid_fname='amr_grid.inp'</em>, <em>wgrid_fname='wavelength_micron.inp'</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readGrid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the spatial and frequency grid.
 This function is an interface to radmc3dGrid.readGrid().</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -3230,6 +3259,14 @@ This function is an interface to radmc3dGrid.readGrid().</p>
 <p><strong>wgrid</strong> : bool</p>
 <blockquote>
 <div><p>If True the wavelength grid will be read</p>
+</div></blockquote>
+<p><strong>sgrid_fname</strong> : str</p>
+<blockquote>
+<div><p>File containing the spatial grid (default: amr_grid.inp)</p>
+</div></blockquote>
+<p><strong>wgrid_fname</strong> : str</p>
+<blockquote>
+<div><p>File containing the wavelength grid (default: wavelength_micron.inp)</p>
 </div></blockquote>
 </td>
 </tr>
@@ -3344,6 +3381,27 @@ This function is an interface to radmc3dPar.readPar().</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="radmc3dPy.analyze.readStars">
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readStars</code><span class="sig-paren">(</span><em>fname=''</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readStars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the data (mass, radius, temperature, spectrum) of discrete stellar sources</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fname</strong> : str</p>
+<blockquote>
+<div><p>Name of the file to be read (if omitted the default value is stars.inp)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An instance of radmc3dRadSources containing the stellar data</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="radmc3dPy.analyze.writeDefaultParfile">
 <code class="descclassname">radmc3dPy.analyze.</code><code class="descname">writeDefaultParfile</code><span class="sig-paren">(</span><em>model=''</em>, <em>fname=''</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.writeDefaultParfile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes a parameter file (problem_params.inp) with default parameters for a given model.</p>
@@ -3366,169 +3424,8 @@ This function is an interface to radmc3dPar.readPar().</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-radmc3dPy.conf">
-<span id="radmc3dpy-conf-module"></span><h2>radmc3dPy.conf module<a class="headerlink" href="#module-radmc3dPy.conf" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-radmc3dPy.ctrans">
-<span id="radmc3dpy-ctrans-module"></span><h2>radmc3dPy.ctrans module<a class="headerlink" href="#module-radmc3dPy.ctrans" title="Permalink to this headline">¶</a></h2>
-<p>This module contains functions for coordinate transformations (e.g. rotation).
-For help on the syntax or functionality of each function see the help of the individual functions</p>
-<dl class="function">
-<dt id="radmc3dPy.ctrans.csrot">
-<code class="descclassname">radmc3dPy.ctrans.</code><code class="descname">csrot</code><span class="sig-paren">(</span><em>crd=None</em>, <em>ang=None</em>, <em>xang=0.0</em>, <em>yang=0.0</em>, <em>zang=0.0</em>, <em>deg=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.ctrans.csrot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs coordinate system rotation.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : numpy ndarray</p>
-<blockquote>
-<div><p>Three element vector containing the coordinates of a given point in a cartesian system</p>
-</div></blockquote>
-<p><strong>ang</strong> : list, ndarray</p>
-<blockquote>
-<div><p>Three element list/ndarray describing the rotation angles around the x, y and z axes, respectively</p>
-</div></blockquote>
-<p><strong>xang: float</strong></p>
-<blockquote>
-<div><p>Rotation around the x-axis</p>
-</div></blockquote>
-<p><strong>yang: float</strong></p>
-<blockquote>
-<div><p>Rotation around the y-axis</p>
-</div></blockquote>
-<p><strong>zang: float</strong></p>
-<blockquote>
-<div><p>Rotation around the z-axis</p>
-</div></blockquote>
-<p><strong>deg</strong> : float, optional</p>
-<blockquote>
-<div><p>If True angles should be given in degree instead of radians (as by default)</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
-<blockquote class="last">
-<div><p>Returns a three element list with the rotated coordinates</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Notes</p>
-<p>Rotation matrices</p>
-<p>Around the x-axis:</p>
-<div class="math">
-\[\begin{split}\left(\begin{matrix} 
-        1 &amp; 0 &amp; 0 \\
-        0 &amp; cos(\alpha) &amp; -sin(\alpha)\\
-        0 &amp; sin(\alpha) &amp; cos(\alpha)
-        \end{matrix}\right)\end{split}\]</div>
-<p>Around the y-axis:</p>
-<div class="math">
-\[\begin{split}\left(\begin{matrix} 
-        cos(\beta) &amp; 0 &amp; -sin(\beta) \\
-        0 &amp; 1 &amp; 0\\
-        sin(\beta)&amp; 0 &amp; cos(\beta)
-        \end{matrix}\right)\end{split}\]</div>
-<p>Around the z-axis</p>
-<div class="math">
-\[\begin{split}\left(\begin{matrix} 
-        cos(\gamma) &amp; -sin\gamma) &amp; 0 \\
-        sin(\gamma) &amp;  cos(\gamma) &amp; 0 \\
-        0  &amp; 0 &amp; 1
-        \end{matrix}\right)\end{split}\]</div>
-</dd></dl>
-
-<dl class="function">
-<dt id="radmc3dPy.ctrans.ctransSph2Cart">
-<code class="descclassname">radmc3dPy.ctrans.</code><code class="descname">ctransSph2Cart</code><span class="sig-paren">(</span><em>crd=None</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.ctrans.ctransSph2Cart" title="Permalink to this definition">¶</a></dt>
-<dd><p>Transform coordinates between spherical to cartesian systems</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : ndarray</p>
-<blockquote>
-<div><p>Three element array containing the input
-coordinates [x,y,z] or [r,theta,phi] by default
-the coordinates assumed to be in the cartesian system</p>
-</div></blockquote>
-<p><strong>reverse</strong> : bool</p>
-<blockquote>
-<div><p>If True calculates the inverse transformation
-(cartesian -&gt; spherical). In this case crd should be [r,theta,phi]</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns a three element array containig the output coordinates [r,theta,phi] or [x,y,z]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="radmc3dPy.ctrans.vrot">
-<code class="descclassname">radmc3dPy.ctrans.</code><code class="descname">vrot</code><span class="sig-paren">(</span><em>crd=None</em>, <em>v=None</em>, <em>ang=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.ctrans.vrot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Rotates a vector in spherical coordinate system.
-First transforms the vector to cartesian coordinate system, then does the rotation then 
-makes the inverse transformation</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : ndarray</p>
-<blockquote>
-<div><p>Three element array containing the coordinates of a
-given point in the cartesian system</p>
-</div></blockquote>
-<p><strong>v</strong> : ndarray</p>
-<blockquote>
-<div><p>Three element array, angles of rotation around the x,y,z axes</p>
-</div></blockquote>
-<p><strong>ang</strong> : ndarray</p>
-<blockquote class="last">
-<div><p>Three element arrray containing the angles to rotate around the x, y, z, axes, respectively</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="radmc3dPy.ctrans.vtransSph2Cart">
-<code class="descclassname">radmc3dPy.ctrans.</code><code class="descname">vtransSph2Cart</code><span class="sig-paren">(</span><em>crd=None</em>, <em>v=None</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.ctrans.vtransSph2Cart" title="Permalink to this definition">¶</a></dt>
-<dd><p>Transform velocities between spherical to cartesian systems</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : ndarray</p>
-<blockquote>
-<div><p>Three element array containing the input
-coordinates [x,y,z] or [r,theta,phi] by default
-the coordinates assumed to be in the cartesian system</p>
-</div></blockquote>
-<p><strong>v</strong> : ndarray</p>
-<blockquote>
-<div><p>Three element array containing the input
-velocities in the same coordinate system as crd</p>
-</div></blockquote>
-<p><strong>reverse</strong> : bool</p>
-<blockquote>
-<div><p>If True it calculates the inverse trasnformation (cartesian -&gt; spherical)</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns a three element array containg the output velocities [vr,vphi,vtheta] or [vx,vy,vz]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+<div class="section" id="radmc3dpy-conf-module">
+<h2>radmc3dPy.conf module<a class="headerlink" href="#radmc3dpy-conf-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-radmc3dPy.image">
 <span id="radmc3dpy-image-module"></span><h2>radmc3dPy.image module<a class="headerlink" href="#module-radmc3dPy.image" title="Permalink to this headline">¶</a></h2>
@@ -3805,9 +3702,13 @@ function)</p>
 <div><p>interpolation keyword for imshow (e.g. &#8216;nearest&#8217;, &#8216;bilinear&#8217;, &#8216;bicubic&#8217;)</p>
 </div></blockquote>
 <p><strong>cmap</strong> : matplotlib color map</p>
-<p><strong>stokes</strong> : {&#8216;I&#8217;, &#8216;Q&#8217;, &#8216;U&#8217;, &#8216;V&#8217;, &#8216;PI&#8217;}</p>
+<p><strong>stokes</strong> : {&#8216;I&#8217;, &#8216;Q&#8217;, &#8216;U&#8217;, &#8216;V&#8217;, &#8216;PI&#8217;, &#8216;P&#8217;}</p>
 <blockquote>
-<div><p>What to plot for full stokes images, Stokes I/Q/U/V or PI - polarised intensity</p>
+<div><p>What to plot for full stokes images, Stokes I/Q/U/V,
+PI  - polarised intensity (PI = sqrt(Q^2 + U^2 + V^2))
+P   - polarisation fraction (i.e. sqrt(Q^2 + U^2 + V^2) / I)
+PIL - polarised intensity (PI = sqrt(Q^2 + U^2))
+PL  - fraction of linear polarisation (i.e. sqrt(Q^2 + U^2) / I)</p>
 </div></blockquote>
 <p><strong>fig</strong> : matplotlig.figure.Figure, optional</p>
 <blockquote>
@@ -4205,7 +4106,8 @@ with Discrete Fourier Transform.</p>
 <dl class="method">
 <dt id="radmc3dPy.image.radmc3dImage.imConv">
 <code class="descname">imConv</code><span class="sig-paren">(</span><em>dpc=1.0</em>, <em>psfType='gauss'</em>, <em>fwhm=None</em>, <em>pa=None</em>, <em>tdiam_prim=8.2</em>, <em>tdiam_sec=0.94</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.image.radmc3dImage.imConv" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convolves a RADMC-3D image with a two dimensional Gaussian psf.</p>
+<dd><p>Convolves a RADMC-3D image with a two dimensional Gaussian psf. The output images will have the same
+brightness units as the input images.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -4326,7 +4228,7 @@ secondary mirror/obscuration is present, this parameter should be set to zero.
 
 <dl class="method">
 <dt id="radmc3dPy.image.radmc3dImage.writeFits">
-<code class="descname">writeFits</code><span class="sig-paren">(</span><em>fname=''</em>, <em>dpc=1.0</em>, <em>coord='03h10m05s -10d05m30s'</em>, <em>bandwidthmhz=2000.0</em>, <em>casa=False</em>, <em>nu0=0.0</em>, <em>stokes='I'</em>, <em>fitsheadkeys=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.image.radmc3dImage.writeFits" title="Permalink to this definition">¶</a></dt>
+<code class="descname">writeFits</code><span class="sig-paren">(</span><em>fname=''</em>, <em>dpc=1.0</em>, <em>coord='03h10m05s -10d05m30s'</em>, <em>bandwidthmhz=2000.0</em>, <em>casa=False</em>, <em>nu0=0.0</em>, <em>stokes='I'</em>, <em>fitsheadkeys=[]</em>, <em>ifreq=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.image.radmc3dImage.writeFits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes out a RADMC-3D image data in fits format.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -4362,11 +4264,16 @@ secondary mirror/obscuration is present, this parameter should be set to zero.
 choices: &#8216;I&#8217;, &#8216;Q&#8217;, &#8216;U&#8217;, &#8216;V&#8217;, &#8216;PI&#8217; -Latter being the polarized intensity)</p>
 </div></blockquote>
 <p><strong>fitsheadkeys</strong> : dictionary</p>
-<blockquote class="last">
+<blockquote>
 <div><p>Dictionary containing all (extra) keywords to be added to the fits header. If 
 the keyword is already in the fits header (e.g. CDELT1) it will be updated/changed
 to the value in fitsheadkeys, if the keyword is not present the keyword is added to 
 the fits header.</p>
+</div></blockquote>
+<p><strong>ifreq</strong> : int</p>
+<blockquote class="last">
+<div><p>Frequency index of the image array to write. If set only this frequency of a multi-frequency
+array will be written to file.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -4725,6 +4632,232 @@ file will be used instead of the dust temperature.</dd>
 </div></blockquote>
 </dd></dl>
 
+<dl class="class">
+<dt id="radmc3dPy.setup.radmc3dModel">
+<em class="property">class </em><code class="descclassname">radmc3dPy.setup.</code><code class="descname">radmc3dModel</code><span class="sig-paren">(</span><em>model=None</em>, <em>binary=None</em>, <em>old=False</em>, <em>dfunc=None</em>, <em>dfpar=None</em>, <em>parfile_update=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>model</strong> : str</p>
+<blockquote>
+<div><p>Name of the model that should be used to create the density structure.
+The file should be in a directory from where it can directly be imported
+(i.e. the directory should be in the PYTHON_PATH environment variable or
+it should be in the current working directory)
+and the file name should be &#8216;model_xxx.py&#8217;, where xxx stands for the string
+that should be specified in this variable</p>
+</div></blockquote>
+<p><strong>binary</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True input files will be written in binary format, if False input files are
+written as formatted ascii text.</p>
+</div></blockquote>
+<p><strong>old</strong> : bool, optional</p>
+<blockquote>
+<div><p>If set to True the input files for the old 2D version of radmc will be created</p>
+</div></blockquote>
+<p><strong>dfunc</strong> : function, optional</p>
+<blockquote>
+<div><p>Decision function for octree-like amr tree building. It should take linear arrays of
+cell centre coordinates (x,y,z) and cell half-widhts (dx,dy,dz) in all three dimensions,
+a radmc3d model, a dictionary with all parameters from problem_params.inp and an other
+keyword argument (<a href="#id17"><span class="problematic" id="id18">**</span></a>kwargs). It should return a boolean ndarray of the same length as
+the input coordinates containing True if the cell should be resolved and False if not.
+An example for the implementation of such decision function can be found in radmc3dPy.analyze
+module (radmc3dPy.analyze.gdensMinMax()).</p>
+</div></blockquote>
+<p><strong>dfpar</strong> : dictionary</p>
+<blockquote>
+<div><p>Dicionary of keyword arguments to be passed on to dfunc. These parameters will not be written
+to problem_params.inp. Parameters can also be passed to dfunc via normal keyword arguments
+gathered in <a href="#id19"><span class="problematic" id="id20">**</span></a>kwargs, however all keyword arguments in <a href="#id21"><span class="problematic" id="id22">**</span></a>kwargs will be written to
+problem_params.inp</p>
+</div></blockquote>
+<p><strong>parfile_update</strong> : bool</p>
+<blockquote>
+<div><p>If True the parameter file (problem_params.inp) will be updated / overwritten with any parameters
+that are possibly passed as keyword arguments. For False the problem_params.inp file will not be
+overwritten irrespectively of the parameter values the data members of the radmc3dModel instance
+would contain.</p>
+</div></blockquote>
+<p><strong>Keyword Arguments  :</strong></p>
+<blockquote class="last">
+<div><p>Any varible name in problem_params.inp can be used as a keyword argument.
+At first all variables are read from problem_params.in to a dictionary called ppar. Then
+if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary
+is searched for this key. If found the value belonging to that key in the ppar dictionary
+is changed to the value of the keyword argument. If no such key is found then the dictionary
+is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+with the new parameter values.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.makeDustOpac" title="radmc3dPy.setup.radmc3dModel.makeDustOpac"><code class="xref py py-obj docutils literal"><span class="pre">makeDustOpac</span></code></a>()</td>
+<td>Generates dust opacities and writes them to file</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.makeGrid" title="radmc3dPy.setup.radmc3dModel.makeGrid"><code class="xref py py-obj docutils literal"><span class="pre">makeGrid</span></code></a>([sgrid,&nbsp;wgrid,&nbsp;writeToFile])</td>
+<td>Generates a spatial and/or wavelength grid</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.makeRadSources" title="radmc3dPy.setup.radmc3dModel.makeRadSources"><code class="xref py py-obj docutils literal"><span class="pre">makeRadSources</span></code></a>([writeToFile])</td>
+<td><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.makeVar" title="radmc3dPy.setup.radmc3dModel.makeVar"><code class="xref py py-obj docutils literal"><span class="pre">makeVar</span></code></a>([ddens,&nbsp;dtemp,&nbsp;gdens,&nbsp;gtemp,&nbsp;gvel,&nbsp;...])</td>
+<td>Generates variables and possibly writes them to file</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.readParams" title="radmc3dPy.setup.radmc3dModel.readParams"><code class="xref py py-obj docutils literal"><span class="pre">readParams</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.writeLinesInp" title="radmc3dPy.setup.radmc3dModel.writeLinesInp"><code class="xref py py-obj docutils literal"><span class="pre">writeLinesInp</span></code></a>()</td>
+<td>Writes the lines.inp master command file for line simulation in RADMC-3D</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.writeRadmc3dInp" title="radmc3dPy.setup.radmc3dModel.writeRadmc3dInp"><code class="xref py py-obj docutils literal"><span class="pre">writeRadmc3dInp</span></code></a>()</td>
+<td>Writes the radmc3d.inp master command file for RADMC-3D</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.makeDustOpac">
+<code class="descname">makeDustOpac</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.makeDustOpac" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates dust opacities and writes them to file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.makeGrid">
+<code class="descname">makeGrid</code><span class="sig-paren">(</span><em>sgrid=True</em>, <em>wgrid=True</em>, <em>writeToFile=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.makeGrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a spatial and/or wavelength grid</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>wgrid</strong> : bool</p>
+<blockquote>
+<div><p>Set to True to generate the wavelength grid</p>
+</div></blockquote>
+<p><strong>sgrid</strong> : bool</p>
+<blockquote>
+<div><p>Set to True to generate the spatial grid</p>
+</div></blockquote>
+<p><strong>writeToFile</strong> : bool</p>
+<blockquote>
+<div><p>If True the grid will be written to amr_grid.inp and/or wavelength_micron.inp</p>
+</div></blockquote>
+<p><strong>**kwargs</strong> : Any varible name in problem_params.inp can be used as a keyword argument.</p>
+<blockquote class="last">
+<div><p>At first all variables are read from problem_params.in to a dictionary called ppar. Then
+if there is any keyword argument set in the call of problem_setup_dust the ppar dictionary
+is searched for this key. If found the value belonging to that key in the ppar dictionary
+is changed to the value of the keyword argument. If no such key is found then the dictionary
+is simply extended by the keyword argument. Finally the problem_params.inp file is updated
+with the new parameter values.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.makeRadSources">
+<code class="descname">makeRadSources</code><span class="sig-paren">(</span><em>writeToFile=True</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.makeRadSources" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>writeToFile</strong> : bool</p>
+<blockquote class="last">
+<div><p>If True the radiation will be written to stars.inp and or stellarsrc_density.inp,
+stellarsrc_templates.inp</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.makeVar">
+<code class="descname">makeVar</code><span class="sig-paren">(</span><em>ddens=False</em>, <em>dtemp=False</em>, <em>gdens=False</em>, <em>gtemp=False</em>, <em>gvel=False</em>, <em>vturb=False</em>, <em>writeToFile=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.makeVar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates variables and possibly writes them to file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>ddens</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True generates the dust density</p>
+</div></blockquote>
+<p><strong>dtemp</strong> : bool, optional</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>If True generates the dust temperature (normally this would be calculated by RADMC-3D, but</dt>
+<dd><p class="first last">in some cases, e.g. debugging, it might come handy)</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>gdens</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True generates the gas density</p>
+</div></blockquote>
+<p><strong>gtemp</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True generates the gas temperature</p>
+</div></blockquote>
+<p><strong>gvel</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True generates the gas velocity</p>
+</div></blockquote>
+<p><strong>vturb</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True generates the microturbulent velocity field</p>
+</div></blockquote>
+<p><strong>writeToFile</strong> : bool, optional</p>
+<blockquote class="last">
+<div><p>If True the generated variable(s) will be written to file</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.readParams">
+<code class="descname">readParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.readParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.writeLinesInp">
+<code class="descname">writeLinesInp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.writeLinesInp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the lines.inp master command file for line simulation in RADMC-3D</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.writeRadmc3dInp">
+<code class="descname">writeRadmc3dInp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.writeRadmc3dInp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the radmc3d.inp master command file for RADMC-3D</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="radmc3dPy.setup.validateModel">
 <code class="descclassname">radmc3dPy.setup.</code><code class="descname">validateModel</code><span class="sig-paren">(</span><em>model=''</em>, <em>dustModel=False</em>, <em>gasModel=False</em>, <em>writeDustTemp=False</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.validateModel" title="Permalink to this definition">¶</a></dt>
@@ -4867,13 +5000,13 @@ to the input wavelength grid and scaled to have the same luminosity as specified
 <blockquote>
 <div><p>Wavelength grid for which the stellar atmosphere model should be calculated</p>
 </div></blockquote>
-<p><strong>model</strong> : {&#8216;kurucz&#8217;, &#8216;nextgen&#8217;}</p>
+<p><strong>model</strong> : {&#8216;kurucz&#8217;, &#8216;nextgen&#8217;, &#8216;ames-dusty&#8217;}</p>
 <blockquote>
 <div><p>Name of the model atmosphere family</p>
 </div></blockquote>
 <p><strong>modeldir</strong> : str</p>
 <blockquote>
-<div><p>Path to the Kurucz or NextGen atmosphere models</p>
+<div><p>Path to the atmosphere models</p>
 </div></blockquote>
 <p><strong>wmax</strong> : float</p>
 <blockquote>
@@ -4893,6 +5026,71 @@ Longwards of this wavelength the Rayleigh-Jeans approximation (lambda^(-2)) is u
 <li><dl class="first docutils">
 <dt>lnu <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd>Monochromatic luminosity of the stellar atmosphere in erg/s/Hz</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radmc3dPy.staratm.getSpectrumAmesDusty">
+<code class="descclassname">radmc3dPy.staratm.</code><code class="descname">getSpectrumAmesDusty</code><span class="sig-paren">(</span><em>teff=None</em>, <em>logg=None</em>, <em>mstar=None</em>, <em>lstar=None</em>, <em>rstar=None</em>, <em>modeldir=None</em>, <em>wav=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.staratm.getSpectrumAmesDusty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolates the Ames-Dusty model atmospheres in logg and Teff</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>teff</strong> : float</p>
+<blockquote>
+<div><p>Effective temperature of the star</p>
+</div></blockquote>
+<p><strong>logg</strong> : float</p>
+<blockquote>
+<div><p>Logarithm of the surface gravity of the star</p>
+</div></blockquote>
+<p><strong>mstar</strong> : float, optional</p>
+<blockquote>
+<div><p>Stellar mass in g (either logg or mstar and rstar should be specified)</p>
+</div></blockquote>
+<p><strong>lstar</strong> : float, optional</p>
+<blockquote>
+<div><p>Luminosity of the star (either lstar or rstar should be specified)</p>
+</div></blockquote>
+<p><strong>rstar</strong> : float, optional</p>
+<blockquote>
+<div><p>Radius of the star (either lstar or rstar should be specified)</p>
+</div></blockquote>
+<p><strong>modeldir</strong> : str</p>
+<blockquote>
+<div><p>Path to the AmesDusty atmosphere model grid</p>
+</div></blockquote>
+<p><strong>wav</strong> : ndarray</p>
+<blockquote>
+<div><p>Wavelength grid for which the stellar atmosphere model should be calculated</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Returns a dictionary with the following keys:</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li><dl class="first docutils">
+<dt>wav <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd>Wavelength in micron (same as the input wav keyword)</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>lnu <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd>Monochromatic luminosity of the stellar atmosphere in erg/s/Hz</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>bnu <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd>Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and
+effective temperature as the stellar model in erg/s/Hz</dd>
 </dl>
 </li>
 </ul>
@@ -5020,8 +5218,69 @@ Longwards of this wavelength the Rayleigh-Jeans approximation (lambda^(-2)) is u
 </li>
 <li><dl class="first docutils">
 <dt>bnu <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and 
+<dd>Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and
 effective temperature as the stellar model in erg/s/Hz</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radmc3dPy.staratm.readAmesDustySpectrum">
+<code class="descclassname">radmc3dPy.staratm.</code><code class="descname">readAmesDustySpectrum</code><span class="sig-paren">(</span><em>fname=''</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.staratm.readAmesDustySpectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the Ames-Dusty model atmosphere</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fname</strong> : str</p>
+<blockquote>
+<div><p>File name containing the Ames-Dusty model atmosphere (e.g. lte30-3.5-0.0.AMES-dusty.7)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Returns a dictionary with the following keys:</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li><dl class="first docutils">
+<dt>wav <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd>Wavelength in micron</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>nwav <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>Number of wavelength points</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>inu <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd>Specific intensity of the stellar model atmosphere in erg/s/cm/cm/Hz/ster</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>bnu <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd>Specific intensity of a blackbody stellar model atmosphere with the same luminosity
+and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>teff <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Effective temperature of the model</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>logg <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Logarithm of the surface gravity of the model</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>mph <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Metallicity of the atmosphere model</dd>
 </dl>
 </li>
 </ul>
@@ -5190,6 +5449,9 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
 
 
            </div>
+           <div class="articleComments">
+            
+           </div>
           </div>
           <footer>
   
@@ -5199,7 +5461,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Apr 30, 2017.
+      Last updated on Oct 31, 2017.
 
     </p>
   </div>
@@ -5221,10 +5483,11 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.29.0',
+            VERSION:'0.30.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
         };
     </script>
       <script type="text/javascript" src="_static/jquery.js"></script>

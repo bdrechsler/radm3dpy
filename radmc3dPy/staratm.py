@@ -466,6 +466,7 @@ def readKuruczGrid(fname=''):
 def readAmesDustySpectrum(fname=''):
     """
     Reads the Ames-Dusty model atmosphere
+
     Parameters
     ----------
     fname       : str
@@ -474,7 +475,7 @@ def readAmesDustySpectrum(fname=''):
     Returns
     -------
 
-        Returns a dictionary with the following keys:
+    Returns a dictionary with the following keys:
 
         * wav     : ndarray
                     Wavelength in micron
@@ -497,6 +498,7 @@ def readAmesDustySpectrum(fname=''):
 
         * mph     : float
                     Metallicity of the atmosphere model
+
     """
     print('Reading : ', fname)
 
@@ -666,7 +668,7 @@ def rebinSpectrum(wav=None, fnu=None, iwav=None):
 
 def getSpectrumNextGen(teff=None, logg=None, mstar=None, lstar=None, rstar=None, modeldir=None, wav=None):
     """
-    Interpolates the NextGen model atmospheres in logg and Teff 
+    Interpolates the NextGen model atmospheres in logg and Teff
 
     Parameters
     ----------
@@ -676,7 +678,7 @@ def getSpectrumNextGen(teff=None, logg=None, mstar=None, lstar=None, rstar=None,
 
     logg        : float
                   Logarithm of the surface gravity of the star
-    
+
     mstar       : float, optional
                   Stellar mass in g (either logg or mstar and rstar should be specified)
 
@@ -688,7 +690,7 @@ def getSpectrumNextGen(teff=None, logg=None, mstar=None, lstar=None, rstar=None,
 
     modeldir    : str
                   Path to the NextGen atmosphere model grid
-                  
+
     wav         : ndarray
                   Wavelength grid for which the stellar atmosphere model should be calculated
 
@@ -704,8 +706,9 @@ def getSpectrumNextGen(teff=None, logg=None, mstar=None, lstar=None, rstar=None,
                     Monochromatic luminosity of the stellar atmosphere in erg/s/Hz
 
         * bnu     : ndarray
-                    Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and 
+                    Monochromatic luminosity of a blackbody stellar atmosphere with the same luminosity and
                     effective temperature as the stellar model in erg/s/Hz
+
     """
 
     #

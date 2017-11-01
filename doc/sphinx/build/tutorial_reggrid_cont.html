@@ -8,9 +8,11 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Continuum model tutorial (regular grid) &mdash; radmc3dPy 0.29.0 documentation</title>
+  <title>Continuum model tutorial (regular grid) &mdash; radmc3dPy 0.30.0 documentation</title>
   
 
+  
+  
   
   
 
@@ -33,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="radmc3dPy 0.29.0 documentation" href="index.html"/>
+    <link rel="top" title="radmc3dPy 0.30.0 documentation" href="index.html"/>
         <link rel="next" title="Line model tutorial (regular grid)" href="tutorial_reggrid_line.html"/>
         <link rel="prev" title="Installation" href="install.html"/> 
 
@@ -44,6 +46,7 @@
 
 <body class="wy-body-for-nav" role="document">
 
+   
   <div class="wy-grid-for-nav">
 
     
@@ -63,7 +66,7 @@
             
             
               <div class="version">
-                0.29
+                0.30
               </div>
             
           
@@ -85,13 +88,20 @@
     
             
             
-                <ul class="current">
+              
+            
+            
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changes.html">Changes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="download.html">Downloads</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Continuum model tutorial (regular grid)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#model-setup">Model setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-setup">Model setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#simple-setup">Simple setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modular-setup">Modular setup</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#read-the-model-structure">Read the model structure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#diagnostic-plots">Diagnostic plots</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dust-density-contours">Dust density contours</a></li>
@@ -129,8 +139,10 @@
 
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">radmc3dPy</a>
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">radmc3dPy</a>
+        
       </nav>
 
 
@@ -139,21 +151,38 @@
         <div class="rst-content">
           
 
- 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 <div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
-      
-    <li>Continuum model tutorial (regular grid)</li>
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Continuum model tutorial (regular grid)</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
         
-          
+            
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -283,6 +312,8 @@ function.:</p>
 <p>As can be seen, the parameters of the model are split into separate blocks to make it visually easy to recognise which
 parameters belong to the radiation sources, which to the grid, etc. For a detailed description of the structure and
 syntax of the master parameter file see <a class="reference internal" href="parfile.html#parfile"><span class="std std-ref">Parameter file</span></a>.</p>
+<div class="section" id="simple-setup">
+<span id="tutorial-reggrid-cont-simple-setup"></span><h3>Simple setup<a class="headerlink" href="#simple-setup" title="Permalink to this headline">¶</a></h3>
 <p>Let us now set up the model, i.e. create all necessary input files for RADMC-3D. This can be done with the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.problemSetupDust" title="radmc3dPy.setup.problemSetupDust"><code class="xref py py-meth docutils literal"><span class="pre">problemSetupDust()</span></code></a> method.
 As the single mandatory argument we need to pass the name of the model. With the <code class="docutils literal"><span class="pre">binary=True</span></code> keyword argument we can set the format of the
 input files to be formatted ASCII (<code class="docutils literal"><span class="pre">binary=False</span></code>) or C-style binary (<code class="docutils literal"><span class="pre">binary=True</span></code>). The default is binary output.
@@ -361,6 +392,21 @@ value will be evaluated. E.g.::</p>
 <span class="go">mdisk                     = 1.9900000e+29  # Mass of the disk (either sig0 or mdisk should be set to zero or commented out)</span>
 <span class="gp">...</span>
 </pre></div>
+</div>
+</div>
+<div class="section" id="modular-setup">
+<span id="tutorial-reggrid-cont-modular-setup"></span><h3>Modular setup<a class="headerlink" href="#modular-setup" title="Permalink to this headline">¶</a></h3>
+<p>As we can see the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.problemSetupDust" title="radmc3dPy.setup.problemSetupDust"><code class="xref py py-meth docutils literal"><span class="pre">problemSetupDust()</span></code></a> is a very convenient way to generate all necessary input files at once.
+However, sometimes it can be useful to generate input files separately. This can be the case for large models if we wish to e.g. change
+the wavelength grid without having to re-generate also the density structure. This can be done using the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel" title="radmc3dPy.setup.radmc3dModel"><code class="xref py py-class docutils literal"><span class="pre">radmc3dModel</span></code></a>
+class in the following way. First we need to create an instance of this model class::</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model = radmc3dPy.setup.radmc3dModel(model=&#39;ppdisk&#39;, mdisk=&#39;1e-5*ms&#39;, gap_rin=&#39;[10.0*au]&#39;, gap_rout=&#39;[40.*au]&#39;, gap_drfact=&#39;[1e-5]&#39;, nz=&#39;0&#39;)</span>
+</pre></div>
+</div>
+<p>Similar to <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.problemSetupDust" title="radmc3dPy.setup.problemSetupDust"><code class="xref py py-meth docutils literal"><span class="pre">problemSetupDust()</span></code></a> we can pass parameters and values as keyword argument to update their values. First during
+initialization the parameter file &#8216;problem_params.inp&#8217; is read if it exists, otherwise the default parameters of the model will be loaded. Then
+the parameter values are updated if any keyword argument was set. If parameter values are updated by default the <code class="docutils literal"><span class="pre">problem_params.inp</span></code> file will
+be updated/overwritten. To prevent the update of the parameter file we pass the <code class="docutils literal"><span class="pre">parfile_update=False</span></code> keyword.</p>
 </div>
 </div>
 <div class="section" id="read-the-model-structure">
@@ -619,15 +665,18 @@ intensity within the given radius to zero.:</p>
 
 
            </div>
+           <div class="articleComments">
+            
+           </div>
           </div>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tutorial_reggrid_line.html" class="btn btn-neutral float-right" title="Line model tutorial (regular grid)" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tutorial_reggrid_line.html" class="btn btn-neutral float-right" title="Line model tutorial (regular grid)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="install.html" class="btn btn-neutral" title="Installation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="install.html" class="btn btn-neutral" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -637,7 +686,7 @@ intensity within the given radius to zero.:</p>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Apr 30, 2017.
+      Last updated on Oct 31, 2017.
 
     </p>
   </div>
@@ -659,10 +708,11 @@ intensity within the given radius to zero.:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.29.0',
+            VERSION:'0.30.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
         };
     </script>
       <script type="text/javascript" src="_static/jquery.js"></script>

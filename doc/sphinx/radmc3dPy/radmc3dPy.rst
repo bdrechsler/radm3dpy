@@ -27,14 +27,6 @@ radmc3dPy\.conf module
     :undoc-members:
     :show-inheritance:
 
-radmc3dPy\.ctrans module
-------------------------
-
-.. automodule:: radmc3dPy.ctrans
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 radmc3dPy\.image module
 -----------------------
 
