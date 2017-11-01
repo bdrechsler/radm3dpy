@@ -60,7 +60,7 @@ for i in range(len(python_files)):
             for imod in range(1,len(sdum)):
                 txt += '.'+sdum[imod]
 
-        packageNames.append(txt)
+        packageNames.append(str(txt))
 
 setup(name='radmc3dPy',
         version='0.30',
