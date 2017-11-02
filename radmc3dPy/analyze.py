@@ -7637,7 +7637,16 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
 
     if 'x' in plane:
         # xy plane
+        if data.grid.nx <= 1:
+            msg = 'The x dimension is switched off or has only a single grid cell, thus a 2D slice plot cannot ' \
+                  'be done in the '+plane+' plane.'
+            raise ValueError(msg)
         if 'y' in plane:
+            if data.grid.ny <= 1:
+                msg = 'The y dimension is switched off or has only a single grid cell, thus a 2D slice plot cannot ' \
+                      'be done in the '+plane+' plane.'
+                raise ValueError(msg)
+
             iplane = 2
             if not octree:
                 plot_x = np.copy(data.grid.x)
@@ -7680,6 +7689,11 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 idata = interpolateOctree(data, x=plot_x / xnorm, y=plot_y / ynorm, z=plot_z, var=var, nproc=nproc)
         # xz plane
         elif 'z' in plane:
+            if data.grid.nz <= 1:
+                msg = 'The z dimension is switched off or has only a single grid cell, thus a 2D slice plot cannot ' \
+                      'be done in the '+plane+' plane.'
+                raise ValueError(msg)
+
             iplane = 1
             if not octree:
                 plot_x = np.copy(data.grid.x)
@@ -7716,6 +7730,15 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 idata = interpolateOctree(data, x=plot_x / xnorm, y=plot_z, z=plot_y / ynorm, var=var, nproc=nproc)
     # yz plane
     else:
+        if data.grid.ny <= 1:
+            msg = 'The y dimension is switched off or has only a single grid cell, thus a 2D slice plot cannot ' \
+                  'be done in the '+plane+' plane.'
+            raise ValueError(msg)
+
+        if data.grid.nz <= 1:
+            msg = 'The z dimension is switched off or has only a single grid cell, thus a 2D slice plot cannot ' \
+                  'be done in the '+plane+' plane.'
+            raise ValueError(msg)
         iplane = 0
         if not octree:
             plot_x = np.copy(data.grid.y)
@@ -7929,6 +7952,9 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
             if octree:
                 raise RuntimeError('Optical depth calculation has not yet been implemented for octrees.')
             else:
+                if (data.taux.shape[0]==0):
+                    raise ValueError('Optical depth has not been calculated yet. Run radmc3dData.getTau(wav=X) to '
+                                     'calculate the optical depth before calling plotSlice2D')
                 if iplane == 0:
                     pdata = data.taux[icrd3, :, :]
                 elif iplane == 1:
@@ -7988,58 +8014,41 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         ax = plb.gca()
 
     #
-    # Now do the colorscale plotting
+    # Now do the colorscale plotting but only if contours is set to False
     #
-    # dx = plot_x[1] - plot_x[0]
-    # dy = plot_y[1] - plot_y[0]
-    if log:
-        if 'vmin' not in kwargs:
-            vmin = pdata.min()
+    if not contours:
+        if log:
+            if 'vmin' not in kwargs:
+                vmin = pdata.min()
+            else:
+                vmin = kwargs['vmin']
+
+            if 'vmax' not in kwargs:
+                vmax = pdata.max()
+            else:
+                vmax = kwargs['vmax']
+
+            if pdata.min() <= 0:
+                pdata = pdata.clip(1e-90)
+            p = ax.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
+            # p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5,
+            # plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5),
+            # norm=LogNorm(vmin, vmax), interpolation='nearest', aspect='auto', **kwargs)
+            # Enable rasterization to enable easy save to file
+            p.set_rasterized(True)
         else:
-            vmin = kwargs['vmin']
+            p = ax.pcolormesh(plot_x, plot_y, pdata.T, **kwargs)
+            # p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5,
+            # plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5),
+            # vmin=vmin, vmax=vmax, interpolation='nearest', aspect='auto', **kwargs)
+            # Enable rasterization to enable easy save to file
+            p.set_rasterized(True)
 
-        if 'vmax' not in kwargs:
-            vmax = pdata.max()
-        else:
-            vmax = kwargs['vmax']
-
-        if pdata.min() <= 0:
-            pdata = pdata.clip(1e-90)
-        p = ax.pcolormesh(plot_x, plot_y, pdata.T, norm=LogNorm(vmin, vmax), **kwargs)
-        # p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5,
-        # plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5),
-        # norm=LogNorm(vmin, vmax), interpolation='nearest', aspect='auto', **kwargs)
-        # Enable rasterization to enable easy save to file
-        p.set_rasterized(True)
-    else:
-        p = ax.pcolormesh(plot_x, plot_y, pdata.T, **kwargs)
-        # p = ax.imshow(pdata.T, origin='lower', extent=(plot_x[0]-dx*0.5, plot_x[-1]+dx*0.5,
-        # plot_y[0]-dy*0.5, plot_y[-1]+dy*0.5),
-        # vmin=vmin, vmax=vmax, interpolation='nearest', aspect='auto', **kwargs)
-        # Enable rasterization to enable easy save to file
-        p.set_rasterized(True)
-
-    #
-    # Set the axis limits
-    #
-    if not octree:
-        if len(xlim) == 0:
-            xlim = (plot_x[0], plot_x[-1])
-        if len(ylim) == 0:
-            ylim = (plot_y[0], plot_y[-1])
-
-    plb.xlim(xlim[0], xlim[1])
-    plb.ylim(ylim[0], ylim[1])
-    #
-    # Set the axis labels
-    #
-    plb.xlabel(xlabel)
-    plb.ylabel(ylabel)
-    #
-    # Generate the colorbar
-    #
-    cb = plb.colorbar(p)
-    cb.set_label(cblabel)
+        #
+        # Generate the colorbar
+        #
+        cb = plb.colorbar(p)
+        cb.set_label(cblabel)
 
     #
     # Show the grid (currently only for otctree AMR)
@@ -8184,3 +8193,20 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 ax.contour(plot_x, plot_y, pdata, clev, alpha=clalpha)
         else:
             ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
+
+    #
+    # Set the axis limits
+    #
+    if not octree:
+        if len(xlim) == 0:
+            xlim = (plot_x[0], plot_x[-1])
+        if len(ylim) == 0:
+            ylim = (plot_y[0], plot_y[-1])
+
+    plb.xlim(xlim[0], xlim[1])
+    plb.ylim(ylim[0], ylim[1])
+    #
+    # Set the axis labels
+    #
+    plb.xlabel(xlabel)
+    plb.ylabel(ylabel)
