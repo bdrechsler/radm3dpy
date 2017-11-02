@@ -202,13 +202,13 @@ model directory. Then go to the model directory and start a python session.</p>
 </div>
 <p>This way we imported all core modules of the package: <a class="reference internal" href="radmc3dPy.html#module-radmc3dPy.analyze" title="radmc3dPy.analyze"><code class="xref py py-class docutils literal"><span class="pre">analyze</span></code></a>, <a class="reference internal" href="radmc3dPy.html#module-radmc3dPy.image" title="radmc3dPy.image"><code class="xref py py-class docutils literal"><span class="pre">image</span></code></a>,
 <a class="reference internal" href="radmc3dPy.html#module-radmc3dPy.setup" title="radmc3dPy.setup"><code class="xref py py-class docutils literal"><span class="pre">setup</span></code></a>, <a class="reference internal" href="radmc3dPy.html#module-radmc3dPy.natconst" title="radmc3dPy.natconst"><code class="xref py py-class docutils literal"><span class="pre">natconst</span></code></a>.</p>
-<p>The <code class="xref py py-class docutils literal"><span class="pre">models</span></code> module contains all models (like a library). To check what models are available
-we can use the <code class="xref py py-meth docutils literal"><span class="pre">getModelNames()</span></code> function:</p>
+<p>The <a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models" title="radmc3dPy.models"><code class="xref py py-class docutils literal"><span class="pre">models</span></code></a> module contains all models (like a library). To check what models are available
+we can use the <a class="reference internal" href="radmc3dPy.models.html#radmc3dPy.models.getModelNames" title="radmc3dPy.models.getModelNames"><code class="xref py py-meth docutils literal"><span class="pre">getModelNames()</span></code></a> function:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">models</span><span class="o">.</span><span class="n">getModelNames</span><span class="p">()</span>
 <span class="go">[&#39;lines_nlte_lvg_1d_1&#39;, &#39;ppdisk&#39;, &#39;&#39;disk_acc&#39;, &#39;ppdisk_amr&#39;, &#39;simple_1&#39;, &#39;sphere1d_1&#39;, &#39;sphere2d_1&#39;, &#39;test_scattering_1&#39;]</span>
 </pre></div>
 </div>
-<p>We can also get a brief description of any model with the  <code class="xref py py-meth docutils literal"><span class="pre">getModelDesc()</span></code> function:</p>
+<p>We can also get a brief description of any model with the  <a class="reference internal" href="radmc3dPy.models.html#radmc3dPy.models.getModelDesc" title="radmc3dPy.models.getModelDesc"><code class="xref py py-meth docutils literal"><span class="pre">getModelDesc()</span></code></a> function:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">models</span><span class="o">.</span><span class="n">getModelDesc</span><span class="p">(</span><span class="s1">&#39;ppdisk&#39;</span><span class="p">)</span>
 <span class="go">&#39;Generic protoplanetary disk model&#39;</span>
 </pre></div>
@@ -691,13 +691,13 @@ also be displayed. The resulting plot should look like this</p>
 </pre></div>
 </div>
 <p>The results should look like this:</p>
-<img alt="_images/image_au_log.png" class="align-center" src="_images/image_au_log.png" />
+<img alt="_images/image_fig1.png" class="align-center" src="_images/image_fig1.png" />
 <p>We can also display the images using angular coordinates for the image axis (Note that in this case the distance in pc needs also to
 be passed):</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">plotImage</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">arcsec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dpc</span><span class="o">=</span><span class="mf">140.</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxlog</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">saturate</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">bunit</span><span class="o">=</span><span class="s1">&#39;snu&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plb</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">gist_heat</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="_images/image_arcsec_log.png" class="align-center" src="_images/image_arcsec_log.png" />
+<img alt="_images/image_fig2.png" class="align-center" src="_images/image_fig2.png" />
 </div>
 <div class="section" id="image-manipulations">
 <span id="tutorial-reggrid-cont-model-images-manipulation"></span><h3>Image manipulations<a class="headerlink" href="#image-manipulations" title="Permalink to this headline">¶</a></h3>
@@ -706,13 +706,20 @@ be passed):</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">plotImage</span><span class="p">(</span><span class="n">cim</span><span class="p">,</span> <span class="n">arcsec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dpc</span><span class="o">=</span><span class="mf">140.</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxlog</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">bunit</span><span class="o">=</span><span class="s1">&#39;snu&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plb</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">gist_heat</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="_images/image_arcsec_log_conv.png" class="align-center" src="_images/image_arcsec_log_conv.png" />
+<img alt="_images/image_fig3.png" class="align-center" src="_images/image_fig3.png" />
 <p>The effect of a coronographic mask can also be simulated. The <cite>cmask_rad</cite> keyword of the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.image.plotImage" title="radmc3dPy.image.plotImage"><code class="xref py py-meth docutils literal"><span class="pre">plotImage()</span></code></a> method sets the
 intensity within the given radius to zero.:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">plotImage</span><span class="p">(</span><span class="n">cim</span><span class="p">,</span> <span class="n">arcsec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dpc</span><span class="o">=</span><span class="mf">140.</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxlog</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">bunit</span><span class="o">=</span><span class="s1">&#39;snu&#39;</span><span class="p">,</span> <span class="n">cmask_rad</span><span class="o">=</span><span class="mf">0.17</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plb</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">gist_heat</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="_images/image_arcsec_log_conv_mask.png" class="align-center" src="_images/image_arcsec_log_conv_mask.png" />
+<img alt="_images/image_fig4.png" class="align-center" src="_images/image_fig4.png" />
+<p>Note, that one can also use the <code class="docutils literal"><span class="pre">bunit='jy/pixel</span></code> keyword to display the image in units of Jy/pixel. The <code class="docutils literal"><span class="pre">bunit='snu'</span></code> is kept
+for backward compatibility for now. To display the image in units of Jy/beam for the intensity we can use the <code class="docutils literal"><span class="pre">bunit='jy/beam'</span></code> keyword:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">plotImage</span><span class="p">(</span><span class="n">cim</span><span class="p">,</span> <span class="n">arcsec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dpc</span><span class="o">=</span><span class="mf">140.</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxlog</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">bunit</span><span class="o">=</span><span class="s1">&#39;jy/beam&#39;</span><span class="p">,</span> <span class="n">cmask_rad</span><span class="o">=</span><span class="mf">0.17</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plb</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">gist_heat</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>which should produce the following image:</p>
+<img alt="_images/image_fig5.png" class="align-center" src="_images/image_fig5.png" />
 </div>
 <div class="section" id="writing-images-to-fits">
 <span id="tutorial-reggrid-cont-model-images-write2fits"></span><h3>Writing images to fits<a class="headerlink" href="#writing-images-to-fits" title="Permalink to this headline">¶</a></h3>

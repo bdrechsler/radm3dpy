@@ -49,8 +49,8 @@ except ImportError:
     print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
     print('or display images')
 
-from radmc3dPy.natconst import *
-from radmc3dPy import analyze
+from .. natconst import *
+from .. import analyze
 
 
 def getModelDesc():

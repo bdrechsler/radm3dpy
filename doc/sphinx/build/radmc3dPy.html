@@ -168,6 +168,22 @@
 <div class="section" id="subpackages">
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="radmc3dPy.models.html">radmc3dPy.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.lines_nlte_lvg_1d_1">radmc3dPy.models.lines_nlte_lvg_1d_1 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.ppdisk">radmc3dPy.models.ppdisk module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.ppdisk_acc">radmc3dPy.models.ppdisk_acc module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.ppdisk_amr">radmc3dPy.models.ppdisk_amr module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.simple_1">radmc3dPy.models.simple_1 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.spher1d_1">radmc3dPy.models.spher1d_1 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.spher2d_1">radmc3dPy.models.spher2d_1 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.template">radmc3dPy.models.template module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models.test_scattering_1">radmc3dPy.models.test_scattering_1 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="radmc3dPy.models.html#module-radmc3dPy.models">Module contents</a></li>
+</ul>
+</li>
+</ul>
 </div>
 </div>
 <div class="section" id="submodules">
@@ -3437,8 +3453,169 @@ This function is an interface to radmc3dPar.readPar().</p>
 </dd></dl>
 
 </div>
-<div class="section" id="radmc3dpy-conf-module">
-<h2>radmc3dPy.conf module<a class="headerlink" href="#radmc3dpy-conf-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-radmc3dPy.conf">
+<span id="radmc3dpy-conf-module"></span><h2>radmc3dPy.conf module<a class="headerlink" href="#module-radmc3dPy.conf" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-radmc3dPy.crd_trans">
+<span id="radmc3dpy-crd-trans-module"></span><h2>radmc3dPy.crd_trans module<a class="headerlink" href="#module-radmc3dPy.crd_trans" title="Permalink to this headline">¶</a></h2>
+<p>This module contains functions for coordinate transformations (e.g. rotation).
+For help on the syntax or functionality of each function see the help of the individual functions</p>
+<dl class="function">
+<dt id="radmc3dPy.crd_trans.csrot">
+<code class="descclassname">radmc3dPy.crd_trans.</code><code class="descname">csrot</code><span class="sig-paren">(</span><em>crd=None</em>, <em>ang=None</em>, <em>xang=0.0</em>, <em>yang=0.0</em>, <em>zang=0.0</em>, <em>deg=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.crd_trans.csrot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs coordinate system rotation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : numpy ndarray</p>
+<blockquote>
+<div><p>Three element vector containing the coordinates of a given point in a cartesian system</p>
+</div></blockquote>
+<p><strong>ang</strong> : list, ndarray</p>
+<blockquote>
+<div><p>Three element list/ndarray describing the rotation angles around the x, y and z axes, respectively</p>
+</div></blockquote>
+<p><strong>xang: float</strong></p>
+<blockquote>
+<div><p>Rotation around the x-axis</p>
+</div></blockquote>
+<p><strong>yang: float</strong></p>
+<blockquote>
+<div><p>Rotation around the y-axis</p>
+</div></blockquote>
+<p><strong>zang: float</strong></p>
+<blockquote>
+<div><p>Rotation around the z-axis</p>
+</div></blockquote>
+<p><strong>deg</strong> : float, optional</p>
+<blockquote>
+<div><p>If True angles should be given in degree instead of radians (as by default)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list</p>
+<blockquote class="last">
+<div><p>Returns a three element list with the rotated coordinates</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Rotation matrices</p>
+<p>Around the x-axis:</p>
+<div class="math">
+\[\begin{split}\left(\begin{matrix} 
+        1 &amp; 0 &amp; 0 \\
+        0 &amp; cos(\alpha) &amp; -sin(\alpha)\\
+        0 &amp; sin(\alpha) &amp; cos(\alpha)
+        \end{matrix}\right)\end{split}\]</div>
+<p>Around the y-axis:</p>
+<div class="math">
+\[\begin{split}\left(\begin{matrix} 
+        cos(\beta) &amp; 0 &amp; -sin(\beta) \\
+        0 &amp; 1 &amp; 0\\
+        sin(\beta)&amp; 0 &amp; cos(\beta)
+        \end{matrix}\right)\end{split}\]</div>
+<p>Around the z-axis</p>
+<div class="math">
+\[\begin{split}\left(\begin{matrix} 
+        cos(\gamma) &amp; -sin\gamma) &amp; 0 \\
+        sin(\gamma) &amp;  cos(\gamma) &amp; 0 \\
+        0  &amp; 0 &amp; 1
+        \end{matrix}\right)\end{split}\]</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="radmc3dPy.crd_trans.ctransSph2Cart">
+<code class="descclassname">radmc3dPy.crd_trans.</code><code class="descname">ctransSph2Cart</code><span class="sig-paren">(</span><em>crd=None</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.crd_trans.ctransSph2Cart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform coordinates between spherical to cartesian systems</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : ndarray</p>
+<blockquote>
+<div><p>Three element array containing the input
+coordinates [x,y,z] or [r,theta,phi] by default
+the coordinates assumed to be in the cartesian system</p>
+</div></blockquote>
+<p><strong>reverse</strong> : bool</p>
+<blockquote>
+<div><p>If True calculates the inverse transformation
+(cartesian -&gt; spherical). In this case crd should be [r,theta,phi]</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns a three element array containig the output coordinates [r,theta,phi] or [x,y,z]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radmc3dPy.crd_trans.vrot">
+<code class="descclassname">radmc3dPy.crd_trans.</code><code class="descname">vrot</code><span class="sig-paren">(</span><em>crd=None</em>, <em>v=None</em>, <em>ang=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.crd_trans.vrot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotates a vector in spherical coordinate system.
+First transforms the vector to cartesian coordinate system, then does the rotation then 
+makes the inverse transformation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : ndarray</p>
+<blockquote>
+<div><p>Three element array containing the coordinates of a
+given point in the cartesian system</p>
+</div></blockquote>
+<p><strong>v</strong> : ndarray</p>
+<blockquote>
+<div><p>Three element array, angles of rotation around the x,y,z axes</p>
+</div></blockquote>
+<p><strong>ang</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Three element arrray containing the angles to rotate around the x, y, z, axes, respectively</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radmc3dPy.crd_trans.vtransSph2Cart">
+<code class="descclassname">radmc3dPy.crd_trans.</code><code class="descname">vtransSph2Cart</code><span class="sig-paren">(</span><em>crd=None</em>, <em>v=None</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.crd_trans.vtransSph2Cart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform velocities between spherical to cartesian systems</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>crd</strong> : ndarray</p>
+<blockquote>
+<div><p>Three element array containing the input
+coordinates [x,y,z] or [r,theta,phi] by default
+the coordinates assumed to be in the cartesian system</p>
+</div></blockquote>
+<p><strong>v</strong> : ndarray</p>
+<blockquote>
+<div><p>Three element array containing the input
+velocities in the same coordinate system as crd</p>
+</div></blockquote>
+<p><strong>reverse</strong> : bool</p>
+<blockquote>
+<div><p>If True it calculates the inverse trasnformation (cartesian -&gt; spherical)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns a three element array containg the output velocities [vr,vphi,vtheta] or [vx,vy,vz]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="module-radmc3dPy.image">
 <span id="radmc3dpy-image-module"></span><h2>radmc3dPy.image module<a class="headerlink" href="#module-radmc3dPy.image" title="Permalink to this headline">¶</a></h2>
@@ -3694,9 +3871,11 @@ the image format will be ASCII</p>
 <blockquote>
 <div><p>Highest pixel values to be plotted in terms of the peak value, higher pixel values will be clipped</p>
 </div></blockquote>
-<p><strong>bunit</strong> : {&#8216;norm&#8217;, &#8216;inu&#8217;, &#8216;snu&#8217;}</p>
+<p><strong>bunit</strong> : {&#8216;norm&#8217;, &#8216;inu&#8217;, &#8216;snu&#8217;, &#8216;jy/beam&#8217;, &#8216;jy/pixel&#8217;}</p>
 <blockquote>
-<div><p>Unit of the image, (&#8216;norm&#8217; - Inu/max(Inu), &#8216;inu&#8217; - Inu, &#8216;snu&#8217; - Jy/pixel), default is &#8216;norm&#8217;</p>
+<div><p>Unit of the image, (&#8216;norm&#8217; - Inu/max(Inu), &#8216;inu&#8217; - Inu, &#8216;snu&#8217; - Jy/pixel, &#8216;jy/pixel&#8217; - Jy/pixel,
+&#8216;jy/beam&#8217; - Jy/beam), default is &#8216;norm&#8217;. The &#8216;snu&#8217; keyword value is kept for backward compatibility
+as it is fully equivalent with the &#8216;jy/pixel&#8217; keyword value.</p>
 </div></blockquote>
 <p><strong>ifreq</strong> : int</p>
 <blockquote>

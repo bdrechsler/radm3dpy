@@ -1232,8 +1232,10 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     saturate      : float
                     Highest pixel values to be plotted in terms of the peak value, higher pixel values will be clipped
 
-    bunit         : {'norm', 'inu', 'snu', 'Jy/beam'}
-                    Unit of the image, ('norm' - Inu/max(Inu), 'inu' - Inu, 'snu' - Jy/pixel), default is 'norm'
+    bunit         : {'norm', 'inu', 'snu', 'jy/beam', 'jy/pixel'}
+                    Unit of the image, ('norm' - Inu/max(Inu), 'inu' - Inu, 'snu' - Jy/pixel, 'jy/pixel' - Jy/pixel,
+                    'jy/beam' - Jy/beam), default is 'norm'. The 'snu' keyword value is kept for backward compatibility
+                    as it is fully equivalent with the 'jy/pixel' keyword value.
 
     ifreq         : int
                     If the image file/array consists of multiple frequencies/wavelengths ifreq denotes the index
@@ -1442,8 +1444,6 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                 # Convert data to Jy/beam
                 data *= beam_area / pixel_area
                 cb_label = 'S' + r'$_\nu$' + ' [Jy/beam]'
-
-
 
         else:
             raise ValueError('Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"')

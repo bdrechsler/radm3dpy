@@ -1,6 +1,7 @@
 """This module contains classes and functions to read and write input/output data for RADMC-3D and
 to do some simple analysis/diagnostics of the model.
 """
+from __future__ import absolute_import
 from __future__ import print_function
 import traceback
 import subprocess as sp

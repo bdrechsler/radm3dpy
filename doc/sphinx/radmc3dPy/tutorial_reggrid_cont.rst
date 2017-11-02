@@ -574,14 +574,14 @@ To display the images calculated by RADMC-3D we can use the :meth:`~radmc3dPy.im
 
 The results should look like this:
 
-.. image:: screenshots/image_au_log.png
+.. image:: screenshots/image_fig1.png
     :align: center
 
 We can also display the images using angular coordinates for the image axis (Note that in this case the distance in pc needs also to
 be passed)::
     >>> image.plotImage(im, arcsec=True, dpc=140., log=True, maxlog=10, saturate=1e-5, bunit='snu', cmap=plb.cm.gist_heat)
     
-.. image:: screenshots/image_arcsec_log.png
+.. image:: screenshots/image_fig2.png
     :align: center
 
 .. _tutorial-reggrid-cont-model-images-manipulation:
@@ -595,7 +595,7 @@ It is also easy to convolve the image with an arbitrary 2D gaussian beam::
     >>> cim = im.imConv(fwhm=[0.06, 0.06], pa=0., dpc=140.)
     >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=10, bunit='snu', cmap=plb.cm.gist_heat)
    
-.. image:: screenshots/image_arcsec_log_conv.png
+.. image:: screenshots/image_fig3.png
     :align: center
 
 
@@ -604,9 +604,20 @@ intensity within the given radius to zero.::
 
     >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=2.5, bunit='snu', cmask_rad=0.17, cmap=plb.cm.gist_heat)
 
-.. image:: screenshots/image_arcsec_log_conv_mask.png
+.. image:: screenshots/image_fig4.png
     :align: center
+   
+Note, that one can also use the ``bunit='jy/pixel`` keyword to display the image in units of Jy/pixel. The ``bunit='snu'`` is kept
+for backward compatibility for now. To display the image in units of Jy/beam for the intensity we can use the ``bunit='jy/beam'`` keyword::
     
+    >>> image.plotImage(cim, arcsec=True, dpc=140., log=True, maxlog=2.5, bunit='jy/beam', cmask_rad=0.17, cmap=plb.cm.gist_heat)
+
+which should produce the following image:
+
+.. image:: screenshots/image_fig5.png
+    :align: center
+
+
 .. _tutorial-reggrid-cont-model-images-write2fits:
 
 Writing images to fits
