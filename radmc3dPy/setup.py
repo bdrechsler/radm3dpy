@@ -7,6 +7,7 @@ import traceback
 import inspect
 import sys
 import warnings
+import importlib
 
 try:
     import numpy as np
@@ -70,6 +71,33 @@ class radmc3dModel(object):
                       is simply extended by the keyword argument. Finally the problem_params.inp file is updated
                       with the new parameter values.
 
+    Attributes
+    ----------
+
+    binary          : bool
+                     If True, it sets the data file format to binary (overwriting also the rto_style parameter!),
+                     if False the file format will be formatted ascii
+
+    data            : radmc3dData
+                     Container for physical variables in the mode
+
+    grid            : radmc3dGrid
+                     Container for spatial and wavelength grid
+
+    model           : str
+                     Name of the model that has callable functions to generate physical variables for the model
+
+    old             : bool
+                     If True the model is meant to be for radmc, the pre-decessor code of radmc-3d.
+
+    opac            : radmc3dOpac
+                     Container for dust opacities
+
+    par             : radmc3dPar
+                     Container for the parameters of the model (i.e. the content of the problem_params.inp file)
+
+    radsources      : radmc3dRadsources
+                     Container for the radiation sources in the model
     """
 
     def __init__(self, model=None, binary=None, old=False, dfunc=None, dfpar=None, parfile_update=True, **kwargs):
@@ -201,10 +229,10 @@ class radmc3dModel(object):
         # Get the model
         #
         try:
-            mdl = __import__(self.model)
+            mdl = importlib.import_module(self.model)
         except ImportError:
             try:
-                mdl = __import__('radmc3dPy.models.' + self.model, fromlist=[''])
+                mdl = importlib.import_module('radmc3dPy.models.' + self.model)
             except ImportError:
                 print(' ' + self.model + '.py could not be imported')
                 print(' The model files should either be in the current working directory or')
@@ -444,10 +472,10 @@ class radmc3dModel(object):
 
         """
         try:
-            mdl = __import__(self.model)
+            mdl = importlib.import_module(self.model)
         except ImportError:
             try:
-                mdl = __import__('radmc3dPy.models.' + self.model, fromlist=[''])
+                mdl = importlib.import_module('radmc3dPy.models.' + self.model)
             except ImportError:
                 print(' ' + self.model + '.py could not be imported')
                 print(' The model files should either be in the current working directory or')
@@ -734,10 +762,10 @@ def problemSetupDust(model=None, binary=True, writeDustTemp=False, old=False, df
     # Try to get the specified model
     # --------------------------------------------------------------------------------------------
     try:
-        mdl = __import__(model)
+        mdl = importlib.import_module(model)
     except ImportError:
         try:
-            mdl = __import__('radmc3dPy.models.' + model, fromlist=[''])
+            mdl = importlib.import_module('radmc3dPy.models.' + model)
         except ImportError:
             print(' ' + model + '.py could not be imported')
             print(' The model files should either be in the current working directory or')
@@ -1021,10 +1049,10 @@ def problemSetupGas(model=None, fullsetup=False, binary=True, writeGasTemp=False
     # Try to get the specified model
     # --------------------------------------------------------------------------------------------
     try:
-        mdl = __import__(model)
+        mdl = importlib.import_module(model)
     except ImportError:
         try:
-            mdl = __import__('radmc3dPy.models.' + model, fromlist=[''])
+            mdl = importlib.import_module('radmc3dPy.models.' + model)
         except ImportError:
             print(' ' + model + '.py could not be imported')
             print(' The model files should either be in the current working directory or')
@@ -1391,10 +1419,10 @@ def validateModel(model='', dustModel=False, gasModel=False, writeDustTemp=False
     # First check if the model can be imported
     #
     try:
-        mdl = __import__(model)
+        mdl = importlib.import_module(model)
     except ImportError:
         try:
-            mdl = __import__('radmc3dPy.models.' + model, fromlist=[''])
+            mdl = importlib.import_module('radmc3dPy.models.' + model)
         except ImportError:
             print(' ' + model + '.py could not be imported'
                   + ' The model files should either be in the current working directory or'

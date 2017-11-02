@@ -229,15 +229,49 @@ Modular setup
 As we can see the :meth:`~radmc3dPy.setup.problemSetupDust` is a very convenient way to generate all necessary input files at once. 
 However, sometimes it can be useful to generate input files separately. This can be the case for large models if we wish to e.g. change
 the wavelength grid without having to re-generate also the density structure. This can be done using the :class:`~radmc3dPy.setup.radmc3dModel`
-class in the following way. First we need to create an instance of this model class:::
+class (for the data attributes please, look at the documentation of :class:`~radmc3dPy.setup.radmc3dModel`). First we need to create an 
+instance of this model class:::
 
     >>>model = radmc3dPy.setup.radmc3dModel(model='ppdisk', mdisk='1e-5*ms', gap_rin='[10.0*au]', gap_rout='[40.*au]', gap_drfact='[1e-5]', nz='0')
 
 Similar to :meth:`~radmc3dPy.setup.problemSetupDust` we can pass parameters and values as keyword argument to update their values. First during
 initialization the parameter file 'problem_params.inp' is read if it exists, otherwise the default parameters of the model will be loaded. Then
 the parameter values are updated if any keyword argument was set. If parameter values are updated by default the ``problem_params.inp`` file will
-be updated/overwritten. To prevent the update of the parameter file we pass the ``parfile_update=False`` keyword. 
+be updated/overwritten. To prevent the update of the parameter file we pass the ``parfile_update=False`` keyword. Then we can use individual 
+methods of :class:`~radmc3dPy.setup.radmc3dModel` to generate physical variables and/or various input files::          
 
+    >>>model.writeRadmc3dInp()
+
+This method generates the ``radmc3d.inp`` file for the internal code parameters. It does not have any prerequisite / dependency thus it can be called
+arbitrarily. To generate the spatial and frequency grid we need to call :meth:`~radmc3dPy.setup.radmc3dModel.makeGrid`::
+
+    >>>model.makeGrid(writeToFile=True)
+
+By default it will generate both the wavelength and the spatial grids, however it also has boolean keywords to switch on/off the generation of the
+wavelength and the spatial grid as well. Note the ``writeToFile=True`` keyword in the calling sequence, which indicates that once the grid has been
+generated we wish to write it immediately to file. By default this keyword is set to ``False``, meaning that only the 
+:attr:`~radmc3dPy.setup.radmc3dModel.grid` attribute of :class:`~radmc3dPy.setup.radmc3dModel` will be generated containing the spatial and/or wavelength
+grid but without writing them into files. Since :attr:`~radmc3dPy.setup.radmc3dModel.grid` is an instance of :class:`~radmc3dPy.analyze.radmc3dGrid` we
+can use the :meth:`~radmc3dPy.analyze.radmc3dGrid.writeSpatialGrid` and :meth:`~radmc3dPy.analyze.radmc3dGrid.writeWavelengthGrid` methods at any time
+to write the spatial and/or wavelength grid to file. 
+
+
+The radiation sources can be generated using the :meth:`~radmc3dPy.setup.radmc3dModel.makeRadSources` method::
+
+    >>>model.makeRadSources(writeToFile=True)
+
+The dust opacities and the master opacity file can be generated with ::
+
+    >>>model.makeDustOpac()
+
+Finally the physical variables in the models are generated with ::
+
+    >>>model.makeVar(ddens=True, writeToFile=True)
+
+
+Note, that the order in which the methods are called is not completely arbitrary. Except for :meth:`~radmc3dPy.setup.radmc3dModel.writeRadmc3dInp`, which
+can be called arbitrarily, all other methods depend on the presence of a spatial and/or a wavelength grid. Therefore, :meth:`~radmc3dPy.setup.radmc3dModel.makeGrid`
+must be called before :meth:`~radmc3dPy.setup.radmc3dModel.makeRadSources`, :meth:`~radmc3dPy.setup.radmc3dModel.makeOpac` or :meth:`~radmc3dPy.setup.radmc3dModel.makeVar`.
 
 
 .. _tutorial-reggrid-cont-read-structure:
@@ -398,6 +432,13 @@ Then the result should look like this:
 
 .. image:: screenshots/dustcont_temperature_contour.png
     :align: center
+
+
+.. _tutorial-reggrid-cont-diagnostic-plots-sliceplot:
+
+Convenient 2D contour plots
++++++++++++++++++++++++++++
+
 
 
 .. _tutorial-reggrid-cont-model-images:

@@ -3,6 +3,8 @@ from __future__ import print_function
 
 import subprocess as sp
 import os
+import importlib
+import warnings
 
 def getTemplateModel():
     """Create a copy of the template model file in the current working directory. 
@@ -24,7 +26,8 @@ def getTemplateModel():
 
         return False
     return True
-# ---------------------------------------------------------------------------------------------------------------------
+
+
 def updateModelList():
     """Updates the list of models in the library.
 
@@ -45,7 +48,8 @@ def updateModelList():
     # Get the name of all model files in the module directory
     import radmc3dPy
     mod_path = radmc3dPy.__file__.strip()[:-12]
-    dum = sp.Popen(['ls -1 '+mod_path+'/models/*.py'], shell=True, stdout=sp.PIPE, stderr=sp.PIPE).communicate()[0].split()
+    dum = sp.Popen(['ls -1 '+mod_path+'/models/*.py'], shell=True,
+                   stdout=sp.PIPE, stderr=sp.PIPE).communicate()[0].split()
     homeDir = os.getcwd()
 
     os.chdir(mod_path+'/models')
@@ -59,10 +63,13 @@ def updateModelList():
            
             mod_names.append(modname)
             try:
-                mdl = __import__(modname)
+                mdl = importlib.import_module(modname)
             except ImportError:
-                print(modname + ' cannot be imported. Skipping ...')
-                mod_names.remove(modname)
+                try:
+                    mdl = importlib.import_module('radmc3dPy.models.'+modname)
+                except ImportError:
+                    warnings.warn(modname + ' cannot be imported. Skipping ...', RuntimeWarning)
+                    mod_names.remove(modname)
     
 
     os.chdir(homeDir)
@@ -95,34 +102,19 @@ def getModelNames():
     # Get the name of all model files in the module directory
     import radmc3dPy
     mod_path = radmc3dPy.__file__.strip()[:-12]
-    dum = sp.Popen(['ls -1 '+mod_path+'/models/*.py'], shell=True, stdout=sp.PIPE, stderr=sp.PIPE).communicate()[0].split()
+    dum = sp.Popen(['ls -1 '+mod_path+'/models/*.py'], shell=True, stdout=sp.PIPE,
+                   stderr=sp.PIPE).communicate()[0].split()
 
     for i in range(len(dum)):
-        sdum = dum[i].split('/')
-        #id1 = dum[i].index('model_')+6
-        #id1 = dum[i].index('.py')
-        #modname = dum[i][id1:id2]
+        sdum = str(dum[i].decode('utf-8')).split('/')
         modname = sdum[len(sdum)-1][:-3]
 
         if (modname!='template')&(modname!='__init__')&(modname!='_libfunc')&(modname!='_modellist'):
             mod_names.append(modname)
 
-    ## Get the name of all model files in the current working directory
-    #if os.getcwd().strip()!=mod_path:
-        #mod_path = os.getcwd()
-        #dum = sp.Popen(['ls -1 '+mod_path+'/model_*.py'], shell=True, stdout=sp.PIPE, stderr=sp.PIPE).communicate()[0].split()
-
-        #for i in range(len(dum)):
-            #id1 = dum[i].index('model_')+6
-            #id2 = dum[i].index('.py')
-            #modname = dum[i][id1:id2]
-            #if modname!='template':
-                #mod_names.append(modname)
-
     return mod_names
     
 
-# ---------------------------------------------------------------------------------------------------------------------
 def getModelDesc(model=None):
     """Returns a brief description of the selected model.
     
@@ -140,10 +132,14 @@ def getModelDesc(model=None):
         raise ValueError('Unknown model. No model name is given.')
 
     try:
-        mdl = __import__(model)
+        mdl = importlib.import_module(model)
     except ImportError:
-        raise ImportError(model+'.py could not be imported. The model files should either be in the '
-                          + ' current working directory or in the radmc3d python module directory')
+        try:
+            mdl = importlib.import_module('radmc3dPy.models.'+model)
+        except ImportError:
+            msg = model+'.py could not be imported. The model files should either be in the '\
+                  + ' current working directory or in the radmc3d python module directory'
+            raise ImportError(msg)
 
     if callable(getattr(mdl, 'getModelDesc')):
         return mdl.getModelDesc()

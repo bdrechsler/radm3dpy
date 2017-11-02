@@ -109,6 +109,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#optical-depth">Optical depth</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#run-the-thermal-mc">Run the thermal MC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dust-temperature-contours">Dust temperature contours</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#convenient-2d-contour-plots">Convenient 2D contour plots</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#images">Images</a><ul>
@@ -399,14 +400,46 @@ value will be evaluated. E.g.::</p>
 <p>As we can see the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.problemSetupDust" title="radmc3dPy.setup.problemSetupDust"><code class="xref py py-meth docutils literal"><span class="pre">problemSetupDust()</span></code></a> is a very convenient way to generate all necessary input files at once.
 However, sometimes it can be useful to generate input files separately. This can be the case for large models if we wish to e.g. change
 the wavelength grid without having to re-generate also the density structure. This can be done using the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel" title="radmc3dPy.setup.radmc3dModel"><code class="xref py py-class docutils literal"><span class="pre">radmc3dModel</span></code></a>
-class in the following way. First we need to create an instance of this model class::</p>
+class (for the data attributes please, look at the documentation of <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel" title="radmc3dPy.setup.radmc3dModel"><code class="xref py py-class docutils literal"><span class="pre">radmc3dModel</span></code></a>). First we need to create an
+instance of this model class::</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model = radmc3dPy.setup.radmc3dModel(model=&#39;ppdisk&#39;, mdisk=&#39;1e-5*ms&#39;, gap_rin=&#39;[10.0*au]&#39;, gap_rout=&#39;[40.*au]&#39;, gap_drfact=&#39;[1e-5]&#39;, nz=&#39;0&#39;)</span>
 </pre></div>
 </div>
 <p>Similar to <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.problemSetupDust" title="radmc3dPy.setup.problemSetupDust"><code class="xref py py-meth docutils literal"><span class="pre">problemSetupDust()</span></code></a> we can pass parameters and values as keyword argument to update their values. First during
 initialization the parameter file &#8216;problem_params.inp&#8217; is read if it exists, otherwise the default parameters of the model will be loaded. Then
 the parameter values are updated if any keyword argument was set. If parameter values are updated by default the <code class="docutils literal"><span class="pre">problem_params.inp</span></code> file will
-be updated/overwritten. To prevent the update of the parameter file we pass the <code class="docutils literal"><span class="pre">parfile_update=False</span></code> keyword.</p>
+be updated/overwritten. To prevent the update of the parameter file we pass the <code class="docutils literal"><span class="pre">parfile_update=False</span></code> keyword. Then we can use individual
+methods of <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel" title="radmc3dPy.setup.radmc3dModel"><code class="xref py py-class docutils literal"><span class="pre">radmc3dModel</span></code></a> to generate physical variables and/or various input files:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model.writeRadmc3dInp()</span>
+</pre></div>
+</div>
+<p>This method generates the <code class="docutils literal"><span class="pre">radmc3d.inp</span></code> file for the internal code parameters. It does not have any prerequisite / dependency thus it can be called
+arbitrarily. To generate the spatial and frequency grid we need to call <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel.makeGrid" title="radmc3dPy.setup.radmc3dModel.makeGrid"><code class="xref py py-meth docutils literal"><span class="pre">makeGrid()</span></code></a>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model.makeGrid(writeToFile=True)</span>
+</pre></div>
+</div>
+<p>By default it will generate both the wavelength and the spatial grids, however it also has boolean keywords to switch on/off the generation of the
+wavelength and the spatial grid as well. Note the <code class="docutils literal"><span class="pre">writeToFile=True</span></code> keyword in the calling sequence, which indicates that once the grid has been
+generated we wish to write it immediately to file. By default this keyword is set to <code class="docutils literal"><span class="pre">False</span></code>, meaning that only the
+<code class="xref py py-attr docutils literal"><span class="pre">grid</span></code> attribute of <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel" title="radmc3dPy.setup.radmc3dModel"><code class="xref py py-class docutils literal"><span class="pre">radmc3dModel</span></code></a> will be generated containing the spatial and/or wavelength
+grid but without writing them into files. Since <code class="xref py py-attr docutils literal"><span class="pre">grid</span></code> is an instance of <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dGrid" title="radmc3dPy.analyze.radmc3dGrid"><code class="xref py py-class docutils literal"><span class="pre">radmc3dGrid</span></code></a> we
+can use the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dGrid.writeSpatialGrid" title="radmc3dPy.analyze.radmc3dGrid.writeSpatialGrid"><code class="xref py py-meth docutils literal"><span class="pre">writeSpatialGrid()</span></code></a> and <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dGrid.writeWavelengthGrid" title="radmc3dPy.analyze.radmc3dGrid.writeWavelengthGrid"><code class="xref py py-meth docutils literal"><span class="pre">writeWavelengthGrid()</span></code></a> methods at any time
+to write the spatial and/or wavelength grid to file.</p>
+<p>The radiation sources can be generated using the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel.makeRadSources" title="radmc3dPy.setup.radmc3dModel.makeRadSources"><code class="xref py py-meth docutils literal"><span class="pre">makeRadSources()</span></code></a> method:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model.makeRadSources(writeToFile=True)</span>
+</pre></div>
+</div>
+<p>The dust opacities and the master opacity file can be generated with</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model.makeDustOpac()</span>
+</pre></div>
+</div>
+<p>Finally the physical variables in the models are generated with</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;model.makeVar(ddens=True, writeToFile=True)</span>
+</pre></div>
+</div>
+<p>Note, that the order in which the methods are called is not completely arbitrary. Except for <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel.writeRadmc3dInp" title="radmc3dPy.setup.radmc3dModel.writeRadmc3dInp"><code class="xref py py-meth docutils literal"><span class="pre">writeRadmc3dInp()</span></code></a>, which
+can be called arbitrarily, all other methods depend on the presence of a spatial and/or a wavelength grid. Therefore, <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel.makeGrid" title="radmc3dPy.setup.radmc3dModel.makeGrid"><code class="xref py py-meth docutils literal"><span class="pre">makeGrid()</span></code></a>
+must be called before <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel.makeRadSources" title="radmc3dPy.setup.radmc3dModel.makeRadSources"><code class="xref py py-meth docutils literal"><span class="pre">makeRadSources()</span></code></a>, <code class="xref py py-meth docutils literal"><span class="pre">makeOpac()</span></code> or <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel.makeVar" title="radmc3dPy.setup.radmc3dModel.makeVar"><code class="xref py py-meth docutils literal"><span class="pre">makeVar()</span></code></a>.</p>
 </div>
 </div>
 <div class="section" id="read-the-model-structure">
@@ -535,6 +568,9 @@ to read the dust temperature. The <a class="reference internal" href="radmc3dPy.
 </div>
 <p>Then the result should look like this:</p>
 <img alt="_images/dustcont_temperature_contour.png" class="align-center" src="_images/dustcont_temperature_contour.png" />
+</div>
+<div class="section" id="convenient-2d-contour-plots">
+<span id="tutorial-reggrid-cont-diagnostic-plots-sliceplot"></span><h3>Convenient 2D contour plots<a class="headerlink" href="#convenient-2d-contour-plots" title="Permalink to this headline">¶</a></h3>
 </div>
 </div>
 <div class="section" id="images">
@@ -686,7 +722,7 @@ intensity within the given radius to zero.:</p>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Oct 31, 2017.
+      Last updated on Nov 01, 2017.
 
     </p>
   </div>

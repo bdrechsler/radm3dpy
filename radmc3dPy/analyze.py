@@ -8,6 +8,7 @@ from multiprocessing import Pool
 from functools import partial
 import inspect
 import os
+import importlib
 
 try:
     import numpy as np
@@ -806,10 +807,11 @@ class radmc3dOctree(object):
         """
 
         try:
-            self.model = __import__(model)
+            self.model = importlib.import_module(model)
         except ImportError:
             try:
-                self.model = __import__('radmc3dPy.models.' + model, fromlist=[''])
+                # self.model = __import__('radmc3dPy.models.' + model, fromlist=[''])
+                self.model = importlib.import_module('radmc3dPy.models.' + model)
             except ImportError:
                 print(model + '.py could not be imported. \n '
                       + 'The model files should either be in the current working directory \n '
@@ -3655,10 +3657,19 @@ class radmc3dDustOpac(object):
         # Check the input keywords and if single strings are given convert them to lists
         # This assumes, though, that there is a single dust opacity file or dust species, though!!
         if ext is None:
-            raise ValueError('Unknown ext. File name extension must be given to be able to read the opacity from file.')
+            if idust is None:
+                raise ValueError('Unknown ext and idust. '
+                                 'File name extension must be given to be able to read the opacity from file.')
+            else:
+                if isinstance(idust, int):
+                    idust = [idust]
         else:
             if isinstance(ext, str):
                 ext = [ext]
+
+            if (len(ext) == 1) & (ext[0] != ''):
+                if idust is not None:
+                    raise ValueError('Either idust or ext should be specified, but not both')
 
         if scatmat is None:
             # If the scatmat keyword is not given (i.e. if it is None) then assume that
@@ -3675,13 +3686,6 @@ class radmc3dDustOpac(object):
             if isinstance(scatmat, str):
                 scatmat = [scatmat]
 
-        if idust is not None:
-            if isinstance(idust, int):
-                idust = [idust]
-
-        if (len(ext) == 1) & (ext[0] != ''):
-            if idust is not None:
-                raise ValueError('Either idust or ext should be specified, but not both')
 
         # Find the file name extensions in the master opacity file if idust is specified instead of ext
         if idust:
@@ -3699,17 +3703,8 @@ class radmc3dDustOpac(object):
         #  or set the index to -1 if no such dust species is present in the master opacity file
         else:
             # # Read the master dust opacity file to get the dust indices and dustkappa file name extensions
-            # mopac = self.readMasterOpac()
-            #
-            # idust = []
-            # for iext in ext:
-            #     try:
-            #         dum2 = mopac['ext'].index(iext)
-            #     except:
-            #         dum2 = -1
-            #     idust.append(dum2)
-
             idust = [i for i in range(len(ext))]
+
         # Now read all dust opacities
         for i in range(len(ext)):
             if scatmat[i]:
@@ -4955,10 +4950,10 @@ class radmc3dPar(object):
         #
         if model != '':
             try:
-                mdl = __import__(model)
+                mdl = importlib.import_module(model)
             except:
                 try:
-                    mdl = __import__('radmc3dPy.models.' + model, fromlist=[''])
+                    mdl = importlib.import_module('radmc3dPy.models.' + model)
                 except:
                     print(model + '.py could not be imported. \n '
                           + 'The model files should either be in the current working directory \n '
@@ -4990,8 +4985,8 @@ class radmc3dPar(object):
         #
         # Get the parameter block names and distionary keys
         #
-        par_keys = self.pblock.keys()
-        par_block = self.pblock.values()
+        par_keys = list(self.pblock.keys())
+        par_block = list(self.pblock.values())
 
         #
         # Print the parameters by blocks

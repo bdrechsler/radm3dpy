@@ -4696,6 +4696,39 @@ with the new parameter values.</p>
 </tr>
 </tbody>
 </table>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="6%" />
+<col width="94%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>binary</td>
+<td>(bool) If True, it sets the data file format to binary (overwriting also the rto_style parameter!), if False the file format will be formatted ascii</td>
+</tr>
+<tr class="row-even"><td>data</td>
+<td>(radmc3dData) Container for physical variables in the mode</td>
+</tr>
+<tr class="row-odd"><td>grid</td>
+<td>(radmc3dGrid) Container for spatial and wavelength grid</td>
+</tr>
+<tr class="row-even"><td>model</td>
+<td>(str) Name of the model that has callable functions to generate physical variables for the model</td>
+</tr>
+<tr class="row-odd"><td>old</td>
+<td>(bool) If True the model is meant to be for radmc, the pre-decessor code of radmc-3d.</td>
+</tr>
+<tr class="row-even"><td>opac</td>
+<td>(radmc3dOpac) Container for dust opacities</td>
+</tr>
+<tr class="row-odd"><td>par</td>
+<td>(radmc3dPar) Container for the parameters of the model (i.e. the content of the problem_params.inp file)</td>
+</tr>
+<tr class="row-even"><td>radsources</td>
+<td>(radmc3dRadsources) Container for the radiation sources in the model</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
 <colgroup>
@@ -5461,7 +5494,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Oct 31, 2017.
+      Last updated on Nov 01, 2017.
 
     </p>
   </div>
