@@ -471,7 +471,7 @@ ddens, dtemp, gdens, ndens, gtemp, gvel, vturb</dd>
 
 <dl class="function">
 <dt id="radmc3dPy.analyze.plotSlice2D">
-<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">plotSlice2D</code><span class="sig-paren">(</span><em>data=None</em>, <em>var='ddens'</em>, <em>plane='xy'</em>, <em>crd3=0.0</em>, <em>icrd3=None</em>, <em>ispec=-1</em>, <em>xlim=()</em>, <em>ylim=()</em>, <em>log=False</em>, <em>linunit='cm'</em>, <em>angunit='rad'</em>, <em>nx=100</em>, <em>ny=100</em>, <em>showgrid=False</em>, <em>gridcolor='k'</em>, <em>gridalpha=1.0</em>, <em>nproc=1</em>, <em>contours=False</em>, <em>clev=None</em>, <em>clmin=None</em>, <em>clmax=None</em>, <em>ncl=None</em>, <em>cllog=False</em>, <em>clcol='k'</em>, <em>clcmap=None</em>, <em>clalpha=1.0</em>, <em>ax=None</em>, <em>lattitude=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.plotSlice2D" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">plotSlice2D</code><span class="sig-paren">(</span><em>data=None</em>, <em>var='ddens'</em>, <em>plane='xy'</em>, <em>crd3=0.0</em>, <em>icrd3=None</em>, <em>ispec=-1</em>, <em>xlim=()</em>, <em>ylim=()</em>, <em>log=False</em>, <em>linunit='cm'</em>, <em>angunit='rad'</em>, <em>nx=100</em>, <em>ny=100</em>, <em>showgrid=False</em>, <em>gridcolor='k'</em>, <em>gridalpha=1.0</em>, <em>nproc=1</em>, <em>contours=False</em>, <em>clev=None</em>, <em>clmin=None</em>, <em>clmax=None</em>, <em>ncl=None</em>, <em>cllog=False</em>, <em>clcol='k'</em>, <em>clcmap=None</em>, <em>cllabel=False</em>, <em>cllabel_fontsize=10</em>, <em>cllabel_fmt='%.1f'</em>, <em>clalpha=1.0</em>, <em>ax=None</em>, <em>lattitude=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.plotSlice2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot an axis-aligned 2D slice of the variables in the model. Any additional keyword
 argument above the listed ones will be passed on to matplotlib.pylab.pcolormesh(). For an octree grid the variables 
 are interpolated onto a regular grid using nearest neighbour interpolation before plotting. 
@@ -587,6 +587,19 @@ the contours will be log-scaled</p>
 <p><strong>clcmap</strong> : matplotlib colormap</p>
 <blockquote>
 <div><p>Colormap used for the contour lines</p>
+</div></blockquote>
+<p><strong>cllabel</strong> : bool</p>
+<blockquote>
+<div><p>If True the contour line values will be displayed, if False only the contour lines will be
+displayed (default = False)</p>
+</div></blockquote>
+<p><strong>cllabel_fontsize: int</strong></p>
+<blockquote>
+<div><p>Size of the font used to displaye the contour line values</p>
+</div></blockquote>
+<p><strong>cllabel_fmt</strong> : str</p>
+<blockquote>
+<div><p>Format of the contour line labels (default &#8220;%.1f&#8221;)</p>
 </div></blockquote>
 <p><strong>clalpha</strong> : float</p>
 <blockquote>
@@ -5494,7 +5507,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Nov 01, 2017.
+      Last updated on Nov 02, 2017.
 
     </p>
   </div>

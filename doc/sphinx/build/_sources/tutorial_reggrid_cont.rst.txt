@@ -322,7 +322,7 @@ Adding colorbars in ``matplotlib`` is really easy::
 
 The end result should look like this:
 
-.. image:: screenshots/dustcont_density_contour.png
+.. image:: screenshots/fig1.png
     :align: center
 
 
@@ -355,7 +355,7 @@ We can plot the absorption coefficient as a function of wavelength as::
     >>> plb.ylabel(r'$\kappa_{\rm abs}$ [cm$^2$/g]')
 
 
-.. image:: screenshots/dustopac_kabs.png
+.. image:: screenshots/fig2.png
     :align: center
 
 As mentioned, the 0-index of the ``wav`` and ``kabs`` attributes means that we want to plot the wavelength and absorption coefficient
@@ -382,7 +382,7 @@ The :meth:`~radmc3dPy.analyze.radmc3dData.getTau` method puts the optical depth 
     >>> c = plb.contour(data.grid.x/natconst.au, np.pi/2.-data.grid.y, data.taux[:,:,0].T, [1.0],  colors='w', linestyles='solid')
     >>> plb.clabel(c, inline=1, fontsize=10)
 
-.. image:: screenshots/dustcont_density_contour_taux.png
+.. image:: screenshots/fig3.png
     :align: center
 
 
@@ -430,7 +430,7 @@ Then we can plot the 2D temperature contours::
 
 Then the result should look like this:
 
-.. image:: screenshots/dustcont_temperature_contour.png
+.. image:: screenshots/fig4.png
     :align: center
 
 
@@ -439,7 +439,40 @@ Then the result should look like this:
 Convenient 2D contour plots
 +++++++++++++++++++++++++++
 
+From version v0.29 there is a new convenient way to do 2D contour plots using the function :func:`~radmc3dPy.analyze.plotSlice2D`. 
+It can be used to make 2D slice plots (both contours and colorscale maps) with a single command. E.g. the dust density in a vertical slice
+can be plotted with the command::
 
+    >>>analyze.plotSlice2D(data, var='ddens', plane='xy', log=True, linunit='au', cmap=plb.cm.jet)
+    >>>plb.xscale('log')
+
+which should result in the following plot
+
+.. image:: screenshots/fig5.png
+    :align: center
+
+Note, that the difference between the colorscale maps produced by :func:`~radmc3dPy.analyze.plotSlice2D` and the contour plot made above is that
+while previously we used a the ``countourf`` function of matplotlib to produce a filled contour plot :func:`~radmc3dPy.analyze.plotSlice2D` uses
+the ``pcolormesh`` function to display the colorscale map. We can also overlay contour lines to display e.g. the optical depth::
+
+    >>>data.getTau(wav=0.5)
+    >>>analyze.plotSlice2D(data, var='taux', plane='xy', log=True, linunit='au', contours=True, clev=[1.0], clcol='w')
+
+This should add a white contour line of the previously generated colorscale map
+
+.. image:: screenshots/fig6.png
+    :align: center
+
+We can also add another layer of contour line overlay by displaying dust temperature contours. Let us show the contour of the 150K region::
+
+    >>>analyze.plotSlice2D(data, var='dtemp', plane='xy', ispec=0, log=True, linunit='au', contours=True, clev=[150.0], clcol='k', cllabel=True)
+
+Note, that for dust temperature plots one should always set the dust species index using the ``ispec`` keyword. The ``clev`` keyword controls
+the value of the contour line(s), ``clcol`` sets the contour line color and ``cllabel`` sets whether or not the values of the contour lines should
+also be displayed. The resulting plot should look like this
+
+.. image:: screenshots/fig7.png
+    :align: center
 
 .. _tutorial-reggrid-cont-model-images:
 

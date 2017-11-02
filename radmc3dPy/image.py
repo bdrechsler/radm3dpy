@@ -1232,7 +1232,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
     saturate      : float
                     Highest pixel values to be plotted in terms of the peak value, higher pixel values will be clipped
 
-    bunit         : {'norm', 'inu', 'snu'}
+    bunit         : {'norm', 'inu', 'snu', 'Jy/beam'}
                     Unit of the image, ('norm' - Inu/max(Inu), 'inu' - Inu, 'snu' - Jy/pixel), default is 'norm'
 
     ifreq         : int
@@ -1397,35 +1397,53 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
         # Select the unit of the data
 
-        if bunit == 'norm':
+        if bunit.lower() == 'norm':
             if log:
                 cb_label = 'log(I' + r'$_\nu$' + '/max(I' + r'$_\nu$' + '))'
             else:
                 cb_label = 'I' + r'$_\nu$' + '/max(I' + r'$_\nu$' + ')'
-        elif bunit == 'inu':
+        elif bunit.lower() == 'inu':
             if log:
                 cb_label = 'log(I' + r'$_\nu$' + ' [erg/s/cm/cm/Hz/ster])'
             else:
                 cb_label = 'I' + r'$_\nu$' + ' [erg/s/cm/cm/Hz/ster]'
-        elif bunit == 'snu':
+
+        elif (bunit.lower() == 'snu') | (bunit.lower() == 'jy/pixel'):
             if dpc is None:
-                raise ValueError('Unknown dpc. If Jy/pixel is selected for the image unit the dpc keyword should also '
-                                 + 'be set')
+                msg = 'Unknown dpc. If Jy/pixel is selected for the image unit the dpc keyword should also be set'
+                raise ValueError(msg)
             else:
                 if log:
-                    if len(image.fwhm) > 0:
-                        data = data + np.log10(1e23)
-                        cb_label = 'log(S' + r'$_\nu$' + '[Jy/beam])'
-                    else:
-                        data = data + np.log10(image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23)
-                        cb_label = 'log(S' + r'$_\nu$' + '[Jy/pixel])'
+                    data = data + np.log10(image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23)
+                    cb_label = 'log(S' + r'$_\nu$' + '[Jy/pixel])'
                 else:
-                    if len(image.fwhm) > 0:
-                        data = data * 1e23
-                        cb_label = 'S' + r'$_\nu$' + ' [Jy/beam]'
-                    else:
-                        data = data * (image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23)
-                        cb_label = 'S' + r'$_\nu$' + ' [Jy/pixel]'
+                    data = data * (image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23)
+                    cb_label = 'S' + r'$_\nu$' + ' [Jy/pixel]'
+
+        elif bunit.lower()=='jy/beam':
+            if len(image.fwhm) == 0:
+                msg = 'The image does not appear to be convolved with a Gaussain (fwhm data attribute is empty). ' \
+                      'The intensity unit can only be converted to Jy/beam if the convolving beam size is known'
+                raise ValueError(msg)
+
+            pixel_area = (image.sizepix_x * image.sizepix_y)/(dpc * nc.pc)**2 * (180./np.pi*3600.)**2
+            beam_area = image.fwhm[0] * image.fwhm[1] * np.pi / 4. / np.log(2.0)
+
+            if log:
+                # Convert data to Jy/pixel
+                data += np.log10((image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23))
+                # Convert data to Jy/beam
+                data += np.log10(beam_area / pixel_area)
+
+                cb_label = 'log(S' + r'$_\nu$' + '[Jy/beam])'
+            else:
+                # Convert data to Jy/pixel
+                data *= (image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23)
+                # Convert data to Jy/beam
+                data *= beam_area / pixel_area
+                cb_label = 'S' + r'$_\nu$' + ' [Jy/beam]'
+
+
 
         else:
             raise ValueError('Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"')

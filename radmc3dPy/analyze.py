@@ -4925,7 +4925,7 @@ class radmc3dPar(object):
         #
         # Code parameters
         #
-        self.setPar(['nphot', 'int(1e6)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
+        self.setPar(['nphot', 'int(1e5)', '  Nr of photons for the thermal Monte Carlo', 'Code parameters'])
         self.setPar(['nphot_scat', 'int(3e5)', '  Nr of photons for the scattering Monte Carlo (for images)',
                      'Code parameters'])
         self.setPar(['nphot_spec', 'int(1e5)', '  Nr of photons for the scattering Monte Carlo (for spectra)',
@@ -7426,7 +7426,8 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 linunit='cm', angunit='rad',
                 nx=100, ny=100, showgrid=False, gridcolor='k', gridalpha=1.0, nproc=1,
                 contours=False, clev=None, clmin=None, clmax=None, ncl=None, cllog=False, clcol='k', clcmap=None,
-                clalpha=1.0, ax=None, lattitude=True, **kwargs):
+                cllabel=False, cllabel_fontsize=10, cllabel_fmt="%.1f", clalpha=1.0, ax=None, lattitude=True,
+                **kwargs):
     """
     Function to plot an axis-aligned 2D slice of the variables in the model. Any additional keyword
     argument above the listed ones will be passed on to matplotlib.pylab.pcolormesh(). For an octree grid the variables 
@@ -7519,6 +7520,16 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
 
     clcmap          : matplotlib colormap
                       Colormap used for the contour lines
+
+    cllabel         : bool
+                      If True the contour line values will be displayed, if False only the contour lines will be
+                      displayed (default = False)
+
+    cllabel_fontsize: int
+                      Size of the font used to displaye the contour line values
+
+    cllabel_fmt     : str
+                      Format of the contour line labels (default "%.1f")
 
     clalpha         : float
                       Transparency of the contour lines (1.0 fully opaque, 0.0 fully transparent)
@@ -8188,12 +8199,14 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
                 clev = clmin + (clmax - clmin) * (np.arange(ncl, dtype=float) / float(ncl - 1))
         if (clcol == 'none') | (clcol is None):
             if 'cmap' in kwargs:
-                ax.contour(plot_x, plot_y, pdata, clev, kwargs['cmap'], alpha=clalpha)
+                c = ax.contour(plot_x, plot_y, pdata, clev, kwargs['cmap'], alpha=clalpha)
             else:
-                ax.contour(plot_x, plot_y, pdata, clev, alpha=clalpha)
+                c = ax.contour(plot_x, plot_y, pdata, clev, alpha=clalpha)
         else:
-            ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
+            c = ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
 
+        if cllabel:
+            plb.clabel(c, inline=1, fontsize=cllabel_fontsize, fmt=cllabel_fmt)
     #
     # Set the axis limits
     #

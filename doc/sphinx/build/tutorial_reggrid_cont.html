@@ -481,7 +481,7 @@ So we can make 2D density contour plot.</p>
 </pre></div>
 </div>
 <p>The end result should look like this:</p>
-<img alt="_images/dustcont_density_contour.png" class="align-center" src="_images/dustcont_density_contour.png" />
+<img alt="_images/fig1.png" class="align-center" src="_images/fig1.png" />
 </div>
 <div class="section" id="dust-opacity">
 <span id="tutorial-reggrid-cont-diagnostic-plots-dust-opacity"></span><h3>Dust opacity<a class="headerlink" href="#dust-opacity" title="Permalink to this headline">¶</a></h3>
@@ -506,7 +506,7 @@ We can plot the absorption coefficient as a function of wavelength as:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plb</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\kappa_{\rm abs}$ [cm$^2$/g]&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="_images/dustopac_kabs.png" class="align-center" src="_images/dustopac_kabs.png" />
+<img alt="_images/fig2.png" class="align-center" src="_images/fig2.png" />
 <p>As mentioned, the 0-index of the <code class="docutils literal"><span class="pre">wav</span></code> and <code class="docutils literal"><span class="pre">kabs</span></code> attributes means that we want to plot the wavelength and absorption coefficient
 of the first dust species, <em>that has actually been read</em>. The indices in the data attributes mean only the sequential order as
 the data have been read. The index of this dust species in the dust density array is given by <code class="docutils literal"><span class="pre">radmc3dDustOpac.idust</span></code>, which is also
@@ -527,7 +527,7 @@ optical depth.:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plb</span><span class="o">.</span><span class="n">clabel</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="_images/dustcont_density_contour_taux.png" class="align-center" src="_images/dustcont_density_contour_taux.png" />
+<img alt="_images/fig3.png" class="align-center" src="_images/fig3.png" />
 </div>
 <div class="section" id="run-the-thermal-mc">
 <span id="tutorial-reggrid-cont-diagnostic-plots-run-thermal-mc"></span><h3>Run the thermal MC<a class="headerlink" href="#run-the-thermal-mc" title="Permalink to this headline">¶</a></h3>
@@ -567,10 +567,36 @@ to read the dust temperature. The <a class="reference internal" href="radmc3dPy.
 </pre></div>
 </div>
 <p>Then the result should look like this:</p>
-<img alt="_images/dustcont_temperature_contour.png" class="align-center" src="_images/dustcont_temperature_contour.png" />
+<img alt="_images/fig4.png" class="align-center" src="_images/fig4.png" />
 </div>
 <div class="section" id="convenient-2d-contour-plots">
 <span id="tutorial-reggrid-cont-diagnostic-plots-sliceplot"></span><h3>Convenient 2D contour plots<a class="headerlink" href="#convenient-2d-contour-plots" title="Permalink to this headline">¶</a></h3>
+<p>From version v0.29 there is a new convenient way to do 2D contour plots using the function <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotSlice2D" title="radmc3dPy.analyze.plotSlice2D"><code class="xref py py-func docutils literal"><span class="pre">plotSlice2D()</span></code></a>.
+It can be used to make 2D slice plots (both contours and colorscale maps) with a single command. E.g. the dust density in a vertical slice
+can be plotted with the command:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;analyze.plotSlice2D(data, var=&#39;ddens&#39;, plane=&#39;xy&#39;, log=True, linunit=&#39;au&#39;, cmap=plb.cm.jet)</span>
+<span class="go">&gt;&gt;&gt;plb.xscale(&#39;log&#39;)</span>
+</pre></div>
+</div>
+<p>which should result in the following plot</p>
+<img alt="_images/fig5.png" class="align-center" src="_images/fig5.png" />
+<p>Note, that the difference between the colorscale maps produced by <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotSlice2D" title="radmc3dPy.analyze.plotSlice2D"><code class="xref py py-func docutils literal"><span class="pre">plotSlice2D()</span></code></a> and the contour plot made above is that
+while previously we used a the <code class="docutils literal"><span class="pre">countourf</span></code> function of matplotlib to produce a filled contour plot <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotSlice2D" title="radmc3dPy.analyze.plotSlice2D"><code class="xref py py-func docutils literal"><span class="pre">plotSlice2D()</span></code></a> uses
+the <code class="docutils literal"><span class="pre">pcolormesh</span></code> function to display the colorscale map. We can also overlay contour lines to display e.g. the optical depth:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;data.getTau(wav=0.5)</span>
+<span class="go">&gt;&gt;&gt;analyze.plotSlice2D(data, var=&#39;taux&#39;, plane=&#39;xy&#39;, log=True, linunit=&#39;au&#39;, contours=True, clev=[1.0], clcol=&#39;w&#39;)</span>
+</pre></div>
+</div>
+<p>This should add a white contour line of the previously generated colorscale map</p>
+<img alt="_images/fig6.png" class="align-center" src="_images/fig6.png" />
+<p>We can also add another layer of contour line overlay by displaying dust temperature contours. Let us show the contour of the 150K region:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;analyze.plotSlice2D(data, var=&#39;dtemp&#39;, plane=&#39;xy&#39;, ispec=0, log=True, linunit=&#39;au&#39;, contours=True, clev=[150.0], clcol=&#39;k&#39;, cllabel=True)</span>
+</pre></div>
+</div>
+<p>Note, that for dust temperature plots one should always set the dust species index using the <code class="docutils literal"><span class="pre">ispec</span></code> keyword. The <code class="docutils literal"><span class="pre">clev</span></code> keyword controls
+the value of the contour line(s), <code class="docutils literal"><span class="pre">clcol</span></code> sets the contour line color and <code class="docutils literal"><span class="pre">cllabel</span></code> sets whether or not the values of the contour lines should
+also be displayed. The resulting plot should look like this</p>
+<img alt="_images/fig7.png" class="align-center" src="_images/fig7.png" />
 </div>
 </div>
 <div class="section" id="images">
@@ -722,7 +748,7 @@ intensity within the given radius to zero.:</p>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Nov 01, 2017.
+      Last updated on Nov 02, 2017.
 
     </p>
   </div>
