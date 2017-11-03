@@ -43,6 +43,14 @@ radmc3dPy\.image module
     :undoc-members:
     :show-inheritance:
 
+radmc3dPy\.miescat module
+-------------------------
+
+.. automodule:: radmc3dPy.miescat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 radmc3dPy\.natconst module
 --------------------------
 

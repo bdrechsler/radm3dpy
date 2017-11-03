@@ -19,12 +19,13 @@ except ImportError:
     print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
     print('or display images')
 
+import warnings
 
 import math
 from scipy.interpolate import interp1d
 
 
-def bhmie(x, refrel, theta):
+def bhmie(x=None, refrel=None, theta=None):
     """
     The famous Bohren and Huffman Mie scattering code.
     This version was ported to Python from the f77 code from Bruce
@@ -35,38 +36,116 @@ def bhmie(x, refrel, theta):
     This python version was created by Cornelis Dullemond,
     February 2017.
 
-    Arguments:
-      x      = 2*pi*radius_grain/lambda
-      refrel = Complex index of refraction (example: 1.5 + 0.01*1j)
-      theta  = A numpy array of scattering angles between 0 and 180.
+    Parameters
+    ----------
 
-    Returns:
-      S1     = A numpy array of complex phase function S1 (E perp to scattering plane)
-               as a function of theta
-      S2     = A numpy array of complex phase function S2 (E para to scattering plane)
-               as a function of theta
-      Qext   = C_ext/pi*a**2 = efficiency factor for extinction
-      Qsca   = C_sca/pi*a**2 = efficiency factor for scattering
-      Qback  = (dC_sca/domega)/pi*a**2 = backscattering efficiency
-               [NB: this is (1/4*pi) smaller than the "radar
-                 backscattering efficiency"; see Bohren &
-                 Huffman 1983 pp. 120-123]
-      gsca   = <cos(theta)> for scattering
+    x           : ndarray
+                  Size parameter (2*pi*radius_grain/lambda)
+
+    refrel      : ndarray
+                  Complex index of refraction (example: 1.5 + 0.01*1j)
+
+    theta       : ndarray
+                  Scattering angles between 0 and 180 deg
+
+    Returns
+    -------
+    A list with the following elements:
+
+        * [0] S1    : ndarray
+                      Complex phase function S1 (E perpendicular to scattering plane) as a function of theta
+
+        * [1] S2    : ndarray
+                      Complex phase function S1 (E parallel to scattering plane) as a function of theta
+
+        * [2] Qext  : ndarray
+                      Efficiency factor for extinction (C_ext/pi*a**2)
+
+        * [3] Qsca  : ndarray
+                      Efficiency factor for scatterin(C_sca/pi*a**2)
+
+        * [4] Qback : ndarray
+                      Backscattering efficiency ((dC_sca/domega)/pi*a**2 )
+                      Note, this is (1/4*pi) smaller than the "radar backscattering efficiency" - see Bohren &
+                      Huffman 1983 pp. 120-123]
+
+        * [5] gsca  :  <cos(theta)> for scattering
     """
+
+    if x is None:
+        msg = 'Unknown scattering parameter x.'
+        raise ValueError(msg)
+
+    if isinstance(x, list):
+        x = np.array(x)
+    elif isinstance(x, float):
+        x = np.array([x])
+    else:
+        msg = 'Unkonwn data type of scattering parameter x. It should be either of the following: ' \
+              'ndarray, list, float'
+        raise TypeError(msg)
+
+    if x.shape[0] == 0:
+        msg = 'Scattering parameter x has zero elements'
+        raise ValueError(msg)
+
+    if refrel is None:
+        msg = 'Unknown refractive index refrel.'
+        raise ValueError(msg)
+
+    if isinstance(refrel, list):
+        refrel = np.array(refrel)
+    elif isinstance(refrel, float):
+        refrel = np.array([refrel])
+    else:
+        msg = 'Unkonwn data type of refractive index refrel. It should be either of the following: ' \
+              'ndarray, list, float'
+        raise TypeError(msg)
+
+    if refrel.shape[0] == 0:
+        msg = 'Refractive index refrel has zero elements'
+        raise ValueError(msg)
+
+    if theta is None:
+        msg = 'Unknown scattering angle theta.'
+        raise ValueError(msg)
+
+    if isinstance(theta, list):
+        theta = np.array(theta)
+    else:
+        msg = 'Unkonwn data type of scattering angle theta. It should be either of the following: ' \
+              'ndarray, list, float'
+        raise TypeError(msg)
+
+    if theta.shape[0] == 0:
+        msg = 'Scattering angle theta has zero elements'
+        raise ValueError(msg)
+
+
     #
     # First check that the theta array goes from 0 to 180 or
     # 180 to 0, and store which is 0 and which is 180
     #
     nang = len(theta)
-    if theta[0] == 0.0:
-        assert theta[nang - 1] == 180, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
-        iang0 = 0
-        iang180 = nang - 1
-    else:
-        assert theta[0] == 180, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
-        assert theta[nang - 1] == 0, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
-        iang0 = nang - 1
-        iang180 = 0
+
+    if theta[0] != 0:
+        msg = "First element of scattering angle array is not 0. Scattering angle grid must extend from 0 to 180 " \
+              "degrees."
+        raise ValueError(msg)
+    if theta[-1] != 180:
+        msg = "Last element of scattering angle array is not 180. Scattering angle grid must extend from 0 to 180 " \
+              "degrees."
+        raise ValueError(msg)
+
+    # if theta[0] == 0.0:
+    #     assert theta[nang - 1] == 180, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
+    #     iang0 = 0
+    #     iang180 = nang - 1
+    # else:
+    #     assert theta[0] == 180, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
+    #     assert theta[nang - 1] == 0, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
+    #     iang0 = nang - 1
+    #     iang180 = 0
     #
     # Allocate the complex phase functions with double precision
     #
@@ -95,7 +174,7 @@ def bhmie(x, refrel, theta):
     #
     # Compute the mu = cos(theta*pi/180.) for all scattering angles
     #
-    mu = np.cos(theta * math.pi / 180.)
+    mu = np.cos(theta * np.pi / 180.)
     #
     # Now calculate the logarithmic derivative dlog by downward recurrence
     # beginning with initial value 0.+0j at nmx-1
@@ -179,18 +258,18 @@ def bhmie(x, refrel, theta):
     #
     gsca = 2 * gsca / Qsca
     Qsca = (2.0 / (x * x)) * Qsca
-    Qext = (4.0 / (x * x)) * S1[iang0].real
-    Qback = (abs(S1[iang180]) / x) ** 2 / math.pi
+    Qext = (4.0 / (x * x)) * S1[0].real
+    Qback = (abs(S1[-1]) / x) ** 2 / np.pi
     Qabs = Qext - Qsca
     #
     # Return results
     #
-    return S1, S2, Qext, Qabs, Qsca, Qback, gsca
+    return [S1, S2, Qext, Qabs, Qsca, Qback, gsca]
 
 
-def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
-                     theta=None,logawidth=None,wfact=3.0,na=20,
-                     chopforward=0.0,errtol=0.01,verbose=False,
+def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
+                     theta=None, logawidth=None, wfact=3.0, na=20,
+                     chopforward=0.0, errtol=0.01, verbose=False,
                      extrapolate=False):
     """
     Compute dust opacity with Mie theory based on the optical constants
@@ -200,126 +279,208 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
     optionally smear out the grain size distribution a bit with setting
     the width of a Gaussian grain size distribution.
 
-    Arguments:
-      optconst_file = File name of the optical constants file. This file
-                      should contain three columns: first the wavelength
-                      in micron, then the n-coefficient and then the
-                      k-coefficient. See Jena optical constants database:
-                      http://www.astro.uni-jena.de/Laboratory/Database/databases.html
-      matdens       = Material density in g/cm^3
-      agraincm      = Grain radius in cm
-      lamcm         = Wavelength grid in cm (a numpy array)
-      theta         = Optional angular grid (a numpy array) between 0 and 180
-                      which are the scattering angle sampling points at
-                      which the scattering phase function is computed.
-      logawidth     = Optional: if set, the size agrain will instead be a
-                      sample of sizes around agrain. This helps to smooth out
-                      the strong wiggles in the phase function and opacity
-                      of spheres at an exact size. Since in Nature it rarely
-                      happens that grains all have exactly the same size, this
-                      is quite natural. The value of logawidth sets the width
-                      of the Gauss in ln(agrain), so for logawidth<<1 this
-                      give a real width of logawidth*agraincm.
-      wfact         = (default=3.0) Grid width of na sampling points in units
-                      of logawidth. The Gauss distribution of grain sizes is
-                      cut off at agrain * exp(wfact*logawidth) and
-                      agrain * exp(-wfact*logawidth).
-      na            = (default=20) Number of size sampling points
-                      (if logawidth set).
-      chopforward   = If >0 this gives the angle (in degrees from forward)
-                      within which the scattering phase function should be
-                      kept constant, essentially removing the strongly peaked
-                      forward scattering. This is useful for large grains
-                      (large ratio 2*pi*agraincm/lamcm) where the forward
-                      scattering peak is extremely strong, yet extremely
-                      narrow. If we are not interested in very forward-peaked
-                      scattering (e.g. only relevant when modeling e.g. the
-                      halo around the moon on a cold winter night), this will
-                      remove this component and allow a lower angular grid
-                      resolution for the theta grid.
-      errtol        = Tolerance of the relative difference between kscat
-                      and the integral over the zscat Z11 element over angle.
-                      If this tolerance is exceeded, a warning is given.
-      verbose       = If set to True, the code will give some feedback so
-                      that one knows what it is doing if it becomes slow.
-      extrapolate   = If set to True, then if the wavelength grid lamcm goes
-                      out of the range of the wavelength grid of the
-                      optical constants file, then it will make a suitable
-                      extrapolation: keeping the optical constants constant
-                      for lamcm < minimum, and extrapolating log-log for
-                      lamcm > maximum.
+    Parameters
+    ----------
+    fname       : str
+                  File name of the optical constants file. This file
+                  should contain three columns: first the wavelength
+                  in micron, then the n-coefficient and then the
+                  k-coefficient. See Jena optical constants database:
+                  http://www.astro.uni-jena.de/Laboratory/Database/databases.html
 
-    Returns (all in the form of a single dictionary):
-      kabs          = Absorption opacity kappa_abs_nu (a numpy array) in
-                      units of cm^2/gram
-      kscat         = Scattering opacity kappa_abs_nu (a numpy array) in
-                      units of cm^2/gram
-      gscat         = The <cos(theta)> g-factor of scattering
+    matdens     : float
+                  Material density in g/cm^3
 
-    Returns also (if theta grid is given):
-      theta         = The theta grid itself (just a copy of what was given)
-      zscat         = The components of the scattering Mueller matrix
-                      Z_ij for each wavelength and each scattering angel.
-                      The normalization of Z is such that kscat can be
-                      reproduced (as can be checked) by the integral:
-                      2*pi*int_{-1}^{+1}Z11(mu)dmu=kappa_scat.
-                      For symmetry reasons only 6 elements of the Z
-                      matrix are returned: Z11, Z12, Z22, Z33, Z34, Z44.
-                      Note that Z21 = Z12 and Z43 = -Z34.
-                      The scattering matrix is normalized such that
-                      if a plane wave with Stokes flux
-                         Fin = (Fin_I,Fin_Q,Fin_U,Fin_V)
-                      hits a dust grain (which has mass mgrain), then
-                      the scattered flux
-                         Fout = (Fout_I,Fout_Q,Fout_U,Fout_V)
-                      at distance r from the grain at angle theta
-                      is given by
-                         Fout(theta) = (mgrain/r^2) * Zscat . Fin
-                      where . is the matrix-vector multiplication.
-                      Note that the Stokes components must be such
-                      that the horizontal axis in the "image" is
-                      pointing in the scattering plane. This means
-                      that radiation with Fin_Q < 0 is scattered well,
-                      because it is vertically polarized (along the
-                      scattering angle axis), while radiation with
-                      Fin_Q > 0 is scatterd less well because it
-                      is horizontally polarized (along the scattering
-                      plane).
-      kscat_from_z11= The kscat computed from the (above mentioned)
-                      integral of Z11 over all angles. This should be
-                      nearly identical to kscat if the angular grid
-                      is sufficiently fine. If there are strong
-                      differences, this is an indication that the
-                      angular gridding (the theta grid) is not fine
-                      enough. But you should have then automatically
-                      gotten a warning message as well (see errtol).
+    agraincm    : float
+                  Grain radius in cm
 
-    If extrapolate is set to True, it will also return:
-      wavmic        = The original wavelength grid from the optical
-                      constants file, with possibly an added extrapolated
-                      value at each end.
-      ncoef         = The optical constant n at that grid
-      kcoef         = The optical constant k at that grid
+    lamcm       : ndarray
+                  Wavelength grid in cm
 
-    If logawidth is set to some value, then a size distribution is
-    used to smear out some of the strong oscillations in the
-    opacity and phase function due to the resonances. Then
-    it will also return this size distribution:
-      agr           = The grain sizes
-      wgt           = The averaging weights of these grain (not the masses!)
-                      The sum of wgt.sum() must be 1.
+    theta       : ndarray, optional
+                  Angular grid (a numpy array) between 0 and 180
+                  which are the scattering angle sampling points at
+                  which the scattering phase function is computed.
 
-    If chopforward>0 it will also return the unchopped versions:
-      zscat_nochop  = The zscat before the forward scattering was chopped off
-      kscat_nochop  = The kscat originally from the bhmie code
+    logawidth   : float, optional
+                 If set, the size agrain will instead be a
+                 sample of sizes around agrain. This helps to smooth out
+                 the strong wiggles in the phase function and opacity
+                 of spheres at an exact size. Since in Nature it rarely
+                 happens that grains all have exactly the same size, this
+                 is quite natural. The value of logawidth sets the width
+                 of the Gauss in ln(agrain), so for logawidth<<1 this
+                 give a real width of logawidth*agraincm.
+
+    wfact       : float
+                  Grid width of na sampling points in units
+                  of logawidth. The Gauss distribution of grain sizes is
+                  cut off at agrain * exp(wfact*logawidth) and
+                  agrain * exp(-wfact*logawidth). Default = 3
+
+
+    na          : int
+                  Number of size sampling points (if logawidth set, default=20)
+
+    chopforward : float
+                  If >0 this gives the angle (in degrees from forward)
+                  within which the scattering phase function should be
+                  kept constant, essentially removing the strongly peaked
+                  forward scattering. This is useful for large grains
+                  (large ratio 2*pi*agraincm/lamcm) where the forward
+                  scattering peak is extremely strong, yet extremely
+                  narrow. If we are not interested in very forward-peaked
+                  scattering (e.g. only relevant when modeling e.g. the
+                  halo around the moon on a cold winter night), this will
+                  remove this component and allow a lower angular grid
+                  resolution for the theta grid.
+
+
+    errtol      : float
+                  Tolerance of the relative difference between kscat
+                  and the integral over the zscat Z11 element over angle.
+                  If this tolerance is exceeded, a warning is given.
+
+    verbose     : bool
+                  If set to True, the code will give some feedback so
+                  that one knows what it is doing if it becomes slow.
+
+    extrapolate : bool
+                  If set to True, then if the wavelength grid lamcm goes
+                  out of the range of the wavelength grid of the
+                  optical constants file, then it will make a suitable
+                  extrapolation: keeping the optical constants constant
+                  for lamcm < minimum, and extrapolating log-log for
+                  lamcm > maximum.
+
+    Returns
+    -------
+    A dictionary with the following keys:
+
+        * kabs          : ndarray
+                          Absorption opacity kappa_abs_nu (a numpy array) in
+                          units of cm^2/gram
+
+        * ksca          : ndarray
+                          Scattering opacity kappa_abs_nu (a numpy array) in
+                          units of cm^2/gram
+
+        * gsca          : ndarray
+                          The <cos(theta)> g-factor of scattering
+
+        * theta         : ndarray (optional, only if theta is given at input)
+                          The theta grid itself (just a copy of what was given)
+
+        * zscat         : ndarray (optional, only if theta is given at input)
+                          The components of the scattering Mueller matrix
+                          Z_ij for each wavelength and each scattering angel.
+                          The normalization of Z is such that kscat can be
+                          reproduced (as can be checked) by the integral:
+                          2*pi*int_{-1}^{+1}Z11(mu)dmu=kappa_scat.
+                          For symmetry reasons only 6 elements of the Z
+                          matrix are returned: Z11, Z12, Z22, Z33, Z34, Z44.
+                          Note that Z21 = Z12 and Z43 = -Z34.
+                          The scattering matrix is normalized such that
+                          if a plane wave with Stokes flux
+                             Fin = (Fin_I,Fin_Q,Fin_U,Fin_V)
+                          hits a dust grain (which has mass mgrain), then
+                          the scattered flux
+                             Fout = (Fout_I,Fout_Q,Fout_U,Fout_V)
+                          at distance r from the grain at angle theta
+                          is given by
+                             Fout(theta) = (mgrain/r^2) * Zscat . Fin
+                          where . is the matrix-vector multiplication.
+                          Note that the Stokes components must be such
+                          that the horizontal axis in the "image" is
+                          pointing in the scattering plane. This means
+                          that radiation with Fin_Q < 0 is scattered well,
+                          because it is vertically polarized (along the
+                          scattering angle axis), while radiation with
+                          Fin_Q > 0 is scatterd less well because it
+                          is horizontally polarized (along the scattering
+                          plane).
+
+        * kscat_from_z11 : ndarray  (optional, only if theta is given at input)
+                           The kscat computed from the (above mentioned)
+                           integral of Z11 over all angles. This should be
+                           nearly identical to kscat if the angular grid
+                           is sufficiently fine. If there are strong
+                           differences, this is an indication that the
+                           angular gridding (the theta grid) is not fine
+                           enough. But you should have then automatically
+                           gotten a warning message as well (see errtol).
+
+        * wavmic        : ndarray (optional, only if extrapolate is set to True)
+                          The original wavelength grid from the optical constants file,
+                          with possibly an added extrapolated
+
+        * ncoef         : ndarray (optional, only if extrapolate is set to True)
+                          The optical constant n at that grid
+
+        * kcoef         : ndarray (optional, only if extrapolate is set to True)
+                          The optical constant k at that grid
+
+        * agr           : ndarray (optional, only if logawidth is not None)
+                          Grain sizes
+
+        * wgt           : ndarray (optional, only if logawidth is not None)
+                          The averaging weights of these grain (not the masses!)
+                          The sum of wgt.sum() must be 1.
+
+        * zscat_nochop  : ndarray (optional, only if chopforward > 0)
+                          The zscat before the forward scattering was chopped off
+
+        * kscat_nochop  : ndarray (optional, only if chopforward > 0)
+                          The kscat originally from the bhmie code
     """
     #
     # Load the optical constants
     #
-    data = np.loadtxt(optconst_file)
+    if matdens is None:
+        raise ValueError("Unknown material density matdens")
+
+    if agraincm is None:
+        raise ValueError("Unknown grain size agraincm")
+
+    if lamcm is None:
+        raise ValueError("Unknown wavelength grid lamcm")
+
+    if theta is None:
+        angles = np.array([0., 90., 180.])  # Minimalistic angular s
+        if chopforward != 0.:
+            warnings.warn("Chopping disabled. Chopping is only possible if theta grid is given. ", RuntimeWarning)
+    else:
+        angles = theta
+
+    #
+    # Check that the theta array goes from 0 to 180 or
+    # 180 to 0, and store which is 0 and which is 180
+    #
+    if angles[0] != 0:
+        msg = "First element of the angular grid array is not 0. Scattering angle grid must extend from 0 to 180 " \
+              "degrees."
+        raise ValueError(msg)
+    if angles[-1] != 180:
+        msg = "Last element of the angular grid array is not 180. Scattering angle grid must extend from 0 to 180 " \
+              "degrees."
+        raise ValueError(msg)
+
+    nang = angles.shape[0]
+
+    #
+    # Load the optical constants
+    #
+    data = np.loadtxt(fname)
     wavmic, ncoef, kcoef = data.T
-    assert wavmic.size > 1, "Error: Optical constants file must have at least two rows with two different wavelengths."
-    assert wavmic[1]!=wavmic[0], "Error: Optical constants file must have at least two rows with two different wavelengths."
+
+    if wavmic.size <= 1:
+        msg = "Optical constants file must have at least two rows with two different wavelengths"
+        raise ValueError(msg)
+
+    if wavmic[1] == wavmic[0]:
+        msg = "Optical constants file must have at least two rows with two different wavelengths"
+        raise ValueError(msg)
+
     #
     # Check range, and if needed and requested, extrapolate the
     # optical constants to longer or shorter wavelengths
@@ -354,8 +515,14 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
                                                              (math.log(wavmic[0])-math.log(wavmic[1])))])
                 wavmic = np.append([wmax],wavmic)
     else:
-        assert np.min(lamcm) >= np.min(wavmic*1e-4), "Error: wavelength range out of range of the optical constants file.\n"
-        assert np.max(lamcm) <= np.max(wavmic*1e-4), "Error: wavelength range out of range of the optical constants file.\n"
+        if lamcm.min() <= wavmic.min()*1e4:
+            raise ValueError("Wavelength range out of range of the optical constants file")
+
+        if lamcm.max() >= wavmic.max()*1e-4:
+            raise ValueError("Wavelength range out of range of the optical constants file")
+
+        # assert np.min(lamcm) >= np.min(wavmic*1e-4), "Error: wavelength range out of range of the optical constants file.\n"
+        # assert np.max(lamcm) <= np.max(wavmic*1e-4), "Error: wavelength range out of range of the optical constants file.\n"
     #
     # Interpolate
     # Note: Must be within range, otherwise stop
@@ -368,24 +535,6 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
     # Make the complex index of refraction
     #
     refidx = ncoefi + kcoefi*1j
-    #
-    # Make a grid of angles, if not already given by theta
-    #
-    if theta is None:
-        angles = np.array([0.,90.,180.])  # Minimalistic angular grid
-        assert chopforward==0.0, "Sorry: Chopping only possible if theta grid given."
-    else:
-        angles = theta
-    nang = angles.size
-    #
-    # Check that the theta array goes from 0 to 180 or
-    # 180 to 0, and store which is 0 and which is 180
-    #
-    if angles[0]==0.0:
-        assert angles[nang-1]==180, "Error: Angle grid must extend from 0 to 180 degrees."
-    else:
-        assert angles[0]==180, "Error: Angle grid must extend from 0 to 180 degrees."
-        assert angles[nang-1]==0, "Error: Angle grid must extend from 0 to 180 degrees."
     #
     # Make a size distribution for the grains
     # If width is not set, then take just one size
@@ -405,11 +554,11 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
     #
     # Compute the geometric cross sections
     #
-    siggeom = math.pi*agr*agr
+    siggeom = np.pi*agr*agr
     #
     # Compute the mass of the grain
     #
-    mgrain  = (4*math.pi/3.0)*matdens*agr*agr*agr
+    mgrain  = (4*np.pi/3.0)*matdens*agr*agr*agr
     #
     # Now prepare arrays
     #
@@ -423,9 +572,10 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
         S12   = np.zeros(nang)
         S33   = np.zeros(nang)
         S34   = np.zeros(nang)
-        if chopforward>0:
+        if chopforward > 0:
             zscat_nochop = np.zeros((nlam,nang,6))
             kscat_nochop = np.zeros(nlam)
+
     #
     # Set error flag to False
     #
@@ -440,7 +590,7 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
         # Message
         #
         if verbose:
-            print "Doing wavelength %13.6e cm"%lamcm[i]
+            print("Doing wavelength %13.6e cm"%lamcm[i])
         #
         # Now loop over the grain sizes
         #
@@ -449,11 +599,11 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
             # Message
             #
             if verbose and nagr>1:
-                print "...Doing grain size %13.6e cm"%agr[l]
+                print("...Doing grain size %13.6e cm"%agr[l])
             #
             # Compute x
             #
-            x = 2*math.pi*agr[l]/lamcm[i]
+            x = 2*np.pi*agr[l]/lamcm[i]
             #
             # Call the bhmie code
             #
@@ -476,7 +626,7 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
                 # the actual cross section in units of cm^2 / ster, and there
                 # is the mass of the grain to get the cross section per gram.
                 #
-                factor = (lamcm[i]/(2*math.pi))**2/mgrain[l]
+                factor = (lamcm[i]/(2*np.pi))**2/mgrain[l]
                 #
                 # Compute the scattering Mueller matrix elements at each angle
                 #
@@ -495,14 +645,14 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
         # with kscat
         #
         if theta is not None:
-            mu  = np.cos(angles*math.pi/180.)
-            dmu = np.abs(mu[1:nang]-mu[0:nang-1])
+            mu  = np.cos(angles * np.pi / 180.)
+            dmu = np.abs(mu[1:nang] - mu[0:nang-1])
             zav = 0.5 * ( zscat[i,1:nang,0] + zscat[i,0:nang-1,0] )
             dum = 0.5 * zav*dmu
-            sum = dum.sum() * 4 * math.pi
+            sum = dum.sum() * 4 * np.pi
             kscat_from_z11[i] = sum
             err = abs(sum/kscat[i]-1.0)
-            if err>errtol:
+            if err > errtol:
                 error = True
                 errmax = max(err,errmax)
         #
@@ -525,20 +675,22 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
             zscat[i,iang,3]     = zscat[i,iiang,3]
             zscat[i,iang,4]     = zscat[i,iiang,4]
             zscat[i,iang,5]     = zscat[i,iiang,5]
-            mu  = np.cos(angles*math.pi/180.)
+            mu  = np.cos(angles*np.pi/180.)
             dmu = np.abs(mu[1:nang]-mu[0:nang-1])
             zav = 0.5 * ( zscat[i,1:nang,0] + zscat[i,0:nang-1,0] )
             dum = 0.5 * zav*dmu
-            sum = dum.sum() * 4 * math.pi
+            sum = dum.sum() * 4 * np.pi
             kscat[i] = sum
     #
-    # If error found, then warn
+    # If error found, then warn (Then shouldn't it be called a warning? If it's a true error
+    #  shouldn't we stop the execution and raise an exception?)
     #
     if error:
-        print "Warning: Angular integral of Z11 is not equal to kscat at all wavelength. "
-        print "Maximum error = %13.6e"%errmax
-        if chopforward>0:
-            print "But I am using chopforward to remove strong forward scattering, and then renormalized kapscat."
+        msg = " Angular integral of Z11 is not equal to kscat at all wavelength. \n"
+        msg += "Maximum error = %13.6e"%errmax + "\n"
+        if chopforward > 0:
+            msg += "But I am using chopforward to remove strong forward scattering, and then renormalized kapscat."
+        warnings.warn(msg, RuntimeWarning)
     #
     # Now return what we computed in a dictionary
     #
@@ -560,10 +712,11 @@ def compute_opac_mie(optconst_file,matdens,agraincm,lamcm,
     if chopforward>0:
         package["zscat_nochop"] = np.copy(zscat_nochop)
         package["kscat_nochop"] = np.copy(kscat_nochop)
+
     return package
 
 
-def write_radmc3d_scatmat_file(package,name):
+def write_radmc3d_scatmat_file(package=None,name=None):
     """
     The RADMC-3D radiative transfer package
       http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/
@@ -573,12 +726,20 @@ def write_radmc3d_scatmat_file(package,name):
     writes the opacities out in that form. It will write it to
     the file dustkapscatmat_<name>.inp.
     """
+    if package is None:
+        raise ValueError("Unknown package. No data to be written.")
+
+    if name is None:
+        raise ValueError("Unkonwn name. Without a file name tag for dustkapscatmat_NAME.inp must be given.")
+
     filename = 'dustkapscatmat_'+name+'.inp'
     with open(filename,'w') as f:
         f.write('# Opacity and scattering matrix file for '+name+'\n')
-        f.write('# Please do not forget to cite in your publications the original paper of these optical constant measurements\n')
+        f.write('# Please do not forget to cite in your publications the original paper of these optical '+
+                'constant measurements\n')
         f.write('# Made with the makedustopac.py code by Cornelis Dullemond\n')
-        f.write('# using the bhmie.py Mie code of Bohren and Huffman (python version by Cornelis Dullemond, from original bhmie.f code by Bruce Draine)\n')
+        f.write('# using the bhmie.py Mie code of Bohren and Huffman (python version by Cornelis Dullemond, '+
+                'from original bhmie.f code by Bruce Draine)\n')
         f.write('# Grain size = %13.6e cm\n'%(package['agraincm']))
         f.write('# Material density = %6.3f g/cm^3\n'%(package['matdens']))
         f.write('1\n')  # Format number
@@ -603,7 +764,7 @@ def write_radmc3d_scatmat_file(package,name):
         f.write('\n')
 
 
-def write_radmc3d_kappa_file(package,name):
+def write_radmc3d_kappa_file(package=None,name=None):
     """
     The RADMC-3D radiative transfer package
       http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/
@@ -615,6 +776,12 @@ def write_radmc3d_kappa_file(package,name):
     the opacity files, containing only kabs, kscat, gscat as a function
     of wavelength.
     """
+    if package is None:
+        raise ValueError("Unknown package. No data to be written.")
+
+    if name is None:
+        raise ValueError("Unkonwn name. Without a file name tag for dustkappa_NAME.inp must be given.")
+
     filename = 'dustkappa_'+name+'.inp'
     with open(filename,'w') as f:
         f.write('3\n')  # Format number
