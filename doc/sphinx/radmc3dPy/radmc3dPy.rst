@@ -35,6 +35,22 @@ radmc3dPy\.crd\_trans module
     :undoc-members:
     :show-inheritance:
 
+radmc3dPy\.data module
+----------------------
+
+.. automodule:: radmc3dPy.data
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+radmc3dPy\.dustopac module
+--------------------------
+
+.. automodule:: radmc3dPy.dustopac
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 radmc3dPy\.image module
 -----------------------
 
@@ -51,10 +67,50 @@ radmc3dPy\.miescat module
     :undoc-members:
     :show-inheritance:
 
+radmc3dPy\.molecule module
+--------------------------
+
+.. automodule:: radmc3dPy.molecule
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 radmc3dPy\.natconst module
 --------------------------
 
 .. automodule:: radmc3dPy.natconst
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+radmc3dPy\.octree module
+------------------------
+
+.. automodule:: radmc3dPy.octree
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+radmc3dPy\.params module
+------------------------
+
+.. automodule:: radmc3dPy.params
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+radmc3dPy\.radsources module
+----------------------------
+
+.. automodule:: radmc3dPy.radsources
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+radmc3dPy\.reggrid module
+-------------------------
+
+.. automodule:: radmc3dPy.reggrid
     :members:
     :undoc-members:
     :show-inheritance:

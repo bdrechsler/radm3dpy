@@ -186,7 +186,7 @@
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">grid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ppar</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Where <code class="docutils literal"><span class="pre">grid</span></code> is an instance of <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dGrid" title="radmc3dPy.analyze.radmc3dGrid"><code class="xref py py-class docutils literal"><span class="pre">radmc3dGrid</span></code></a> and <code class="docutils literal"><span class="pre">ppar</span></code> is a dictionary containing all parameters of the model. For octree AMR compatible
+<p>Where <code class="docutils literal"><span class="pre">grid</span></code> is an instance of <code class="xref py py-class docutils literal"><span class="pre">radmc3dGrid</span></code> and <code class="docutils literal"><span class="pre">ppar</span></code> is a dictionary containing all parameters of the model. For octree AMR compatible
 models the model functions have three additional arguments:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ppar</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
@@ -320,12 +320,12 @@ nodes immediately before moving on to the next base grid cell. As discussed abov
 octree mesh in python. During grid building therefore we use array operations to process to test and refine all cells at a given level, which is significantly
 faster.</p>
 <p>To save time on reading the grid and speed up data reading there are two options. One possibility is that we use the data reading methods of
-<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dData" title="radmc3dPy.analyze.radmc3dData"><code class="xref py py-class docutils literal"><span class="pre">radmc3dData</span></code></a>. For instance, we have read the dust density, but if we additionally want to read the dust temperature as well we can use
-<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dData.readDustTemp" title="radmc3dPy.analyze.radmc3dData.readDustTemp"><code class="xref py py-meth docutils literal"><span class="pre">readDustTemp()</span></code></a>:</p>
+<code class="xref py py-class docutils literal"><span class="pre">radmc3dData</span></code>. For instance, we have read the dust density, but if we additionally want to read the dust temperature as well we can use
+<code class="xref py py-meth docutils literal"><span class="pre">readDustTemp()</span></code>:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;d.readDustTemp(binary=False, octree=True)</span>
 </pre></div>
 </div>
-<p>The other possibility is if we pass the instance of the <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dOctree" title="radmc3dPy.analyze.radmc3dOctree"><code class="xref py py-class docutils literal"><span class="pre">radmc3dOctree</span></code></a> or <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.radmc3dGrid" title="radmc3dPy.analyze.radmc3dGrid"><code class="xref py py-class docutils literal"><span class="pre">radmc3dGrid</span></code></a> to the
+<p>The other possibility is if we pass the instance of the <code class="xref py py-class docutils literal"><span class="pre">radmc3dOctree</span></code> or <code class="xref py py-class docutils literal"><span class="pre">radmc3dGrid</span></code> to the
 <a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.readData" title="radmc3dPy.analyze.readData"><code class="xref py py-class docutils literal"><span class="pre">readData</span></code></a> function. If we have already read the grid contained in the instance <code class="docutils literal"><span class="pre">g</span></code> then we can pass it on to the data reader
 function to use this grid instead of readin it from file:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;d = analyze.readData(ddens=True, octree=True, binary=False, grid=g)</span>

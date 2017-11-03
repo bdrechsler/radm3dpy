@@ -92,7 +92,6 @@ def bhmie(x=None, refrel=None, theta=None):
         msg = 'Scattering angle theta has zero elements'
         raise ValueError(msg)
 
-
     #
     # First check that the theta array goes from 0 to 180 or
     # 180 to 0, and store which is 0 and which is 180
@@ -451,31 +450,31 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         wmin = np.min(lamcm)*1e4 * 0.999
         wmax = np.max(lamcm)*1e4 * 1.001
         if wmin < np.min(wavmic):
-            if wavmic[0]<wavmic[1]:
-                ncoef  = np.append([ncoef[0]],ncoef)
-                kcoef  = np.append([kcoef[0]],kcoef)
-                wavmic = np.append([wmin],wavmic)
+            if wavmic[0] < wavmic[1]:
+                ncoef = np.append([ncoef[0]], ncoef)
+                kcoef = np.append([kcoef[0]], kcoef)
+                wavmic = np.append([wmin], wavmic)
             else:
-                ncoef  = np.append(ncoef,[ncoef[-1]])
-                kcoef  = np.append(kcoef,[kcoef[-1]])
-                wavmic = np.append(wavmic,[wmin])
+                ncoef = np.append(ncoef, [ncoef[-1]])
+                kcoef = np.append(kcoef, [kcoef[-1]])
+                wavmic = np.append(wavmic, [wmin])
         if wmax > np.max(wavmic):
-            if wavmic[0]<wavmic[1]:
-                ncoef  = np.append(ncoef,[ncoef[-1]*math.exp((math.log(wmax)-math.log(wavmic[-1]))*
-                                                             (math.log(ncoef[-1])-math.log(ncoef[-2]))/
-                                                             (math.log(wavmic[-1])-math.log(wavmic[-2])))])
-                kcoef  = np.append(kcoef,[kcoef[-1]*math.exp((math.log(wmax)-math.log(wavmic[-1]))*
-                                                             (math.log(kcoef[-1])-math.log(kcoef[-2]))/
-                                                             (math.log(wavmic[-1])-math.log(wavmic[-2])))])
-                wavmic = np.append(wavmic,[wmax])
+            if wavmic[0] < wavmic[1]:
+                ncoef = np.append(ncoef, [ncoef[-1] * math.exp((math.log(wmax) - math.log(wavmic[-1])) *
+                                                             (math.log(ncoef[-1]) - math.log(ncoef[-2]))/
+                                                             (math.log(wavmic[-1]) - math.log(wavmic[-2])))])
+                kcoef = np.append(kcoef, [kcoef[-1]*math.exp((math.log(wmax) - math.log(wavmic[-1])) *
+                                                             (math.log(kcoef[-1]) - math.log(kcoef[-2]))/
+                                                             (math.log(wavmic[-1]) - math.log(wavmic[-2])))])
+                wavmic = np.append(wavmic, [wmax])
             else:
-                ncoef  = np.append(ncoef,[ncoef[0]*math.exp((math.log(wmax)-math.log(wavmic[0]))*
-                                                             (math.log(ncoef[0])-math.log(ncoef[1]))/
-                                                             (math.log(wavmic[0])-math.log(wavmic[1])))])
-                kcoef  = np.append(kcoef,[kcoef[0]*math.exp((math.log(wmax)-math.log(wavmic[0]))*
-                                                             (math.log(kcoef[0])-math.log(kcoef[1]))/
-                                                             (math.log(wavmic[0])-math.log(wavmic[1])))])
-                wavmic = np.append([wmax],wavmic)
+                ncoef = np.append(ncoef, [ncoef[0]*math.exp((math.log(wmax)-math.log(wavmic[0]))*
+                                                             (math.log(ncoef[0]) - math.log(ncoef[1])) /
+                                                             (math.log(wavmic[0]) - math.log(wavmic[1])))])
+                kcoef = np.append(kcoef, [kcoef[0]*math.exp((math.log(wmax) - math.log(wavmic[0]))*
+                                                             (math.log(kcoef[0]) - math.log(kcoef[1])) /
+                                                             (math.log(wavmic[0]) - math.log(wavmic[1])))])
+                wavmic = np.append([wmax], wavmic)
     else:
         if lamcm.min() <= wavmic.min()*1e4:
             raise ValueError("Wavelength range out of range of the optical constants file")
@@ -483,9 +482,6 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         if lamcm.max() >= wavmic.max()*1e-4:
             raise ValueError("Wavelength range out of range of the optical constants file")
 
-        # assert np.min(lamcm) >= np.min(wavmic*1e-4), "Error: wavelength range out of range of the optical constants file.\n"
-        # assert np.max(lamcm) <= np.max(wavmic*1e-4), "Error: wavelength range out of range of the optical constants file.\n"
-    #
     # Interpolate
     # Note: Must be within range, otherwise stop
     #
@@ -502,13 +498,12 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
     # If width is not set, then take just one size
     #
     if logawidth is None:
-        agr   = np.array([agraincm])
-        wgt   = np.array([1.0])
+        agr = np.array([agraincm])
+        wgt = np.array([1.0])
     else:
-        agr   = np.exp(np.linspace(math.log(agraincm)-wfact*logawidth,
-                                   math.log(agraincm)+wfact*logawidth,na))
-        wgt   = np.exp(-0.5*((np.log(agr/agraincm))/logawidth)**2)
-        wgt   = wgt/wgt.sum()
+        agr = np.exp(np.linspace(math.log(agraincm) - wfact * logawidth, math.log(agraincm) + wfact * logawidth, na))
+        wgt = np.exp(-0.5*((np.log(agr / agraincm)) / logawidth)**2)
+        wgt = wgt / wgt.sum()
     #
     # Get the true number of grain sizes
     #
@@ -520,20 +515,20 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
     #
     # Compute the mass of the grain
     #
-    mgrain  = (4*np.pi/3.0)*matdens*agr*agr*agr
+    mgrain = (4*np.pi/3.0)*matdens*agr*agr*agr
     #
     # Now prepare arrays
     #
-    nlam  = lamcm.size
-    kabs  = np.zeros(nlam)
+    nlam = lamcm.size
+    kabs = np.zeros(nlam)
     kscat = np.zeros(nlam)
     gscat = np.zeros(nlam)
     if theta is not None:
-        zscat = np.zeros((nlam,nang,6))
-        S11   = np.zeros(nang)
-        S12   = np.zeros(nang)
-        S33   = np.zeros(nang)
-        S34   = np.zeros(nang)
+        zscat = np.zeros((nlam, nang, 6))
+        S11 = np.zeros(nang)
+        S12 = np.zeros(nang)
+        S33 = np.zeros(nang)
+        S34 = np.zeros(nang)
         if chopforward > 0:
             zscat_nochop = np.zeros((nlam,nang,6))
             kscat_nochop = np.zeros(nlam)
@@ -541,7 +536,7 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
     #
     # Set error flag to False
     #
-    error  = False
+    error = False
     errmax = 0.0
     kscat_from_z11 = np.zeros(nlam)
     #
@@ -573,9 +568,9 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
             #
             # Add results to the averaging over the size distribution
             #
-            kabs[i]   += wgt[l] * Qabs*siggeom[l]/mgrain[l]
-            kscat[i]  += wgt[l] * Qsca*siggeom[l]/mgrain[l]
-            gscat[i]  += wgt[l] * gsca
+            kabs[i] += wgt[l] * Qabs*siggeom[l] / mgrain[l]
+            kscat[i] += wgt[l] * Qsca*siggeom[l] / mgrain[l]
+            gscat[i] += wgt[l] * gsca
             #
             # If angles were set, then also compute the Z matrix elements
             #
@@ -592,10 +587,10 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
                 #
                 # Compute the scattering Mueller matrix elements at each angle
                 #
-                S11[:]        = 0.5 * ( np.abs(S2[:])**2 + np.abs(S1[:])**2 )
-                S12[:]        = 0.5 * ( np.abs(S2[:])**2 - np.abs(S1[:])**2 )
-                S33[:]        = np.real(S2[:]*np.conj(S1[:]))
-                S34[:]        = np.imag(S2[:]*np.conj(S1[:]))
+                S11[:]  = 0.5 * ( np.abs(S2[:])**2 + np.abs(S1[:])**2 )
+                S12[:]  = 0.5 * ( np.abs(S2[:])**2 - np.abs(S1[:])**2 )
+                S33[:]  = np.real(S2[:]*np.conj(S1[:]))
+                S34[:]  = np.imag(S2[:]*np.conj(S1[:]))
                 zscat[i,:,0] += wgt[l] * S11[:] * factor
                 zscat[i,:,1] += wgt[l] * S12[:] * factor
                 zscat[i,:,2] += wgt[l] * S11[:] * factor
