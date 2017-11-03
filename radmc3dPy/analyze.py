@@ -20,11 +20,11 @@ except ImportError:
     print(traceback.format_exc())
 
 try:
-    import matplotlib.pylab as plb
+    import matplotlib.pyplot as plt
 except ImportError:
-    plb = None
+    plt = None
     print('Warning')
-    print('matplotlib.pylab cannot be imported')
+    print('matplotlib.pyplot cannot be imported')
     print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
     print('or display images')
 
@@ -6900,17 +6900,17 @@ def plotSpectrum(a, ev=False, kev=False, micron=False, jy=False, lsun=False,
     # If not oplot, then reset the subplot and set the axes
     #
     if not oplot:
-        plb.cla()
+        plt.cla()
         if xlg:
-            plb.xscale('log')
+            plt.xscale('log')
         if ylg:
-            plb.yscale('log')
-        plb.xlabel(xtitle)
-        plb.ylabel(ytitle)
+            plt.yscale('log')
+        plt.xlabel(xtitle)
+        plt.ylabel(ytitle)
     #
     # Now plot
     #
-    plb.plot(xcoord, ycoord)
+    plt.plot(xcoord, ycoord)
 
 
 def gmass(x=None, y=None, z=None, dx=None, dy=None, dz=None, model=None, ppar=None, **kwargs):
@@ -8023,7 +8023,7 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     #
 
     if ax is None:
-        ax = plb.gca()
+        ax = plt.gca()
 
     #
     # Now do the colorscale plotting but only if contours is set to False
@@ -8059,7 +8059,7 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         #
         # Generate the colorbar
         #
-        cb = plb.colorbar(p)
+        cb = plt.colorbar(p)
         cb.set_label(cblabel)
 
     #
@@ -8207,7 +8207,7 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
             c = ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
 
         if cllabel:
-            plb.clabel(c, inline=1, fontsize=cllabel_fontsize, fmt=cllabel_fmt)
+            plt.clabel(c, inline=1, fontsize=cllabel_fontsize, fmt=cllabel_fmt)
     #
     # Set the axis limits
     #
@@ -8217,10 +8217,10 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         if len(ylim) == 0:
             ylim = (plot_y[0], plot_y[-1])
 
-    plb.xlim(xlim[0], xlim[1])
-    plb.ylim(ylim[0], ylim[1])
+    plt.xlim(xlim[0], xlim[1])
+    plt.ylim(ylim[0], ylim[1])
     #
     # Set the axis labels
     #
-    plb.xlabel(xlabel)
-    plb.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)

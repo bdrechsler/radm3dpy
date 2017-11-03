@@ -38,11 +38,11 @@ except ImportError:
         print(traceback.format_exc())
 
 try:
-    import matplotlib.pylab as plb
+    import matplotlib.pylab as plt
 except ImportError:
-    plb = None
+    plt = None
     print('Warning')
-    print('matplotlib.pylab cannot be imported')
+    print('matplotlib.pyplot cannot be imported')
     print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
     print('or display images')
 
@@ -112,7 +112,6 @@ class radmc3dImage(object):
         self.pa = 0
         self.dpc = 0
         self.filename = 'image.out'
-
 
     def getClosurePhase(self, bl=None, pa=None, dpc=None):
         """Calculates clusure phases for a given model image for any arbitrary baseline triplet.
@@ -613,11 +612,11 @@ class radmc3dImage(object):
             else:
                 mmap = mmap.clip(vclip[0], vclip[1])
 
-        implot = plb.imshow(mmap, extent=ext, cmap=cmap)
-        cbar = plb.colorbar(implot)
+        implot = plt.imshow(mmap, extent=ext, cmap=cmap)
+        cbar = plt.colorbar(implot)
         cbar.set_label(cb_label)
-        plb.xlabel(xlab)
-        plb.ylabel(ylab)
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
 
     def getMomentMap(self, moment=0, nu0=None, wav0=None):
         """Calculates moment maps.
@@ -1194,17 +1193,17 @@ def plotPolDir(image=None, arcsec=False, au=False, dpc=None, ifreq=0, cmask_rad=
     ii = (lpol < 1e-6)
     vx[ii] = 0.001
     vy[ii] = 0.001
-    plb.quiver(xxr, yyr, vx, vy, color=color, pivot='mid', scale=2. * np.max([nx, ny]), headwidth=1e-10,
+    plt.quiver(xxr, yyr, vx, vy, color=color, pivot='mid', scale=2. * np.max([nx, ny]), headwidth=1e-10,
                headlength=1e-10, headaxislength=1e-10)
 
-    plb.xlabel(xlab)
-    plb.ylabel(ylab)
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
 
     return
 
 
 def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=None, saturate=None, bunit='norm',
-              ifreq=0, cmask_rad=None, interpolation='nearest', cmap=plb.cm.gist_gray, stokes='I',
+              ifreq=0, cmask_rad=None, interpolation='nearest', cmap=plt.cm.gist_gray, stokes='I',
               fig=None, ax=None, projection='polar', deg=True, rmax=None, rlog=True, **kwargs):
     """Plots a radmc3d image.
 
@@ -1422,7 +1421,7 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                     data = data * (image.sizepix_x * image.sizepix_y / (dpc * nc.pc)**2. * 1e23)
                     cb_label = 'S' + r'$_\nu$' + ' [Jy/pixel]'
 
-        elif bunit.lower()=='jy/beam':
+        elif bunit.lower() == 'jy/beam':
             if len(image.fwhm) == 0:
                 msg = 'The image does not appear to be convolved with a Gaussain (fwhm data attribute is empty). ' \
                       'The intensity unit can only be converted to Jy/beam if the convolving beam size is known'
@@ -1468,16 +1467,16 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
         ext = (x[0], x[image.nx - 1], y[0], y[image.ny - 1])
 
         # Now finally put everything together and plot the data
-        plb.delaxes()
-        plb.delaxes()
+        plt.delaxes()
+        plt.delaxes()
 
-        implot = plb.imshow(data, extent=ext, cmap=cmap, interpolation=interpolation, **kwargs)
-        plb.xlabel(xlab)
-        plb.ylabel(ylab)
-        plb.title(r'$\lambda$=' + ("%.5f" % image.wav[ifreq]) + r'$\mu$m')
-        cbar = plb.colorbar(implot)
+        implot = plt.imshow(data, extent=ext, cmap=cmap, interpolation=interpolation, **kwargs)
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
+        plt.title(r'$\lambda$=' + ("%.5f" % image.wav[ifreq]) + r'$\mu$m')
+        cbar = plt.colorbar(implot)
         cbar.set_label(cb_label)
-        plb.show()
+        plt.show()
 
     elif isinstance(image, radmc3dCircimage):
 
@@ -1646,30 +1645,30 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
             rmax = x.max()
 
         if fig is None:
-            fig = plb.figure()
+            fig = plt.figure()
 
         if projection == 'polar':
             ax = fig.add_subplot(111, projection='polar')
-            implot = plb.pcolormesh(x, y, data, **kwargs)
+            implot = plt.pcolormesh(x, y, data, **kwargs)
             ax.set_rmax(rmax)
 
         elif projection == 'cartesian':
             if ax is not None:
-                plb.sca(ax)
+                plt.sca(ax)
 
-            implot = plb.pcolormesh(x, y, data, **kwargs)
-            plb.xlim(x[0], x[-1])
-            plb.ylim(y[0], y[-1])
+            implot = plt.pcolormesh(x, y, data, **kwargs)
+            plt.xlim(x[0], x[-1])
+            plt.ylim(y[0], y[-1])
             if rlog:
-                plb.yscale('log')
+                plt.yscale('log')
         else:
             raise ValueError('Unknown projection. Accepted values for projection keyword are "polar" or "cartesian".')
 
-        plb.xlabel(xlab)
-        plb.ylabel(ylab)
-        cbar = plb.colorbar()
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
+        cbar = plt.colorbar()
         cbar.set_label(cb_label)
-        plb.show()
+        plt.show()
 
     return {'implot': implot, 'cbar': cbar}
 

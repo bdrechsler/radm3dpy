@@ -48,14 +48,6 @@ except ImportError:
     print(' To use the python module of RADMC-3D you need to install Numpy')
     print(traceback.format_exc())
 
-try:
-    import matplotlib.pylab as plb
-except ImportError:
-    plb = None
-    print('Warning')
-    print('matplotlib.pylab cannot be imported')
-    print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
-    print('or display images')
 
 from .. natconst import *
 from .. import analyze
