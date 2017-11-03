@@ -36,6 +36,7 @@ from . natconst import *
 from . import natconst as nc
 from . import crd_trans
 from . import staratm
+from . import miescat
 
 
 class radmc3dOctree(object):
@@ -3894,8 +3895,10 @@ class radmc3dDustOpac(object):
 
         return 0
 
-    # --------------------------------------------------------------------------------------------------------------------
-    def makeOpac(self, ppar=None, wav=None, old=False):
+
+    def makeOpac(self, ppar=None, wav=None, old=False, code='python',
+                 theta=None, logawidth=None, wfact=3.0, na=20, chopforward=0., errtol=0.01,
+                 verbose=False, extrapolate=False):
         """Createst the dust opacities using a Mie code distributed with RADMC-3D.
 
         Parameters
@@ -3906,6 +3909,11 @@ class radmc3dDustOpac(object):
 
         wav   : ndarray, optional
                 Wavelength grid on which the mass absorption coefficients should be calculated
+
+        code  : {'python', 'fortran'}
+                Version of the mie scattering code BHMIE to be used. 'fortran' - use the original fortran77
+                code of Bruce Drain (should be downloaded separately, compiled and its path added to the PATH
+                environment variable), 'python' a python version of BHMIE by Kees Dullemond (radmc3dPy.miescat).
 
         old   : bool, optional
                 If set to True the file format of the previous, 2D version of radmc will be used
@@ -3929,11 +3937,6 @@ class radmc3dDustOpac(object):
             ppar['lnk_fname'] = [ppar['lnk_fname']]
 
         if len(ppar['lnk_fname']) > 1:
-            # if old:
-            # print 'ERROR'
-            # print 'Making old (RADMC) style opacities is not finished for more than one dust species'
-            # exit()
-
             ext = []
             for idust in range(len(ppar['lnk_fname'])):
 
@@ -3965,15 +3968,72 @@ class radmc3dDustOpac(object):
                     for iwav in range(w.shape[0]):
                         wfile.write("%s %s %s \n" % (w[iwav], n[iwav], k[iwav]))
 
-                # Run makedust
-                self.runMakedust(freq=nc.cc / wav * 1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'],
-                                 lnk_fname='opt_const.dat', gdens=ppar['gdens'][idust])
+                if code.lower().strip() == 'fortran' :
+                    # Run makedust
+                    self.runMakedust(freq=nc.cc / wav * 1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'],
+                                     lnk_fname='opt_const.dat', gdens=ppar['gdens'][idust])
 
-                # Change the name of makedust's output
-                for igs in range(ppar['ngs']):
-                    dum = sp.Popen('mv dustkappa_' + str(igs + 1) + '.inp dustkappa_idust_' + str(idust + 1)
-                                   + '_igsize_' + str(igs + 1) + '.inp', shell=True).wait()
-                    ext.append('idust_' + str(idust + 1) + '_igsize_' + str(igs + 1))
+                    # Change the name of makedust's output
+                    for igs in range(ppar['ngs']):
+                        dum = sp.Popen('mv dustkappa_' + str(igs + 1) + '.inp dustkappa_idust_' + str(idust + 1)
+                                       + '_igsize_' + str(igs + 1) + '.inp', shell=True).wait()
+                        ext.append('idust_' + str(idust + 1) + '_igsize_' + str(igs + 1))
+
+                elif code.lower().strip() == 'python':
+
+                    if 'nscatang' in ppar:
+                        nang = ppar['nscatang']
+                    else:
+                        nang = 180
+                    theta = 180. * np.arange(nang, dtype=np.float) / np.float(nang - 1)
+
+                    if 'logawidth' in ppar:
+                        logawidth = ppar['logawidth']
+                    else:
+                        logawidth = None
+
+                    if 'wfact' in ppar:
+                        wfact = ppar['wfact']
+                    else:
+                        wfact = 3.0
+
+                    if 'chopforward' in ppar:
+                        if ppar['chopforward'] > 0.:
+                            chopforward = ppar['chopforward']
+                        else:
+                            chopforward = None
+                    else:
+                        chopforward = 0.0
+
+                    if 'errtol' in ppar:
+                        errtol = ppar['errtol']
+                    else:
+                        errtol = 0.01
+
+                    if 'miescat_verbose' in ppar:
+                        verbose = ppar['miescat_verbose']
+                    else:
+                        verbose = False
+
+                    if 'extrapolate' in ppar:
+                        extrapolate = ppar['extrapolate']
+                    else:
+                        extrapolate = False
+
+                    # Get the grain sizes in micrometer
+                    gsize = ppar['gsmin'] \
+                            + (ppar['gsmax']/ppar['gsmin'])**(np.arange(ppar['ngs'], dtype=np.float64) / (float() - 1.))
+
+                    for igs in range(ppar['ngs']):
+                        o = miescat.compute_opac_mie(fname='opt_const.dat', matdens=ppar['gdens'][idust],
+                                                     agraincm=gsize[igs]*1e-4, lamcm=wav * 1e-4, theta=theta,
+                                                     logawidth=logawidth, wfact=wfact, na=na, chopforward=chopforward,
+                                                     errtol=errtol, verbose=verbose, extrapolate=extrapolate)
+
+                        if ppar['scattering_mode_max'] <= 2:
+                            miescat.write_radmc3d_kappa_file(package=o, name='idust_1_igsize_' + str(igs + 1))
+                        else:
+                            miescat.write_radmc3d_scatmat_file(package=o, name='idust_1_igsize_' + str(igs + 1))
 
                 os.remove('opt_const.dat')
 
@@ -4026,22 +4086,77 @@ class radmc3dDustOpac(object):
                 for iwav in range(w.shape[0]):
                     wfile.write("%s %s %s \n" % (w[iwav], n[iwav], k[iwav]))
 
-            # Run makedust
-            self.runMakedust(freq=nc.cc / wav * 1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'],
-                             lnk_fname='opt_const.dat', gdens=ppar['gdens'][0])
+            if code.lower().strip() == 'fortran':
+                # Run makedust
+                self.runMakedust(freq=nc.cc / wav * 1e4, gmin=ppar['gsmin'], gmax=ppar['gsmax'], ngs=ppar['ngs'],
+                                 lnk_fname='opt_const.dat', gdens=ppar['gdens'][0])
 
-            # Change the name of makedust's output
-            ext = []
-            therm = []
-            for igs in range(ppar['ngs']):
-                dum = sp.Popen('mv dustkappa_' + str(igs + 1) + '.inp dustkappa_idust_1_igsize_' + str(igs + 1)
-                               + '.inp', shell=True).wait()
-                ext.append('idust_1_igsize_' + str(igs + 1))
-                therm.append(True)
+                # Change the name of makedust's output
+                ext = []
+                therm = []
+                for igs in range(ppar['ngs']):
+                    dum = sp.Popen('mv dustkappa_' + str(igs + 1) + '.inp dustkappa_idust_1_igsize_' + str(igs + 1)
+                                   + '.inp', shell=True).wait()
+                    ext.append('idust_1_igsize_' + str(igs + 1))
+                    therm.append(True)
 
-            # # Change the name of makedust's output
-            #            dum = sp.Popen('mv dustkappa_1.inp dustkappa_idust_1_igsize_1.inp', shell=True).wait()
-            #            os.remove('opt_const.dat')
+            elif code.lower().strip()=='python':
+
+                if 'nscatang' in ppar:
+                    nang = ppar['nscatang']
+                else:
+                    nang = 180
+                theta = 180. * np.arange(nang, dtype=np.float) / np.float(nang-1)
+
+                if 'logawidth' in ppar:
+                    logawidth = ppar['logawidth']
+                else:
+                    logawidth = None
+
+                if 'wfact' in ppar:
+                    wfact = ppar['wfact']
+                else:
+                    wfact = 3.0
+
+                if 'chopforward' in ppar:
+                    if ppar['chopforward'] > 0.:
+                        chopforward = ppar['chopforward']
+                    else:
+                        chopforward = None
+                else:
+                    chopforward = 0.0
+
+                if 'errtol' in ppar:
+                    errtol = ppar['errtol']
+                else:
+                    errtol = 0.01
+
+                if 'miescat_verbose' in ppar:
+                    verbose = ppar['miescat_verbose']
+                else:
+                    verbose = False
+
+                if 'extrapolate' in ppar:
+                    extrapolate = ppar['extrapolate']
+                else:
+                    extrapolate=False
+
+                o = miescat.compute_opac_mie(fname='opt_const.dat', matdens=ppar['gdens'][idust],
+                                         agraincm=ppar['gsmin']*1e-4,  lamcm=wav*1e-4, theta=theta,
+                                         logawidth=logawidth, wfact=wfact, na=na, chopforward=chopforward,
+                                         errtol=errtol, verbose=verbose, extrapolate=extrapolate)
+
+                if ppar['scattering_mode_max'] <= 2:
+                    miescat.write_radmc3d_kappa_file(package=o, name='idust_1_igsize_1')
+                else:
+                    miescat.write_radmc3d_scatmat_file(package=o, name='idust_1_igsize_1')
+
+                therm = [True]
+                ext = ['idust_1_igsize_1']
+
+            else:
+                msg = 'Unknown mie scattering code version '+code
+                raise ValueError(msg)
 
             self.writeMasterOpac(ext=ext, therm=therm, scattering_mode_max=ppar['scattering_mode_max'], old=old)
             if old:
@@ -4907,6 +5022,23 @@ class radmc3dPar(object):
         self.setPar(['gsmax', '10.0', ' Maximum grain size', 'Dust opacity'])
         self.setPar(['ngs', '1', ' Number of grain sizes', 'Dust opacity'])
         self.setPar(['gsdist_powex', '-3.5', ' Grain size distribution power exponent', 'Dust opacity'])
+
+        self.setPar(['nscatang', '180', ' Number of scattering angles (only for scattering_mode_max=5)',
+                     'Dust opacity'])
+        self.setPar(['logawidth', '0', ' If >0 the opacity will be averaged over a small sample around the specified '
+                                       'grain size, with logawidth being the variance of the Gaussian distribution. ',
+                     'Dust opacity'])
+        self.setPar(['wfact', '3.0', ' Grid width of na sampling points in units of logawidth.', 'Dust opacity'])
+        self.setPar(['na', '20', ' Number of size sampling points (if logawidth set, default=20', 'Dust opacity'])
+        self.setPar(['chopforwardt', '0.0', ' If >0 this gives the angle (in degrees from forward) within which the '
+                                            'scattering phase function should be kept constant', 'Dust opacity'])
+        self.setPar(['errtol', '0.01', ' Tolerance of the relative difference between kscat and the integral over the '
+                                       'zscat Z11 element over angle.', 'Dust opacity'])
+        self.setPar(['verbose', 'False', ' If set to True, the code will give some feedback so that one knows what it '
+                                         'is doing if it becomes slow.', 'Dust opacity'])
+        self.setPar(['extrapolate', 'False', ' If True extrapolates for wavelengths outside the ones covered by the '
+                                             'optical constants', 'Dust opacity'])
+
         self.setPar(['mixabun', '[0.75, 0.25]', ' Mass fractions of the dust componetns to be mixed', 'Dust opacity'])
         self.setPar(['dustkappa_ext', "['silicate']", ' ', 'Dust opacity'])
 

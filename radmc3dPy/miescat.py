@@ -42,7 +42,7 @@ def bhmie(x=None, refrel=None, theta=None):
     x           : ndarray
                   Size parameter (2*pi*radius_grain/lambda)
 
-    refrel      : ndarray
+    refrel      : complex
                   Complex index of refraction (example: 1.5 + 0.01*1j)
 
     theta       : ndarray
@@ -76,16 +76,7 @@ def bhmie(x=None, refrel=None, theta=None):
         msg = 'Unknown scattering parameter x.'
         raise ValueError(msg)
 
-    if isinstance(x, list):
-        x = np.array(x)
-    elif isinstance(x, float):
-        x = np.array([x])
-    else:
-        msg = 'Unkonwn data type of scattering parameter x. It should be either of the following: ' \
-              'ndarray, list, float'
-        raise TypeError(msg)
-
-    if x.shape[0] == 0:
+    if x.size == 0:
         msg = 'Scattering parameter x has zero elements'
         raise ValueError(msg)
 
@@ -93,29 +84,9 @@ def bhmie(x=None, refrel=None, theta=None):
         msg = 'Unknown refractive index refrel.'
         raise ValueError(msg)
 
-    if isinstance(refrel, list):
-        refrel = np.array(refrel)
-    elif isinstance(refrel, float):
-        refrel = np.array([refrel])
-    else:
-        msg = 'Unkonwn data type of refractive index refrel. It should be either of the following: ' \
-              'ndarray, list, float'
-        raise TypeError(msg)
-
-    if refrel.shape[0] == 0:
-        msg = 'Refractive index refrel has zero elements'
-        raise ValueError(msg)
-
     if theta is None:
         msg = 'Unknown scattering angle theta.'
         raise ValueError(msg)
-
-    if isinstance(theta, list):
-        theta = np.array(theta)
-    else:
-        msg = 'Unkonwn data type of scattering angle theta. It should be either of the following: ' \
-              'ndarray, list, float'
-        raise TypeError(msg)
 
     if theta.shape[0] == 0:
         msg = 'Scattering angle theta has zero elements'
@@ -126,7 +97,6 @@ def bhmie(x=None, refrel=None, theta=None):
     # First check that the theta array goes from 0 to 180 or
     # 180 to 0, and store which is 0 and which is 180
     #
-    nang = len(theta)
 
     if theta[0] != 0:
         msg = "First element of scattering angle array is not 0. Scattering angle grid must extend from 0 to 180 " \
@@ -137,15 +107,7 @@ def bhmie(x=None, refrel=None, theta=None):
               "degrees."
         raise ValueError(msg)
 
-    # if theta[0] == 0.0:
-    #     assert theta[nang - 1] == 180, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
-    #     iang0 = 0
-    #     iang180 = nang - 1
-    # else:
-    #     assert theta[0] == 180, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
-    #     assert theta[nang - 1] == 0, "Error in bhmie(): Angle grid must extend from 0 to 180 degrees."
-    #     iang0 = nang - 1
-    #     iang180 = 0
+    nang = len(theta)
     #
     # Allocate the complex phase functions with double precision
     #
@@ -687,7 +649,7 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
     #
     if error:
         msg = " Angular integral of Z11 is not equal to kscat at all wavelength. \n"
-        msg += "Maximum error = %13.6e"%errmax + "\n"
+        msg += "Maximum error = %13.6e"%errmax
         if chopforward > 0:
             msg += "But I am using chopforward to remove strong forward scattering, and then renormalized kapscat."
         warnings.warn(msg, RuntimeWarning)
@@ -786,7 +748,7 @@ def write_radmc3d_kappa_file(package=None,name=None):
     with open(filename,'w') as f:
         f.write('3\n')  # Format number
         f.write('%d\n'%(package['lamcm'].size))
-        f.write('\n')
+        # f.write('\n')
         for i in range(package['lamcm'].size):
             f.write('%13.6e %13.6e %13.6e %13.6e\n'%(package['lamcm'][i]*1e4,
                                                      package['kabs'][i],
