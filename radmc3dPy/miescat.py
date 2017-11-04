@@ -1,3 +1,5 @@
+"""This module contains functions for Mie-scattering and to write dust opacity files
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 
@@ -461,17 +463,17 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         if wmax > np.max(wavmic):
             if wavmic[0] < wavmic[1]:
                 ncoef = np.append(ncoef, [ncoef[-1] * math.exp((math.log(wmax) - math.log(wavmic[-1])) *
-                                                             (math.log(ncoef[-1]) - math.log(ncoef[-2]))/
+                                                             (math.log(ncoef[-1]) - math.log(ncoef[-2])) /
                                                              (math.log(wavmic[-1]) - math.log(wavmic[-2])))])
                 kcoef = np.append(kcoef, [kcoef[-1]*math.exp((math.log(wmax) - math.log(wavmic[-1])) *
-                                                             (math.log(kcoef[-1]) - math.log(kcoef[-2]))/
+                                                             (math.log(kcoef[-1]) - math.log(kcoef[-2])) /
                                                              (math.log(wavmic[-1]) - math.log(wavmic[-2])))])
                 wavmic = np.append(wavmic, [wmax])
             else:
-                ncoef = np.append(ncoef, [ncoef[0]*math.exp((math.log(wmax)-math.log(wavmic[0]))*
+                ncoef = np.append(ncoef, [ncoef[0]*math.exp((math.log(wmax)-math.log(wavmic[0])) *
                                                              (math.log(ncoef[0]) - math.log(ncoef[1])) /
                                                              (math.log(wavmic[0]) - math.log(wavmic[1])))])
-                kcoef = np.append(kcoef, [kcoef[0]*math.exp((math.log(wmax) - math.log(wavmic[0]))*
+                kcoef = np.append(kcoef, [kcoef[0]*math.exp((math.log(wmax) - math.log(wavmic[0])) *
                                                              (math.log(kcoef[0]) - math.log(kcoef[1])) /
                                                              (math.log(wavmic[0]) - math.log(wavmic[1])))])
                 wavmic = np.append([wmax], wavmic)
@@ -485,9 +487,9 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
     # Interpolate
     # Note: Must be within range, otherwise stop
     #
-    f      = interp1d(np.log(wavmic*1e-4),np.log(ncoef))
+    f = interp1d(np.log(wavmic*1e-4), np.log(ncoef))
     ncoefi = np.exp(f(np.log(lamcm)))
-    f      = interp1d(np.log(wavmic*1e-4),np.log(kcoef))
+    f = interp1d(np.log(wavmic*1e-4), np.log(kcoef))
     kcoefi = np.exp(f(np.log(lamcm)))
     #
     # Make the complex index of refraction
@@ -530,7 +532,7 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         S33 = np.zeros(nang)
         S34 = np.zeros(nang)
         if chopforward > 0:
-            zscat_nochop = np.zeros((nlam,nang,6))
+            zscat_nochop = np.zeros((nlam, nang, 6))
             kscat_nochop = np.zeros(nlam)
 
     #
@@ -547,7 +549,7 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         # Message
         #
         if verbose:
-            print("Doing wavelength %13.6e cm"%lamcm[i])
+            print("Doing wavelength %13.6e cm" % lamcm[i])
         #
         # Now loop over the grain sizes
         #
@@ -555,8 +557,8 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
             #
             # Message
             #
-            if verbose and nagr>1:
-                print("...Doing grain size %13.6e cm"%agr[l])
+            if verbose and nagr > 1:
+                print("...Doing grain size %13.6e cm" % agr[l])
             #
             # Compute x
             #
@@ -564,7 +566,7 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
             #
             # Call the bhmie code
             #
-            S1, S2, Qext, Qabs, Qsca, Qback, gsca = bhmie(x,refidx[i],angles)
+            S1, S2, Qext, Qabs, Qsca, Qback, gsca = bhmie(x, refidx[i], angles)
             #
             # Add results to the averaging over the size distribution
             #
@@ -587,72 +589,70 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
                 #
                 # Compute the scattering Mueller matrix elements at each angle
                 #
-                S11[:]  = 0.5 * ( np.abs(S2[:])**2 + np.abs(S1[:])**2 )
-                S12[:]  = 0.5 * ( np.abs(S2[:])**2 - np.abs(S1[:])**2 )
-                S33[:]  = np.real(S2[:]*np.conj(S1[:]))
-                S34[:]  = np.imag(S2[:]*np.conj(S1[:]))
-                zscat[i,:,0] += wgt[l] * S11[:] * factor
-                zscat[i,:,1] += wgt[l] * S12[:] * factor
-                zscat[i,:,2] += wgt[l] * S11[:] * factor
-                zscat[i,:,3] += wgt[l] * S33[:] * factor
-                zscat[i,:,4] += wgt[l] * S34[:] * factor
-                zscat[i,:,5] += wgt[l] * S33[:] * factor
+                S11[:] = 0.5 * (np.abs(S2[:])**2 + np.abs(S1[:])**2)
+                S12[:] = 0.5 * (np.abs(S2[:])**2 - np.abs(S1[:])**2)
+                S33[:] = np.real(S2[:] * np.conj(S1[:]))
+                S34[:] = np.imag(S2[:] * np.conj(S1[:]))
+                zscat[i, :, 0] += wgt[l] * S11[:] * factor
+                zscat[i, :, 1] += wgt[l] * S12[:] * factor
+                zscat[i, :, 2] += wgt[l] * S11[:] * factor
+                zscat[i, :, 3] += wgt[l] * S33[:] * factor
+                zscat[i, :, 4] += wgt[l] * S34[:] * factor
+                zscat[i, :, 5] += wgt[l] * S33[:] * factor
         #
         # If possible, do a check if the integral over zscat is consistent
         # with kscat
         #
         if theta is not None:
-            mu  = np.cos(angles * np.pi / 180.)
+            mu = np.cos(angles * np.pi / 180.)
             dmu = np.abs(mu[1:nang] - mu[0:nang-1])
-            zav = 0.5 * ( zscat[i,1:nang,0] + zscat[i,0:nang-1,0] )
+            zav = 0.5 * (zscat[i, 1:nang, 0] + zscat[i, 0:nang-1, 0])
             dum = 0.5 * zav*dmu
-            sum = dum.sum() * 4 * np.pi
-            kscat_from_z11[i] = sum
-            err = abs(sum/kscat[i]-1.0)
+            kscat_from_z11[i] = dum.sum() * 4 * np.pi
+            err = abs(kscat_from_z11[i]/kscat[i]-1.0)
             if err > errtol:
                 error = True
-                errmax = max(err,errmax)
+                errmax = max(err, errmax)
         #
         # If the chopforward angle is set >0, then we will remove
         # excessive forward scattering from the opacity. The reasoning
         # is that extreme forward scattering is, in most cases, equivalent
         # to no scattering at all.
         #
-        if chopforward>0:
-            iang  = np.where(angles<chopforward)
-            if angles[0]==0.0:
+        if chopforward > 0:
+            iang = np.where(angles < chopforward)
+            if angles[0] == 0.0:
                 iiang = np.max(iang)+1
             else:
                 iiang = np.min(iang)-1
-            zscat_nochop[i,:,:] = zscat[i,:,:]  # Backup
-            kscat_nochop[i]     = kscat[i]      # Backup
-            zscat[i,iang,0]     = zscat[i,iiang,0]
-            zscat[i,iang,1]     = zscat[i,iiang,1]
-            zscat[i,iang,2]     = zscat[i,iiang,2]
-            zscat[i,iang,3]     = zscat[i,iiang,3]
-            zscat[i,iang,4]     = zscat[i,iiang,4]
-            zscat[i,iang,5]     = zscat[i,iiang,5]
-            mu  = np.cos(angles*np.pi/180.)
-            dmu = np.abs(mu[1:nang]-mu[0:nang-1])
-            zav = 0.5 * ( zscat[i,1:nang,0] + zscat[i,0:nang-1,0] )
-            dum = 0.5 * zav*dmu
-            sum = dum.sum() * 4 * np.pi
-            kscat[i] = sum
+            zscat_nochop[i, :, :] = zscat[i, :, :]  # Backup
+            kscat_nochop[i] = kscat[i]      # Backup
+            zscat[i, iang, 0] = zscat[i, iiang, 0]
+            zscat[i, iang, 1] = zscat[i, iiang, 1]
+            zscat[i, iang, 2] = zscat[i, iiang, 2]
+            zscat[i, iang, 3] = zscat[i, iiang, 3]
+            zscat[i, iang, 4] = zscat[i, iiang, 4]
+            zscat[i, iang, 5] = zscat[i, iiang, 5]
+            mu = np.cos(angles * np.pi / 180.)
+            dmu = np.abs(mu[1:nang] - mu[0:nang-1])
+            zav = 0.5 * (zscat[i, 1:nang, 0] + zscat[i, 0:nang-1, 0])
+            dum = 0.5 * zav * dmu
+            kscat[i] = dum.sum() * 4 * np.pi
     #
     # If error found, then warn (Then shouldn't it be called a warning? If it's a true error
     #  shouldn't we stop the execution and raise an exception?)
     #
     if error:
         msg = " Angular integral of Z11 is not equal to kscat at all wavelength. \n"
-        msg += "Maximum error = %13.6e"%errmax
+        msg += "Maximum error = %13.6e" % errmax
         if chopforward > 0:
             msg += "But I am using chopforward to remove strong forward scattering, and then renormalized kapscat."
         warnings.warn(msg, RuntimeWarning)
     #
     # Now return what we computed in a dictionary
     #
-    package = {"lamcm":lamcm, "kabs":kabs, "kscat":kscat,
-               "gscat":gscat, "matdens":matdens, "agraincm":agraincm}
+    package = {"lamcm": lamcm, "kabs": kabs, "kscat": kscat,
+               "gscat": gscat, "matdens": matdens, "agraincm": agraincm}
     if theta is not None:
         package["zscat"] = np.copy(zscat)
         package["theta"] = np.copy(angles)
@@ -661,19 +661,19 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         package["wavmic"] = np.copy(wavmic)
         package["ncoef"] = np.copy(ncoef)
         package["kcoef"] = np.copy(kcoef)
-    if nagr>1:
+    if nagr > 1:
         package["agr"] = np.copy(agr)
         package["wgt"] = np.copy(wgt)
         package["wfact"] = wfact
         package["logawidth"] = logawidth
-    if chopforward>0:
+    if chopforward > 0:
         package["zscat_nochop"] = np.copy(zscat_nochop)
         package["kscat_nochop"] = np.copy(kscat_nochop)
 
     return package
 
 
-def write_radmc3d_scatmat_file(package=None,name=None):
+def write_radmc3d_scatmat_file(package=None, name=None):
     """
     The RADMC-3D radiative transfer package
       http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/
@@ -689,39 +689,39 @@ def write_radmc3d_scatmat_file(package=None,name=None):
     if name is None:
         raise ValueError("Unkonwn name. Without a file name tag for dustkapscatmat_NAME.inp must be given.")
 
-    filename = 'dustkapscatmat_'+name+'.inp'
-    with open(filename,'w') as f:
-        f.write('# Opacity and scattering matrix file for '+name+'\n')
-        f.write('# Please do not forget to cite in your publications the original paper of these optical '+
+    filename = 'dustkapscatmat_' + name + '.inp'
+    with open(filename, 'w') as f:
+        f.write('# Opacity and scattering matrix file for ' + name + '\n')
+        f.write('# Please do not forget to cite in your publications the original paper of these optical ' +
                 'constant measurements\n')
         f.write('# Made with the makedustopac.py code by Cornelis Dullemond\n')
-        f.write('# using the bhmie.py Mie code of Bohren and Huffman (python version by Cornelis Dullemond, '+
+        f.write('# using the bhmie.py Mie code of Bohren and Huffman (python version by Cornelis Dullemond, ' +
                 'from original bhmie.f code by Bruce Draine)\n')
-        f.write('# Grain size = %13.6e cm\n'%(package['agraincm']))
-        f.write('# Material density = %6.3f g/cm^3\n'%(package['matdens']))
+        f.write('# Grain size = %13.6e cm\n' % (package['agraincm']))
+        f.write('# Material density = %6.3f g/cm^3\n' % (package['matdens']))
         f.write('1\n')  # Format number
-        f.write('%d\n'%(package['lamcm'].size))
-        f.write('%d\n'%(package['theta'].size))
+        f.write('%d\n' % package['lamcm'].size)
+        f.write('%d\n' % package['theta'].size)
         f.write('\n')
         for i in range(package['lamcm'].size):
-            f.write('%13.6e %13.6e %13.6e %13.6e\n'%(package['lamcm'][i]*1e4,
+            f.write('%13.6e %13.6e %13.6e %13.6e\n' % (package['lamcm'][i] * 1e4,
                                                      package['kabs'][i],
                                                      package['kscat'][i],
                                                      package['gscat'][i]))
         f.write('\n')
         for j in range(package['theta'].size):
-            f.write('%13.6e\n'%(package['theta'][j]))
+            f.write('%13.6e\n' % (package['theta'][j]))
         f.write('\n')
         for i in range(package['lamcm'].size):
             for j in range(package['theta'].size):
-                f.write('%13.6e %13.6e %13.6e %13.6e %13.6e %13.6e\n'%
-                        (package['zscat'][i,j,0],package['zscat'][i,j,1],
-                         package['zscat'][i,j,2],package['zscat'][i,j,3],
-                         package['zscat'][i,j,4],package['zscat'][i,j,5]))
+                f.write('%13.6e %13.6e %13.6e %13.6e %13.6e %13.6e\n' %
+                        (package['zscat'][i, j, 0], package['zscat'][i, j, 1],
+                         package['zscat'][i, j, 2], package['zscat'][i, j, 3],
+                         package['zscat'][i, j, 4], package['zscat'][i, j, 5]))
         f.write('\n')
 
 
-def write_radmc3d_kappa_file(package=None,name=None):
+def write_radmc3d_kappa_file(package=None, name=None):
     """
     The RADMC-3D radiative transfer package
       http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/
@@ -740,14 +740,13 @@ def write_radmc3d_kappa_file(package=None,name=None):
         raise ValueError("Unkonwn name. Without a file name tag for dustkappa_NAME.inp must be given.")
 
     filename = 'dustkappa_'+name+'.inp'
-    with open(filename,'w') as f:
+    with open(filename, 'w') as f:
         f.write('3\n')  # Format number
-        f.write('%d\n'%(package['lamcm'].size))
+        f.write('%d\n' % package['lamcm'].size)
         # f.write('\n')
         for i in range(package['lamcm'].size):
-            f.write('%13.6e %13.6e %13.6e %13.6e\n'%(package['lamcm'][i]*1e4,
+            f.write('%13.6e %13.6e %13.6e %13.6e\n' % (package['lamcm'][i] * 1e4,
                                                      package['kabs'][i],
                                                      package['kscat'][i],
                                                      package['gscat'][i]))
         f.write('\n')
-

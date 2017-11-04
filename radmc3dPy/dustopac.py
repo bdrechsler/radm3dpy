@@ -1,4 +1,5 @@
-
+"""This module contains classes for handling dust opacities
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 import traceback

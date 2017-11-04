@@ -1,3 +1,6 @@
+"""This module contains classes for handling of parameters of the model setup and for file I/O
+"""
+
 from __future__ import absolute_import
 from __future__ import print_function
 import traceback
