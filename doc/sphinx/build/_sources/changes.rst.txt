@@ -8,11 +8,11 @@ Changes
 
 * Nested mesh support
 * Data inspector GUI
-* Integration of Mie-scattering code for dust opacity calculation
 
 **v0.30**
 
 * Python3 compatibility
+* Integration of Mie-scattering code for dust opacity calculation
 * New module (sphtool) for re-gridding 3D Smoothed Particle Hydrodynamics (SPH) simulations to regular or AMR grids, 
   including some basic visualisation of the SPH simulations
 * Possibility for modular module setup (i.e. generation of grids, variables, radiation sources, etc independently of each other)

@@ -1,4 +1,4 @@
-"""This module contains classes and functions to read and write input/output data for RADMC-3D and
+"""This module contains functions to read and write input/output data for RADMC-3D and
 to do some simple analysis/diagnostics of the model.
 """
 from __future__ import absolute_import
@@ -1223,7 +1223,7 @@ def interpolateOctree(data=None, x=None, y=None, z=None, var=None, nproc=1):
 def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=-1, xlim=(), ylim=(), log=False,
                 linunit='cm', angunit='rad',
                 nx=100, ny=100, showgrid=False, gridcolor='k', gridalpha=1.0, nproc=1,
-                contours=False, clev=None, clmin=None, clmax=None, ncl=None, cllog=False, clcol='k', clcmap=None,
+                contours=False, clev=None, clmin=None, clmax=None, ncl=None, cllog=False, clcol='k',
                 cllabel=False, cllabel_fontsize=10, cllabel_fmt="%.1f", clalpha=1.0, ax=None, lattitude=True,
                 **kwargs):
     """
@@ -1316,9 +1316,6 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     clcol           : str
                       Color-code for the contour lines for single color contours
 
-    clcmap          : matplotlib colormap
-                      Colormap used for the contour lines
-
     cllabel         : bool
                       If True the contour line values will be displayed, if False only the contour lines will be
                       displayed (default = False)
@@ -1343,7 +1340,7 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
 
 
     Keyword Arguments :
-                      All other keyword arugments will be passed to pcolormesh()
+                      All other keyword arugments will be passed to pcolormesh() or countour()
 
     """
 
@@ -1859,6 +1856,31 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
         cb = plt.colorbar(p)
         cb.set_label(cblabel)
 
+    else:
+        if clmin is None:
+            clmin = pdata.min()
+        if clmax is None:
+            clmax = pdata.max()
+        if ncl is None:
+            ncl = 20
+
+        # Generate the contour levels
+        if clev is None:
+            if cllog is True:
+                clev = clmin * (clmax / clmin) ** (np.arange(ncl, dtype=float) / float(ncl - 1))
+            else:
+                clev = clmin + (clmax - clmin) * (np.arange(ncl, dtype=float) / float(ncl - 1))
+        if (clcol == 'none') | (clcol is None):
+            if 'cmap' in kwargs:
+                c = ax.contour(plot_x, plot_y, pdata, clev, kwargs['cmap'], alpha=clalpha)
+            else:
+                c = ax.contour(plot_x, plot_y, pdata, clev, alpha=clalpha)
+        else:
+            c = ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
+
+        if cllabel:
+            plt.clabel(c, inline=1, fontsize=cllabel_fontsize, fmt=cllabel_fmt)
+
     #
     # Show the grid (currently only for otctree AMR)
     #
@@ -1981,30 +2003,6 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
             for iy in range(data.grid.nyi):
                 ax.add_line(ml.Line2D((px[0], px[-1]), (py[iy], py[iy]), color=gridcolor, alpha=gridalpha))
 
-    if contours is True:
-        if clmin is None:
-            clmin = pdata.min()
-        if clmax is None:
-            clmax = pdata.max()
-        if ncl is None:
-            ncl = 20
-
-        # Generate the contour levels
-        if clev is None:
-            if cllog is True:
-                clev = clmin * (clmax / clmin) ** (np.arange(ncl, dtype=float) / float(ncl - 1))
-            else:
-                clev = clmin + (clmax - clmin) * (np.arange(ncl, dtype=float) / float(ncl - 1))
-        if (clcol == 'none') | (clcol is None):
-            if 'cmap' in kwargs:
-                c = ax.contour(plot_x, plot_y, pdata, clev, kwargs['cmap'], alpha=clalpha)
-            else:
-                c = ax.contour(plot_x, plot_y, pdata, clev, alpha=clalpha)
-        else:
-            c = ax.contour(plot_x, plot_y, pdata.T, clev, colors=clcol, alpha=clalpha)
-
-        if cllabel:
-            plt.clabel(c, inline=1, fontsize=cllabel_fontsize, fmt=cllabel_fmt)
     #
     # Set the axis limits
     #
