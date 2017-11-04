@@ -1,3 +1,6 @@
+"""This module contains a class for handling regular wavelength and spatial grids
+"""
+
 from __future__ import absolute_import
 from __future__ import print_function
 import traceback

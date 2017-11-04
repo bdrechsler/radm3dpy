@@ -1,3 +1,5 @@
+"""This module contains a class for handling variable data in radmc-3d
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 import traceback
