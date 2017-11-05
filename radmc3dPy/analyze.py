@@ -2019,3 +2019,265 @@ def plotSlice2D(data=None, var='ddens', plane='xy', crd3=0.0, icrd3=None, ispec=
     #
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+
+
+def plotDustOpac(opac=None, var='kabs', idust=0, ax=None, xlabel=None, ylabel=None, fmt='', **kwargs):
+    """
+    Plots the dust opacity as a function of wavelength
+
+    Parameters
+    ----------
+    opac            : radmc3dDustOpac
+                      Dust opacity container
+
+    var             : {'kabs', 'ksca', 'kext', 'g'}
+                      Variable to be plotted
+
+    idust           : int, optional
+                      Dust index in opac to be plotted (default=0)
+
+    ax              : Axis, optional
+                      Matplotlib axis to plot on. If not set the current axis will be used.
+
+    xlabel          : str, optional
+                      Label of the x-axis
+
+    ylabel          : str, optional
+                      Label of the y-axis
+
+    fmt             : str, optional
+                      Format of the plotted line. The same as the third non-keyword argument of matplotlib.pyplot.plot()
+
+    Keyword Arguments:
+                    Any further keyword argument that will be passed to matplotlib.pyplot.plot()
+
+    Returns
+    -------
+    The returned list by matplotlib.pyplot.plot()
+
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    x = opac.wav[idust]
+
+    if not isinstance(idust, int):
+        idust = int(idust)
+
+    if var.lower().strip() == 'kabs':
+        if opac.kabs[idust].size != x.size:
+            msg = 'opac.kabs['+("%d" % idust)+'] has a different number of elements than opac.wav['+("%d" % idust)+']'
+            raise ValueError(msg)
+        y = opac.kabs[idust]
+        if ylabel is None:
+            ylabel = r'$\kappa_{\rm abs}$ [cm$^2$/g]'
+
+    elif var.lower().strip() == 'ksca':
+        if opac.ksca[idust].size != x.size:
+            msg = 'opac.ksca['+("%d" % idust)+'] has a different number of elements than opac.wav['+("%d" % idust)+']'
+            raise ValueError(msg)
+        y = opac.ksca[idust]
+        if ylabel is None:
+            ylabel = r'$\kappa_{\rm sca}$ [cm$^2$/g]'
+
+    elif var.lower().strip() == 'kext':
+        if opac.kabs[idust].size != x.size:
+            msg = 'opac.kabs['+("%d" % idust)+'] has a different number of elements than opac.wav['+("%d" % idust)+']'
+            raise ValueError(msg)
+        if opac.ksca[idust].size != x.size:
+            msg = 'opac.ksca['+("%d" % idust)+'] has a different number of elements than opac.wav['+("%d" % idust)+']'
+            raise ValueError(msg)
+        y = opac.kabs[idust] + opac.ksca[idust]
+        if ylabel is None:
+            ylabel = r'$\kappa_{\rm ext}$ [cm$^2$/g]'
+
+    elif var.lower().strip() == 'g':
+        if opac.g[idust].size != x.size:
+            msg = 'opac.g['+("%d" % idust)+'] has a different number of elements than opac.wav['+("%d" % idust)+']'
+            raise ValueError(msg)
+        y = opac.g[idust]
+        if ylabel is None:
+            ylabel = r'g$_{\rm HG}$'
+    else:
+        msg = 'Unknown variable to plot ' + var
+        raise ValueError(msg)
+
+    p = ax.plot(x, y, fmt, **kwargs)
+
+    if xlabel is None:
+        xlabel = r'$\lambda$ [$\mu$m]'
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    return p
+
+
+def plotScatmat(opac=None, var='z11', idust=0, iwav=None, wav=None, xvar='ang', iang=None, ang=None, ax=None,
+                xlabel=None, ylabel=None, title=None, fmt='', **kwargs):
+    """
+    Plots the scattering matrix elements either as a function of scattering angle at a specific wavelength (default)
+    or as a function of wavelength at a specific scattering angle
+
+    Parameters
+    ----------
+
+    opac            : radmc3dDustOpac
+                      Dust opacity container
+
+    var             : {'kabs', 'ksca', 'kext', 'g'}
+                      Variable to be plotted
+
+    idust           : int, optional
+                      Dust index in opac to be plotted (default=0)
+
+    iwav            : int, optional
+                      Wavelength index (used only if xvar='ang') to be plotted.
+
+    wav             : float, optional
+                      Wavelength at which the plot should be made (used only if xvar='ang'). In practice, instead of
+                      interpolating to this wavelength, the nearest wavelength in the wavelength grid will be used.
+
+    xvar            : {'ang', 'wav'}
+                      Variable for plotting the scattering matrix elements against (default='ang')
+
+    iang            : int, optional
+                      Scattering angle index (used only if xvar='wav')
+
+    ang             : int, optional
+                      Scattering angle in degrees at which the plot should be made (used only if xvar='wav').
+                      In practice, instead of interpolating to this scattering angle, the nearest angle in the angular
+                      grid will be used.
+
+    ax              : Axis, optional
+                      Matplotlib axis to plot on. If not set the current axis will be used.
+
+    xlabel          : str, optional
+                      Label of the x-axis
+
+    ylabel          : str, optional
+                      Label of the y-axis
+
+    title           : str, optional
+                      Title of the plot. If not set either the wavelength (for xvar='ang') or the scattering angle
+                      (for xvar='wav') the plot was made at.
+
+    fmt             : str, optional
+                      Format of the plotted line. The same as the third non-keyword argument of matplotlib.pyplot.plot()
+
+    Keyword Arguments:
+                    Any further keyword argument that will be passed to matplotlib.pyplot.plot()
+
+    Returns
+    -------
+    The returned list by matplotlib.pyplot.plot()
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    if xvar.lower().strip() == 'ang':
+        plot_type = 1
+        x = opac.scatang[idust]
+        if xlabel is None:
+            xlabel = 'Scattering angle [deg]'
+        # Get wavelength
+        if iwav is None:
+            if wav is None:
+                msg = 'Either the iwav or the wav keywords should be set to indicate which wavelength the ' \
+                      'plot should be made at'
+                raise ValueError(msg)
+            else:
+                if (wav < opac.wav[idust].min()) | (wav > opac.wav[idust].max()):
+                    msg = 'The requested wavelength is outside of the wavelength range contained in opac \n'
+                    msg += ' min(wav) [micron]: '+("%e" % opac.wav[idust].min())+'\n'
+                    msg += ' max(wav) [micron]: '+("%e" % opac.wav[idust].max())+'\n'
+                    raise ValueError(msg)
+                else:
+                    iwav = abs(opac.wav[idust] - wav).argmin()
+        else:
+            if not isinstance(iwav, int):
+                iang = int(iwav)
+
+    elif xvar.lower().strip() == 'wav':
+        plot_type = 2
+        x = opac.wav[idust]
+        if xlabel is None:
+            xlabel = r'$\lambda$ [$\mu$m]'
+
+        # Get scattering angle
+        if iang is None:
+            if ang is None:
+                msg = 'Either the iang or the ang keywords should be set to indicate which scattering angle the ' \
+                      'plot should be made at'
+                raise ValueError(msg)
+            else:
+                if (ang < opac.scatang[idust].min()) | (ang > opac.scatang[idust].max()):
+                    msg = 'The requested angle is outside of the range of scattering angles contained in opac \n'
+                    msg += ' min(ang) [deg]: '+("%e" % opac.scatang[idust].min())+'\n'
+                    msg += ' max(ang) [deg]: '+("%e" % opac.scatang[idust].max())+'\n'
+                    raise ValueError(msg)
+                else:
+                    iang = abs(opac.scatang[idust] - ang).argmin()
+        else:
+            if not isinstance(iang, int):
+                iang = int(iang)
+    else:
+        msg = 'Unknown variable in xvar ' + xvar
+        raise ValueError(msg)
+
+    if var.lower().strip() == 'z11':
+        y = opac.z11[idust]
+        if ylabel is None:
+            ylabel = r'z$_{11}$'
+
+    elif var.lower().strip() == 'z12':
+        y = opac.z12[idust]
+        if ylabel is None:
+            ylabel = r'z$_{12}$'
+
+    elif var.lower().strip() == 'z22':
+        y = opac.z22[idust]
+        if ylabel is None:
+            ylabel = r'z$_{22}$'
+
+    elif var.lower().strip() == 'z33':
+        y = opac.z33[idust]
+        if ylabel is None:
+            ylabel = r'z$_{33}$'
+
+    elif var.lower().strip() == 'z34':
+        y = opac.z34[idust]
+        if ylabel is None:
+            ylabel = r'z$_{34}$'
+
+    elif var.lower().strip() == 'z44':
+        y = opac.z44[idust]
+        if ylabel is None:
+            ylabel = r'z$_{44}$'
+
+    elif var.lower().strip() == 'linpol':
+        y = -opac.z12[idust] / opac.z11[idust]
+        if ylabel is None:
+            ylabel = r'-z$_{12}$/z$_{11}$ (Fraction of linear polarisation)'
+
+    else:
+        msg = 'Unknown variable to plot ' + var
+        raise ValueError(msg)
+
+    if plot_type == 1:
+        y = y[iwav, :]
+        if title is None:
+            title = r'$\lambda$ = ' + ("%.3f" % opac.wav[idust][iwav]) + r'$\mu$m'
+    elif plot_type == 2:
+        y = y[:, iang]
+        if title is None:
+            title = r'$\phi$ = ' + ("%.3f" % opac.scatang[idust][iang]) + r'$^\circ$'
+
+    p = ax.plot(x, y, fmt, **kwargs)
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+
+    return p

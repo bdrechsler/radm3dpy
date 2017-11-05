@@ -12,14 +12,6 @@ except ImportError:
     print(' To use the python module of RADMC-3D you need to install Numpy')
     print(traceback.format_exc())
 
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    plt = None
-    print('Warning')
-    print('matplotlib.pyplot cannot be imported')
-    print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
-    print('or display images')
 
 from . import natconst as nc
 

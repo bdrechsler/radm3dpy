@@ -14,14 +14,6 @@ except ImportError:
     print(' To use the python module of RADMC-3D you need to install Numpy')
     print(traceback.format_exc())
 
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    plt = None
-    print('Warning')
-    print('matplotlib.pyplot cannot be imported')
-    print('Without matplotlib you can use the python module to set up a model but you will not be able to plot things')
-    print('or display images')
 
 from . import natconst as nc
 from . import miescat
@@ -175,7 +167,7 @@ class radmc3dDustOpac(object):
                 for i in range(len(idust)):
                     scatmat.append(False)
         else:
-            if isinstance(scatmat, str):
+            if isinstance(scatmat, bool):
                 scatmat = [scatmat]
 
         # Find the file name extensions in the master opacity file if idust is specified instead of ext
