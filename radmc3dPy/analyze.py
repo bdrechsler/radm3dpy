@@ -483,7 +483,7 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
     return rho_new
 
 
-def readMol(mol='', fname=''):
+def readMol(mol=None, fname=None):
     """ Wrapper around the radmc3dMolecule.read() method
 
        Parameters
@@ -2281,3 +2281,4 @@ def plotScatmat(opac=None, var='z11', idust=0, iwav=None, wav=None, xvar='ang', 
     ax.set_title(title)
 
     return p
+

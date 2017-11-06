@@ -65,6 +65,11 @@ class radmc3dMolecule(object):
     lam             : float
                      Wavelength of line ilin in micron
 
+    temp            : ndarray
+                     Temperature grid of the partition function
+
+    pfunc           : ndarray
+                     Partition function
     """
 
     def __init__(self):
@@ -82,7 +87,9 @@ class radmc3dMolecule(object):
         self.freq = 0.0
         self.lam = 0.0
 
-    # --------------------------------------------------------------------------------------------------
+        self.pfunc = None
+        self.temp = None
+
     def read(self, mol=None, fname=None):
         """Read the molecule_<mol>.inp file
 
@@ -141,3 +148,67 @@ class radmc3dMolecule(object):
                 self.lam[i] = nc.cc / self.freq[i]
 
         return True
+
+    def getPartitionFunction(self, temp=None, tmin=None, tmax=None, ntemp=None, tlog=True):
+        """
+        Calculates the partition function at a grid of temperatures
+
+        Parameters
+        ----------
+        temp            : list,ndarray
+                          Temperature(s) in Kelvin to calculate the partition function at
+
+        tmin            : float, optional
+                          Minimum temperature in the grid (if temp is None)
+
+        tmax            : float, optional
+                          Maximum temperature in the grid (if temp is None)
+
+        ntemp           : int, optional
+                          Number of temperature in the grid (if temp is None)
+
+        tlog            : bool
+                          If True the generated temperature grid will be logarithmic. If False the grid will be linear.
+
+        Returns
+        -------
+        The temperature grid and partition function will be put in the temp and pfunc data attributes of the class
+        """
+
+        if temp is None:
+            if tmin is None:
+                msg = 'Unknown tmin. Either temp or the combination of tmin, tmax and ntemp should be set'
+                raise ValueError(msg)
+            if tmax is None:
+                msg = 'Unknown tmax. Either temp or the combination of tmin, tmax and ntemp should be set'
+                raise ValueError(msg)
+            if ntemp is None:
+                msg = 'Unknown ntemp. Either temp or the combination of tmin, tmax and ntemp should be set'
+                raise ValueError(msg)
+            if tlog:
+                self.temp = tmin * (tmax / tmin) ** (np.arange(ntemp, dtype=float) / float(ntemp-1))
+            else:
+                self.temp = tmin + (tmax - tmin) * (np.arange(ntemp, dtype=float) / float(ntemp-1))
+        else:
+            if isinstance(temp, float):
+                self.temp = np.array([temp], dtype=np.float64)
+
+            elif isinstance(temp, list):
+                self.temp = np.array(temp, dtype=np.float64)
+
+            elif isinstance(temp, tuple):
+                self.temp = np.array(temp, dtype=np.float64)
+
+            else:
+                if not isinstance(temp, np.ndarray):
+                    msg = 'Unknown datatype for temp. it should be either a single float, or an array like object ' \
+                          '(i.e. list, tuple, or numpy.ndarray)'
+                    raise TypeError(msg)
+
+        self.pfunc = np.zeros(self.temp.shape[0], dtype=np.float64)
+        for it in range(self.temp.shape[0]):
+            self.pfunc[it] = (self.wgt * np.exp(-self.energy / nc.kk/self.temp[it])).sum()
+
+
+
+

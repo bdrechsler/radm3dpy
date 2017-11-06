@@ -589,6 +589,104 @@ class radmc3dModel(object):
         writeLinesInp(ppar=self.par.ppar)
 
 
+    def setupDust(self, sgrid=True, wgrid=True, radsources=True, dustopac=True, ddens=True, dtemp=False):
+        """
+        Set up a model for RADMC-3D.
+
+        Parameters
+        ----------
+        sgrid           : bool
+                          Should the spatial grid be generated? (default=True)
+
+        wgrid           : bool
+                          Should the wavelength grid be generated? (default=True)
+
+        radsources      : bool
+                          Should the radiation sources be generated? (default=True)
+
+        dustopac        : bool
+                          Should dust opacities be generated? (default=True)
+
+        ddens           : bool
+                          Should the dust density be generated? (default=True)
+
+        dtemp           : bool
+                          Should the dust temperature be generated (default=False)
+
+        Note, that by default all generated data will be written to files immediately. In case you wish to generate
+            the files but not write the data to files but only keep them instead in data attributes, please use the
+            individual generator functions methods (e.g. makeGrid, makeRadSources, makeVar, etc)
+        """
+
+        self.writeRadmc3dInp()
+
+        self.makeGrid(sgrid=sgrid, wgrid=wgrid, writeToFile=True)
+
+        if radsources:
+            self.makeRadSources(writeToFile=True)
+
+        if dustopac:
+            self.makeDustOpac()
+
+        if ddens:
+            self.makeVar(ddens=True, writeToFile=True)
+
+        if dtemp:
+            self.makeVar(dtemp=True, writeToFile=True)
+
+    def setupGas(self, sgrid=False, wgrid=False, radsources=False, gdens=True, gtemp=True, gvel=True, vturb=True):
+            """
+            Set up a model for RADMC-3D.
+
+            Parameters
+            ----------
+            sgrid           : bool
+                              Should the spatial grid be generated? (default=False)
+
+            wgrid           : bool
+                              Should the wavelength grid be generated? (default=False)
+
+            radsources      : bool
+                              Should the radiation sources be generated? (default=False)
+
+            gdens           : bool
+                              Should the gas density be generated? (default=True)
+
+            gtemp           : bool
+                              Should the gas temperature be generated (default=False)
+
+            gvel            : bool
+                              Should the gas veloctiy be generated (default=False)
+
+            vturb           : bool
+                              Should the turbulent velocity field be generated (default=False)
+
+            Note, that by default all generated data will be written to files immediately. In case you wish to generate
+                the files but not write the data to files but only keep them instead in data attributes, please use the
+                individual generator functions methods (e.g. makeGrid, makeRadSources, makeVar, etc)
+            """
+
+            self.writeRadmc3dInp()
+
+            self.makeGrid(sgrid=sgrid, wgrid=wgrid, writeToFile=True)
+
+            if radsources:
+                self.makeRadSources(writeToFile=True)
+
+            if gdens:
+                self.makeVar(gdens=True, writeToFile=True)
+
+            if gtemp:
+                self.makeVar(gtemp=True, writeToFile=True)
+
+            if gvel:
+                self.makeVar(gvel=True, writeToFile=True)
+
+            if vturb:
+                self.makeVar(vturb=True, writeToFile=True)
+
+
+
 def problemSetupDust(model=None, binary=True, writeDustTemp=False, old=False, dfunc=None, dfpar=None, **kwargs):
     """
     Function to set up a dust model for RADMC-3D 
@@ -1600,3 +1698,5 @@ def validateModel(model='', dustModel=False, gasModel=False, writeDustTemp=False
     # that it will work properly.
     #
     return isValid
+
+
