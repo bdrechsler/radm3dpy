@@ -8,6 +8,7 @@ Changes
 
 * Nested mesh support
 * Data inspector GUI
+* Line RT analysis tools 
 
 **v0.30**
 
@@ -16,7 +17,9 @@ Changes
 * New module (sphtool) for re-gridding 3D Smoothed Particle Hydrodynamics (SPH) simulations to regular or AMR grids, 
   including some basic visualisation of the SPH simulations
 * Possibility for modular module setup (i.e. generation of grids, variables, radiation sources, etc independently of each other)
-  
+* Functions to plot dust opacities, and scattering matrix elements 
+* Internal structural changes (splitting the analyze module to smaller modules, for easier maintenance, but all previous functionality 
+  of the analyze module is kept intact) 
 
 **v0.29**
 

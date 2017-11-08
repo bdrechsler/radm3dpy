@@ -486,6 +486,133 @@ ddens, dtemp, gdens, ndens, gtemp, gvel, vturb</dd>
 </dd></dl>
 
 <dl class="function">
+<dt id="radmc3dPy.analyze.plotDustOpac">
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">plotDustOpac</code><span class="sig-paren">(</span><em>opac=None</em>, <em>var='kabs'</em>, <em>idust=0</em>, <em>ax=None</em>, <em>xlabel=None</em>, <em>ylabel=None</em>, <em>fmt=''</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.plotDustOpac" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the dust opacity as a function of wavelength</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>opac</strong> : radmc3dDustOpac</p>
+<blockquote>
+<div><p>Dust opacity container</p>
+</div></blockquote>
+<p><strong>var</strong> : {&#8216;kabs&#8217;, &#8216;ksca&#8217;, &#8216;kext&#8217;, &#8216;g&#8217;}</p>
+<blockquote>
+<div><p>Variable to be plotted</p>
+</div></blockquote>
+<p><strong>idust</strong> : int, optional</p>
+<blockquote>
+<div><p>Dust index in opac to be plotted (default=0)</p>
+</div></blockquote>
+<p><strong>ax</strong> : Axis, optional</p>
+<blockquote>
+<div><p>Matplotlib axis to plot on. If not set the current axis will be used.</p>
+</div></blockquote>
+<p><strong>xlabel</strong> : str, optional</p>
+<blockquote>
+<div><p>Label of the x-axis</p>
+</div></blockquote>
+<p><strong>ylabel</strong> : str, optional</p>
+<blockquote>
+<div><p>Label of the y-axis</p>
+</div></blockquote>
+<p><strong>fmt</strong> : str, optional</p>
+<blockquote>
+<div><p>Format of the plotted line. The same as the third non-keyword argument of matplotlib.pyplot.plot()</p>
+</div></blockquote>
+<p><strong>Keyword Arguments:</strong></p>
+<blockquote>
+<div><p>Any further keyword argument that will be passed to matplotlib.pyplot.plot()</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The returned list by matplotlib.pyplot.plot()</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radmc3dPy.analyze.plotScatmat">
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">plotScatmat</code><span class="sig-paren">(</span><em>opac=None</em>, <em>var='z11'</em>, <em>idust=0</em>, <em>iwav=None</em>, <em>wav=None</em>, <em>xvar='ang'</em>, <em>iang=None</em>, <em>ang=None</em>, <em>ax=None</em>, <em>xlabel=None</em>, <em>ylabel=None</em>, <em>title=None</em>, <em>fmt=''</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.plotScatmat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the scattering matrix elements either as a function of scattering angle at a specific wavelength (default)
+or as a function of wavelength at a specific scattering angle</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>opac</strong> : radmc3dDustOpac</p>
+<blockquote>
+<div><p>Dust opacity container</p>
+</div></blockquote>
+<p><strong>var</strong> : {&#8216;kabs&#8217;, &#8216;ksca&#8217;, &#8216;kext&#8217;, &#8216;g&#8217;}</p>
+<blockquote>
+<div><p>Variable to be plotted</p>
+</div></blockquote>
+<p><strong>idust</strong> : int, optional</p>
+<blockquote>
+<div><p>Dust index in opac to be plotted (default=0)</p>
+</div></blockquote>
+<p><strong>iwav</strong> : int, optional</p>
+<blockquote>
+<div><p>Wavelength index (used only if xvar=&#8217;ang&#8217;) to be plotted.</p>
+</div></blockquote>
+<p><strong>wav</strong> : float, optional</p>
+<blockquote>
+<div><p>Wavelength at which the plot should be made (used only if xvar=&#8217;ang&#8217;). In practice, instead of
+interpolating to this wavelength, the nearest wavelength in the wavelength grid will be used.</p>
+</div></blockquote>
+<p><strong>xvar</strong> : {&#8216;ang&#8217;, &#8216;wav&#8217;}</p>
+<blockquote>
+<div><p>Variable for plotting the scattering matrix elements against (default=&#8217;ang&#8217;)</p>
+</div></blockquote>
+<p><strong>iang</strong> : int, optional</p>
+<blockquote>
+<div><p>Scattering angle index (used only if xvar=&#8217;wav&#8217;)</p>
+</div></blockquote>
+<p><strong>ang</strong> : int, optional</p>
+<blockquote>
+<div><p>Scattering angle in degrees at which the plot should be made (used only if xvar=&#8217;wav&#8217;).
+In practice, instead of interpolating to this scattering angle, the nearest angle in the angular
+grid will be used.</p>
+</div></blockquote>
+<p><strong>ax</strong> : Axis, optional</p>
+<blockquote>
+<div><p>Matplotlib axis to plot on. If not set the current axis will be used.</p>
+</div></blockquote>
+<p><strong>xlabel</strong> : str, optional</p>
+<blockquote>
+<div><p>Label of the x-axis</p>
+</div></blockquote>
+<p><strong>ylabel</strong> : str, optional</p>
+<blockquote>
+<div><p>Label of the y-axis</p>
+</div></blockquote>
+<p><strong>title</strong> : str, optional</p>
+<blockquote>
+<div><p>Title of the plot. If not set either the wavelength (for xvar=&#8217;ang&#8217;) or the scattering angle
+(for xvar=&#8217;wav&#8217;) the plot was made at.</p>
+</div></blockquote>
+<p><strong>fmt</strong> : str, optional</p>
+<blockquote>
+<div><p>Format of the plotted line. The same as the third non-keyword argument of matplotlib.pyplot.plot()</p>
+</div></blockquote>
+<p><strong>Keyword Arguments:</strong></p>
+<blockquote>
+<div><p>Any further keyword argument that will be passed to matplotlib.pyplot.plot()</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The returned list by matplotlib.pyplot.plot()</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="radmc3dPy.analyze.plotSlice2D">
 <code class="descclassname">radmc3dPy.analyze.</code><code class="descname">plotSlice2D</code><span class="sig-paren">(</span><em>data=None</em>, <em>var='ddens'</em>, <em>plane='xy'</em>, <em>crd3=0.0</em>, <em>icrd3=None</em>, <em>ispec=-1</em>, <em>xlim=()</em>, <em>ylim=()</em>, <em>log=False</em>, <em>linunit='cm'</em>, <em>angunit='rad'</em>, <em>nx=100</em>, <em>ny=100</em>, <em>showgrid=False</em>, <em>gridcolor='k'</em>, <em>gridalpha=1.0</em>, <em>nproc=1</em>, <em>contours=False</em>, <em>clev=None</em>, <em>clmin=None</em>, <em>clmax=None</em>, <em>ncl=None</em>, <em>cllog=False</em>, <em>clcol='k'</em>, <em>cllabel=False</em>, <em>cllabel_fontsize=10</em>, <em>cllabel_fmt='%.1f'</em>, <em>clalpha=1.0</em>, <em>ax=None</em>, <em>lattitude=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.plotSlice2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot an axis-aligned 2D slice of the variables in the model. Any additional keyword
@@ -836,7 +963,7 @@ This function is an interface to radmc3dGrid.readGrid().</p>
 
 <dl class="function">
 <dt id="radmc3dPy.analyze.readMol">
-<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readMol</code><span class="sig-paren">(</span><em>mol=''</em>, <em>fname=''</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readMol" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readMol</code><span class="sig-paren">(</span><em>mol=None</em>, <em>fname=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readMol" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper around the radmc3dMolecule.read() method</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -3500,6 +3627,12 @@ Based on the Leiden LAMDA database, but is in principle generic</p>
 <tr class="row-odd"><td>lam</td>
 <td>(float) Wavelength of line ilin in micron</td>
 </tr>
+<tr class="row-even"><td>temp</td>
+<td>(ndarray) Temperature grid of the partition function</td>
+</tr>
+<tr class="row-odd"><td>pfunc</td>
+<td>(ndarray) Partition function</td>
+</tr>
 </tbody>
 </table>
 <p class="rubric">Methods</p>
@@ -3509,11 +3642,51 @@ Based on the Leiden LAMDA database, but is in principle generic</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.molecule.radmc3dMolecule.read" title="radmc3dPy.molecule.radmc3dMolecule.read"><code class="xref py py-obj docutils literal"><span class="pre">read</span></code></a>([mol,&nbsp;fname])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.molecule.radmc3dMolecule.getPartitionFunction" title="radmc3dPy.molecule.radmc3dMolecule.getPartitionFunction"><code class="xref py py-obj docutils literal"><span class="pre">getPartitionFunction</span></code></a>([temp,&nbsp;tmin,&nbsp;tmax,&nbsp;...])</td>
+<td>Calculates the partition function at a grid of temperatures</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.molecule.radmc3dMolecule.read" title="radmc3dPy.molecule.radmc3dMolecule.read"><code class="xref py py-obj docutils literal"><span class="pre">read</span></code></a>([mol,&nbsp;fname])</td>
 <td>Read the molecule_&lt;mol&gt;.inp file</td>
 </tr>
 </tbody>
 </table>
+<dl class="method">
+<dt id="radmc3dPy.molecule.radmc3dMolecule.getPartitionFunction">
+<code class="descname">getPartitionFunction</code><span class="sig-paren">(</span><em>temp=None</em>, <em>tmin=None</em>, <em>tmax=None</em>, <em>ntemp=None</em>, <em>tlog=True</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.molecule.radmc3dMolecule.getPartitionFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the partition function at a grid of temperatures</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>temp</strong> : list,ndarray</p>
+<blockquote>
+<div><p>Temperature(s) in Kelvin to calculate the partition function at</p>
+</div></blockquote>
+<p><strong>tmin</strong> : float, optional</p>
+<blockquote>
+<div><p>Minimum temperature in the grid (if temp is None)</p>
+</div></blockquote>
+<p><strong>tmax</strong> : float, optional</p>
+<blockquote>
+<div><p>Maximum temperature in the grid (if temp is None)</p>
+</div></blockquote>
+<p><strong>ntemp</strong> : int, optional</p>
+<blockquote>
+<div><p>Number of temperature in the grid (if temp is None)</p>
+</div></blockquote>
+<p><strong>tlog</strong> : bool</p>
+<blockquote>
+<div><p>If True the generated temperature grid will be logarithmic. If False the grid will be linear.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The temperature grid and partition function will be put in the temp and pfunc data attributes of the class</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="radmc3dPy.molecule.radmc3dMolecule.read">
 <code class="descname">read</code><span class="sig-paren">(</span><em>mol=None</em>, <em>fname=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.molecule.radmc3dMolecule.read" title="Permalink to this definition">¶</a></dt>
@@ -5375,6 +5548,12 @@ with the new parameter values.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.readParams" title="radmc3dPy.setup.radmc3dModel.readParams"><code class="xref py py-obj docutils literal"><span class="pre">readParams</span></code></a>()</td>
 <td></td>
 </tr>
+<tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.setupDust" title="radmc3dPy.setup.radmc3dModel.setupDust"><code class="xref py py-obj docutils literal"><span class="pre">setupDust</span></code></a>([sgrid,&nbsp;wgrid,&nbsp;radsources,&nbsp;...])</td>
+<td>Set up a model for RADMC-3D.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.setupGas" title="radmc3dPy.setup.radmc3dModel.setupGas"><code class="xref py py-obj docutils literal"><span class="pre">setupGas</span></code></a>([sgrid,&nbsp;wgrid,&nbsp;radsources,&nbsp;gdens,&nbsp;...])</td>
+<td>Set up a model for RADMC-3D.</td>
+</tr>
 <tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.setup.radmc3dModel.writeLinesInp" title="radmc3dPy.setup.radmc3dModel.writeLinesInp"><code class="xref py py-obj docutils literal"><span class="pre">writeLinesInp</span></code></a>()</td>
 <td>Writes the lines.inp master command file for line simulation in RADMC-3D</td>
 </tr>
@@ -5492,6 +5671,96 @@ stellarsrc_templates.inp</p>
 <dt id="radmc3dPy.setup.radmc3dModel.readParams">
 <code class="descname">readParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.readParams" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.setupDust">
+<code class="descname">setupDust</code><span class="sig-paren">(</span><em>sgrid=True</em>, <em>wgrid=True</em>, <em>radsources=True</em>, <em>dustopac=True</em>, <em>ddens=True</em>, <em>dtemp=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.setupDust" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up a model for RADMC-3D.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sgrid</strong> : bool</p>
+<blockquote>
+<div><p>Should the spatial grid be generated? (default=True)</p>
+</div></blockquote>
+<p><strong>wgrid</strong> : bool</p>
+<blockquote>
+<div><p>Should the wavelength grid be generated? (default=True)</p>
+</div></blockquote>
+<p><strong>radsources</strong> : bool</p>
+<blockquote>
+<div><p>Should the radiation sources be generated? (default=True)</p>
+</div></blockquote>
+<p><strong>dustopac</strong> : bool</p>
+<blockquote>
+<div><p>Should dust opacities be generated? (default=True)</p>
+</div></blockquote>
+<p><strong>ddens</strong> : bool</p>
+<blockquote>
+<div><p>Should the dust density be generated? (default=True)</p>
+</div></blockquote>
+<p><strong>dtemp</strong> : bool</p>
+<blockquote>
+<div><p>Should the dust temperature be generated (default=False)</p>
+</div></blockquote>
+<p><strong>Note, that by default all generated data will be written to files immediately. In case you wish to generate</strong></p>
+<blockquote class="last">
+<div><p>the files but not write the data to files but only keep them instead in data attributes, please use the
+individual generator functions methods (e.g. makeGrid, makeRadSources, makeVar, etc)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.setup.radmc3dModel.setupGas">
+<code class="descname">setupGas</code><span class="sig-paren">(</span><em>sgrid=False</em>, <em>wgrid=False</em>, <em>radsources=False</em>, <em>gdens=True</em>, <em>gtemp=True</em>, <em>gvel=True</em>, <em>vturb=True</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.setup.radmc3dModel.setupGas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up a model for RADMC-3D.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sgrid</strong> : bool</p>
+<blockquote>
+<div><p>Should the spatial grid be generated? (default=False)</p>
+</div></blockquote>
+<p><strong>wgrid</strong> : bool</p>
+<blockquote>
+<div><p>Should the wavelength grid be generated? (default=False)</p>
+</div></blockquote>
+<p><strong>radsources</strong> : bool</p>
+<blockquote>
+<div><p>Should the radiation sources be generated? (default=False)</p>
+</div></blockquote>
+<p><strong>gdens</strong> : bool</p>
+<blockquote>
+<div><p>Should the gas density be generated? (default=True)</p>
+</div></blockquote>
+<p><strong>gtemp</strong> : bool</p>
+<blockquote>
+<div><p>Should the gas temperature be generated (default=False)</p>
+</div></blockquote>
+<p><strong>gvel</strong> : bool</p>
+<blockquote>
+<div><p>Should the gas veloctiy be generated (default=False)</p>
+</div></blockquote>
+<p><strong>vturb</strong> : bool</p>
+<blockquote>
+<div><p>Should the turbulent velocity field be generated (default=False)</p>
+</div></blockquote>
+<p><strong>Note, that by default all generated data will be written to files immediately. In case you wish to generate</strong></p>
+<blockquote class="last">
+<div><p>the files but not write the data to files but only keep them instead in data attributes, please use the
+individual generator functions methods (e.g. makeGrid, makeRadSources, makeVar, etc)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="radmc3dPy.setup.radmc3dModel.writeLinesInp">
@@ -6110,7 +6379,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Nov 04, 2017.
+      Last updated on Nov 06, 2017.
 
     </p>
   </div>

@@ -285,6 +285,7 @@ class radmc3dData(object):
                 else:
 
                     data = np.fromfile(fname, count=-1, sep="\n", dtype=np.float64)
+                    # data = np.fromfile(fname, count=-1, sep="\n", dtype=np.float64)
                     if data.shape[0] == hdr[1] + 2:
                         data = np.reshape(data[2:], [1, self.grid.nz, self.grid.ny, self.grid.nx])
                     elif data.shape[0] == hdr[1] * hdr[2] + 3:
