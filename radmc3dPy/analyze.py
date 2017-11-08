@@ -174,7 +174,7 @@ def readOpac(ext=None, idust=None, scatmat=None, old=False):
     return res
 
 
-def readGrid(sgrid=True, wgrid=True, sgrid_fname='amr_grid.inp', wgrid_fname='wavelength_micron.inp'):
+def readGrid(sgrid=True, wgrid=True, sgrid_fname=None, wgrid_fname=None, old=False):
     """
     Reads the spatial and frequency grid.
     This function is an interface to radmc3dGrid.readGrid().
@@ -194,33 +194,41 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname='amr_grid.inp', wgrid_fname='wa
     wgrid_fname : str
                   File containing the wavelength grid (default: wavelength_micron.inp)
 
+    old         : bool
+                  If True the format of the old 2D version of radmc3d (radmc) will be used
     Returns
     -------
 
     Returns an instance of the radmc3dGrid (for regular grid) or radmc3dOctree (for octree AMR) class
     """
 
+
+
+
     grid = None
 
-    if wgrid:
-        grid = radmc3dGrid()
-        grid.readWavelengthGrid(fname=wgrid_fname)
-
     if sgrid:
-        if grid is None:
-            grid = radmc3dGrid()
+        grid = radmc3dGrid()
         #
         # Check the grid type
         #
-        hdr = np.fromfile(sgrid_fname, count=7, sep="\n", dtype=np.int)
-        if hdr[1] == 0:
+        if not old:
+            sgrid_fname = 'amr_grid.inp'
+            hdr = np.fromfile(sgrid_fname, count=7, sep="\n", dtype=np.int)
+            if hdr[1] == 0:
+                grid = radmc3dGrid()
+            elif hdr[1] == 1:
+                grid = radmc3dOctree()
+            else:
+                raise ValueError('Unsupported amr_style' + ("%d" % hdr[1]) + '\n '
+                                 + 'Only regular (0) or octree-like (1) AMR styles are supported')
+        grid.readSpatialGrid(fname=sgrid_fname, old=old)
+
+    if wgrid:
+        if grid is None:
             grid = radmc3dGrid()
-        elif hdr[1] == 1:
-            grid = radmc3dOctree()
-        else:
-            raise ValueError('Unsupported amr_style' + ("%d" % hdr[1]) + '\n '
-                             + 'Only regular (0) or octree-like (1) AMR styles are supported')
-        grid.readSpatialGrid(fname=sgrid_fname)
+        grid.readWavelengthGrid(fname=wgrid_fname, old=old)
+
 
     return grid
 

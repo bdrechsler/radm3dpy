@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+from __future__ import division
 import traceback
 
 try:
@@ -684,7 +685,7 @@ class radmc3dGrid(object):
                 for i in range(int(self.ny / 2)):
                     wfile.write("%.7e\n" % self.y[i])
 
-    def readWavelengthGrid(self, fname='', old=False):
+    def readWavelengthGrid(self, fname=None, old=False):
         """Reads the wavelength grid
 
         Parameters
@@ -700,40 +701,30 @@ class radmc3dGrid(object):
         # Read the radmc3d format
         #
         if not old:
-            if fname == '':
+            if fname is None:
                 fname = 'wavelength_micron.inp'
             #
             # Read the frequency grid
             #
             print('Reading ' + fname)
-            with open(fname, 'r') as rfile:
-
-                self.nwav = int(rfile.readline())
-                self.nfreq = self.nwav
-                self.wav = np.zeros(self.nwav, dtype=np.float64)
-
-                for i in range(self.nwav):
-                    self.wav[i] = float(rfile.readline())
-
-                self.freq = nc.cc / self.wav * 1e4
-
+            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+            self.nfreq = np.int(data[0])
+            self.nwav = self.nfreq
+            self.wav = data[1:]
+            self.freq = nc.cc / self.wav * 1e4
         #
         # Read the old radmc format
         #
         else:
-            if fname == '':
+            if fname is None:
                 fname = 'frequency.inp'
 
-            with open(fname, 'r') as rfile:
-
-                self.nfreq = int(rfile.readline())
-                self.nwav = self.nfreq
-                dum = rfile.readline()
-                self.freq = np.zeros(self.nfreq, dtype=float)
-                self.wav = np.zeros(self.nfreq, dtype=float)
-                for i in range(self.nfreq):
-                    self.freq[i] = float(rfile.readline())
-                    self.wav[i] = nc.cc / self.freq[i] * 1e4
+            print('Reading '+fname)
+            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+            self.nfreq = np.int(data[0])
+            self.nwav = self.nwav
+            self.freq = data[1:]
+            self.wav = nc.cc / self.freq * 1e4
 
         return
 
@@ -757,47 +748,52 @@ class radmc3dGrid(object):
                 fname = 'amr_grid.inp'
                 #
                 # Read the spatial grid
+                #
 
-            with open(fname, 'r') as rfile:
-                form = float(rfile.readline())
-                grid_style = float(rfile.readline())
-                crd_system = int(rfile.readline())
-                if crd_system < 100:
-                    self.crd_sys = 'car'
-                elif (crd_system >= 100) & (crd_system < 200):
-                    self.crd_sys = 'sph'
-                elif (crd_system >= 200) & (crd_system < 300):
-                    self.crd_sys = 'cyl'
-                else:
-                    rfile.close()
-                    raise ValueError('Unsupported coordinate system identification in the ' + fname + ' file.')
+            print('Reading '+fname)
+            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+            hdr = np.array(data[:10], dtype=np.int)
+            data = data[10:]
 
-                grid_info = float(rfile.readline())
-                dum = rfile.readline().split()
-                self.act_dim = [int(dum[i]) for i in range(len(dum))]
-                dum = rfile.readline().split()
-                self.nx, self.ny, self.nz = int(dum[0]), int(dum[1]), int(dum[2])
-                self.nxi, self.nyi, self.nzi = self.nx + 1, self.ny + 1, self.nz + 1
+            # Check the file format
+            if hdr[0] != 1:
+                msg = 'Unkonwn format number in amr_grid.inp'
+                raise RuntimeError(msg)
 
-                self.xi = np.zeros(self.nx + 1, dtype=np.float64)
-                self.yi = np.zeros(self.ny + 1, dtype=np.float64)
-                self.zi = np.zeros(self.nz + 1, dtype=np.float64)
+            # Check the coordinate system
+            if hdr[2] < 100:
+                self.crd_sys = 'car'
+            elif (hdr[2] >= 100) & (hdr[2] < 200):
+                self.crd_sys = 'sph'
+            elif (hdr[2] >= 200) & (hdr[2] < 300):
+                self.crd_sys = 'cyl'
+            else:
+                raise ValueError('Unsupported coordinate system identification in the ' + fname + ' file.')
 
-                for i in range(self.nxi):
-                    self.xi[i] = float(rfile.readline())
-                for i in range(self.nyi):
-                    self.yi[i] = float(rfile.readline())
-                for i in range(self.nzi):
-                    self.zi[i] = float(rfile.readline())
+            # Get active dimensions
+            self.act_dim = hdr[4:7]
 
-                if self.crd_sys == 'car':
-                    self.x = (self.xi[0:self.nx] + self.xi[1:self.nx + 1]) * 0.5
-                    self.y = (self.yi[0:self.ny] + self.yi[1:self.ny + 1]) * 0.5
-                    self.z = (self.zi[0:self.nz] + self.zi[1:self.nz + 1]) * 0.5
-                else:
-                    self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx + 1])
-                    self.y = (self.yi[0:self.ny] + self.yi[1:self.ny + 1]) * 0.5
-                    self.z = (self.zi[0:self.nz] + self.zi[1:self.nz + 1]) * 0.5
+            # Get the number of cells in each dimensions
+            self.nx = hdr[7]
+            self.ny = hdr[8]
+            self.nz = hdr[9]
+            self.nxi, self.nyi, self.nzi = self.nx + 1, self.ny + 1, self.nz + 1
+
+            # Get the cell interfaces
+            self.xi = data[:self.nxi]
+            data = data[self.nxi:]
+            self.yi = data[:self.nyi]
+            data = data[self.nyi:]
+            self.zi = data[:self.nzi]
+
+            if self.crd_sys == 'car':
+                self.x = (self.xi[0:self.nx] + self.xi[1:self.nx + 1]) * 0.5
+                self.y = (self.yi[0:self.ny] + self.yi[1:self.ny + 1]) * 0.5
+                self.z = (self.zi[0:self.nz] + self.zi[1:self.nz + 1]) * 0.5
+            else:
+                self.x = np.sqrt(self.xi[0:self.nx] * self.xi[1:self.nx + 1])
+                self.y = (self.yi[0:self.ny] + self.yi[1:self.ny + 1]) * 0.5
+                self.z = (self.zi[0:self.nz] + self.zi[1:self.nz + 1]) * 0.5
 
         #
         # Read the old radmc format
@@ -809,46 +805,32 @@ class radmc3dGrid(object):
             #
             # Read the radial grid
             #
-            with open('radius.inp', 'r') as rfile:
-
-                self.nx = int(rfile.readline())
-                self.nxi = self.nx + 1
-                dum = rfile.readline()
-                self.x = np.zeros(self.nx, dtype=float)
-                self.xi = np.zeros(self.nxi, dtype=float)
-                for i in range(self.nx):
-                    self.x[i] = float(rfile.readline())
-                self.xi[1:-1] = 0.5 * (self.x[1:] + self.x[:-1])
-                self.xi[0] = self.x[0] - (self.xi[1] - self.x[0])
-                self.xi[-1] = self.x[-1] + (self.x[-1] - self.xi[-2])
+            data = np.fromfile('radius.inp', count=-1, sep=" ", dtype=np.float64)
+            self.nx = np.int(data[0])
+            self.nxi = self.nx + 1
+            self.x = data[1:]
+            self.xi = np.zeros(self.nxi, dtype=float)
+            self.xi[1:-1] = 0.5 * (self.x[1:] + self.x[:-1])
+            self.xi[0] = self.x[0] - (self.xi[1] - self.x[0])
+            self.xi[-1] = self.x[-1] + (self.x[-1] - self.xi[-2])
 
             #
             # Read the poloidal angular grid
             #
-            with open('theta.inp', 'r') as rfile:
 
-                ny = int(rfile.readline().split()[0])
-                self.ny = ny * 2
-                self.nyi = self.ny + 1
-                dum = rfile.readline()
-
-                self.y = np.zeros(self.ny, dtype=float)
-                self.yi = np.zeros(self.nyi, dtype=float)
-                self.yi[0] = 0.
-                self.yi[-1] = np.pi
-                self.yi[ny] = np.pi * 0.5
-
-                for i in range(int(self.ny / 2)):
-                    self.y[i] = float(rfile.readline())
-                    self.y[self.ny - 1 - i] = np.pi - self.y[i]
-
-                self.yi[1:-1] = 0.5 * (self.y[1:] + self.y[:-1])
-                self.yi[ny] = np.pi * 0.5
+            data = np.fromfile('theta.inp', count=-1, sep=" ", dtype=np.float64)
+            self.ny = np.int(data[0]) * 2
+            self.nyi = self.ny + 1
+            self.y = np.zeros(self.ny, dtype=float)
+            self.y[:self.ny//2] = data[2:]
+            self.y[self.ny//2:] = np.pi - data[2:][::-1]
+            self.yi = np.zeros(self.nyi, dtype=float)
+            self.yi[1:-1] = 0.5 * (self.y[1:] + self.y[:-1])
+            self.yi[self.ny] = np.pi * 0.5
 
             #
             # Create the azimuthal grid
             #
-
             self.nz = 1
             self.zi = np.array([0., 2. * np.pi], dtype=float)
 

@@ -379,18 +379,20 @@ class radmc3dOctree(object):
 
         """
         #
+        # Read the radmc3d format
+        #
+        if fname is None:
+            fname = 'wavelength_micron.inp'
+        #
         # Read the frequency grid
         #
+        print('Reading ' + fname)
+        data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+        self.nfreq = np.int(data[0])
+        self.nwav = self.nfreq
+        self.wav = data[1:]
+        self.freq = nc.cc / self.wav * 1e4
 
-        with open(fname, 'r') as rfile:
-            self.nwav = int(rfile.readline())
-            self.nfreq = self.nwav
-            self.wav = np.zeros(self.nwav, dtype=np.float64)
-
-            for i in range(self.nwav):
-                self.wav[i] = float(rfile.readline())
-
-            self.freq = nc.cc / self.wav * 1e4
 
     def writeWavelengthGrid(self, fname='', old=False):
         """Wriites the wavelength grid to a file (e.g. wavelength_micron.inp).

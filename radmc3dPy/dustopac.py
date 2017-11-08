@@ -191,182 +191,118 @@ class radmc3dDustOpac(object):
         # Now read all dust opacities
         for i in range(len(ext)):
             if scatmat[i]:
-                with open('dustkapscatmat_' + ext[i] + '.inp', 'r') as rfile:
+                fname = 'dustkapscatmat_' + ext[i] + '.inp'
+                print('Reading ' + fname)
 
-                    print('Reading dustkapscatmat_' + ext[i] + '.inp ....')
+                # Check the file format
+                iformat = np.fromfile(fname, count=1, sep=" ", dtype=np.int)
+                iformat = iformat[0]
+                if iformat != 1:
+                    msg = 'Format number of the file dustkapscatmat_' + ext[i] + '.inp (iformat=' + ("%d" % iformat) + \
+                          ') is unkown'
+                    raise ValueError(msg)
 
-                    self.ext.append(ext[i])
+                data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+                hdr = np.array(data[:3], dtype=np.int)
+                data = data[3:]
 
-                    # Read the header/comment field
-                    dum = rfile.readline()
-                    while dum.strip()[0] == '#':
-                        dum = rfile.readline()
+                self.nwav.append(hdr[1])
+                self.nfreq.append(hdr[1])
+                self.nang.append(hdr[2])
+                self.ext.append(ext[i])
+                self.idust.append(idust[i])
 
-                    # for j in range(6):
-                    # dum = rfile.readline()
+                # Get the opacities
+                data_opac = np.reshape(data[:hdr[1]*4], [hdr[1], 4])
+                data = data[hdr[1]*4:]
+                self.wav.append(data_opac[:, 0])
+                self.freq.append(nc.cc / data_opac[:, 0] * 1e4)
+                self.kabs.append(data_opac[:, 1])
+                self.ksca.append(data_opac[:, 2])
+                self.phase_g.append(data_opac[:, 3])
 
-                    # Read the file format
-                    iformat = int(dum)
-                    # iformat = int(rfile.readline())
-                    if iformat != 1:
-                        rfile.close()
-                        raise ValueError('Format number of the file dustkapscatmat_' + ext[i] + '.inp (iformat=' + (
-                            "%d" % iformat) + ') is unkown')
+                # Get the angular grid
+                self.scatang.append(data[:hdr[2]])
+                data = data[hdr[2]:]
 
-                    # Read the number of wavelengths in the file
-                    dum = int(rfile.readline())
-                    self.nwav.append(dum)
-                    self.nfreq.append(dum)
-                    self.idust.append(idust[i])
-                    idu = len(self.nwav) - 1
-
-                    # Read the scattering angular grid
-                    self.nang.append(int(rfile.readline()))
-                    wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                    kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                    ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                    phase_g = np.zeros(self.nwav[idu], dtype=np.float64)
-                    scatang = np.zeros(self.nang[idu], dtype=np.float64)
-                    z11 = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64)
-                    z12 = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64)
-                    z22 = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64)
-                    z33 = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64)
-                    z34 = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64)
-                    z44 = np.zeros([self.nwav[idu], self.nang[idu]], dtype=np.float64)
-
-                    print('Reading the opacities..')
-                    dum = rfile.readline()
-                    for ilam in range(self.nwav[idu]):
-                        dum = rfile.readline().split()
-                        wav[ilam] = float(dum[0])
-                        kabs[ilam] = float(dum[1])
-                        ksca[ilam] = float(dum[2])
-                        phase_g[ilam] = float(dum[3])
-
-                    print('Reading the angular grid..')
-                    dum = rfile.readline()
-                    for iang in range(self.nang[idu]):
-                        dum = rfile.readline()
-                        scatang[iang] = float(dum)
-
-                    print('Reading the scattering matrix..')
-                    for ilam in range(self.nwav[idu]):
-                        dum = rfile.readline()
-                        for iang in range(self.nang[idu]):
-                            dum = rfile.readline().split()
-                            z11[ilam, iang] = float(dum[0])
-                            z12[ilam, iang] = float(dum[1])
-                            z22[ilam, iang] = float(dum[2])
-                            z33[ilam, iang] = float(dum[3])
-                            z34[ilam, iang] = float(dum[4])
-                            z44[ilam, iang] = float(dum[5])
-
-                    self.wav.append(wav)
-                    self.freq.append(nc.cc / wav * 1e4)
-                    self.kabs.append(kabs)
-                    self.ksca.append(ksca)
-                    self.phase_g.append(phase_g)
-                    self.scatang.append(scatang)
-                    self.z11.append(z11)
-                    self.z12.append(z12)
-                    self.z22.append(z22)
-                    self.z33.append(z33)
-                    self.z34.append(z34)
-                    self.z44.append(z44)
+                # Now get the scattering matrix
+                data = np.reshape(data, [hdr[1], hdr[2], 6])
+                self.z11.append(data[:, :, 0])
+                self.z12.append(data[:, :, 1])
+                self.z22.append(data[:, :, 2])
+                self.z33.append(data[:, :, 3])
+                self.z34.append(data[:, :, 4])
+                self.z44.append(data[:, :, 5])
 
             else:
                 if not old:
                     fname = 'dustkappa_' + ext[i] + '.inp'
-                    with open(fname, 'r') as rfile:
 
-                        self.ext.append(ext[i])
+                    print('Reading '+fname)
 
-                        # Read the file format
-                        iformat = int(rfile.readline())
-                        if (iformat < 1) | (iformat > 3):
-                            rfile.close()
-                            raise ValueError('Unknown file format in the dust opacity file ' + fname)
+                    # Check the file format
+                    iformat = np.fromfile(fname, count=1, sep=" ", dtype=np.int)
+                    iformat = iformat[0]
+                    if (iformat < 1) | (iformat > 3):
+                        msg = 'Unknown file format in the dust opacity file ' + fname
+                        raise ValueError(msg)
 
-                        # Read the number of wavelengths in the file
-                        dum = rfile.readline()
-                        self.nwav.append(int(dum))
-                        self.nfreq.append(int(dum))
-                        self.idust.append(idust[i])
-                        idu = len(self.nwav) - 1
+                    data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+                    hdr = np.array(data[:2], dtype=np.int)
+                    data = data[2:]
 
-                        # If only the absorption coefficients are specified
-                        if iformat == 1:
-                            wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                            kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                            for ilam in range(self.nwav[idu]):
-                                dum = rfile.readline().split()
-                                wav[ilam] = float(dum[0])
-                                kabs[ilam] = float(dum[1])
-                            self.wav.append(wav)
-                            self.freq.append(nc.cc / wav * 1e4)
-                            self.kabs.append(kabs)
-                            self.ksca.append([-1])
-                            self.phase_g.append([-1])
-                        # If the absorption and scattering coefficients are specified
-                        elif iformat == 2:
-                            wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                            kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                            ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                            for ilam in range(self.nwav[idu]):
-                                dum = rfile.readline().split()
-                                wav[ilam] = float(dum[0])
-                                kabs[ilam] = float(dum[1])
-                                ksca[ilam] = float(dum[2])
-                            self.wav.append(wav)
-                            self.freq.append(nc.cc / wav * 1e4)
-                            self.kabs.append(kabs)
-                            self.ksca.append(ksca)
-                            self.phase_g.append([-1])
+                    self.ext.append(ext[i])
+                    self.idust.append(idust[i])
+                    self.nwav.append(hdr[1])
+                    self.nfreq.append(hdr[1])
 
-                        # If the absorption and scattering coefficients and also the scattering phase
-                        # function are specified
-                        elif iformat == 3:
-                            wav = np.zeros(self.nwav[idu], dtype=np.float64)
-                            kabs = np.zeros(self.nwav[idu], dtype=np.float64)
-                            ksca = np.zeros(self.nwav[idu], dtype=np.float64)
-                            phase_g = np.zeros(self.nwav[idu], dtype=np.float64)
-                            for ilam in range(self.nwav[idu]):
-                                dum = rfile.readline().split()
-                                wav[ilam] = float(dum[0])
-                                kabs[ilam] = float(dum[1])
-                                ksca[ilam] = float(dum[2])
-                                phase_g[ilam] = float(dum[3])
+                    # If only the absorption coefficients are specified
+                    if hdr[0] == 1:
+                        data = np.reshape(data, [hdr[1], 2])
+                        self.wav.append(data[:, 0])
+                        self.freq.append(nc.cc / data[:, 0] * 1e4)
+                        self.kabs.append(data[:, 1])
+                        self.ksca.append([-1])
+                        self.phase_g.append([-1])
 
-                            self.wav.append(wav)
-                            self.freq.append(nc.cc / wav * 1e4)
-                            self.kabs.append(kabs)
-                            self.ksca.append(ksca)
-                            self.phase_g.append(phase_g)
+                    # If the absorption and scattering coefficients are specified
+                    elif hdr[0] == 2:
+                        data = np.reshape(data, [hdr[1], 3])
+                        self.wav.append(data[:, 0])
+                        self.freq.append(nc.cc / data[:, 0] * 1e4)
+                        self.kabs.append(data[:, 1])
+                        self.ksca.append(data[:, 2])
+                        self.phase_g.append([-1])
+
+                    # If the absorption and scattering coefficients and also the scattering phase
+                    # function are specified
+                    elif hdr[0] == 3:
+                        data = np.reshape(data, [hdr[1], 4])
+                        self.wav.append(data[:, 0])
+                        self.freq.append(nc.cc / data[:, 0] * 1e4)
+                        self.kabs.append(data[:, 1])
+                        self.ksca.append(data[:, 2])
+                        self.phase_g.append(data[:, 3])
 
                 else:
                     fname = 'dustopac_' + ext[i] + '.inp'
-                    with open(fname, 'r') as rfile:
-                        print('Reading ' + fname)
-                        freq = np.fromfile('frequency.inp', count=-1, sep="\n", dtype=float)
-                        nfreq = int(freq[0])
-                        freq = freq[1:]
+                    print('Reading '+fname)
+                    freq = np.fromfile('frequency.inp', count=-1, sep=" ", dtype=np.float64)
+                    nfreq = int(freq[0])
+                    freq = freq[1:]
+                    self.ext.append(ext[i])
+                    self.idust.append(idust[i])
 
-                        self.ext.append(ext[i])
-                        dum = rfile.readline().split()
-                        if int(dum[0]) != nfreq:
-                            rfile.close()
-                            raise ValueError(fname + ' contains a different number of frequencies than frequency.inp')
+                    data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+                    hdr = np.array(data[:2], dtype=np.int)
+                    data = data[2:]
+                    if hdr[0] != nfreq:
+                        msg = fname + ' contains a different number of frequencies than frequency.inp'
+                        raise ValueError(msg)
 
-                        wav = nc.cc / freq * 1e4
-                        kabs = np.zeros(nfreq, dtype=float)
-                        ksca = np.zeros(nfreq, dtype=float)
-
-                        dum = rfile.readline()
-                        for ilam in range(nfreq):
-                            kabs[ilam] = float(rfile.readline())
-                        dum = rfile.readline()
-                        for ilam in range(nfreq):
-                            ksca[ilam] = float(rfile.readline())
+                    wav = nc.cc / freq * 1e4
+                    kabs = data[:nfreq]
+                    ksca = data[nfreq:]
 
                     self.wav.append(wav[::-1])
                     self.freq.append(freq[::-1])

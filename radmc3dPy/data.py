@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import traceback
 import os
+import warnings
 
 try:
     import numpy as np
@@ -263,7 +264,10 @@ class radmc3dData(object):
 
         else:
             if octree:
-                hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
+                data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+                hdr = np.array(data[:3], dtype=np.int)
+                data = data[3:]
+                #hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
 
                 if hdr[1] != self.grid.nLeaf:
                     raise ValueError('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
@@ -271,12 +275,13 @@ class radmc3dData(object):
                                      + ' nr of cells in amr_grid.inp : '
                                      + ("%d" % self.grid.nLeaf))
 
-                data = np.fromfile(fname, count=-1, sep='\n', dtype=np.float64)[3:]
+                #data = np.fromfile(fname, count=-1, sep='\n', dtype=np.float64)[3:]
                 data = data.reshape([hdr[1], hdr[2]], order='f')
 
             else:
-                hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
-
+                data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+                hdr = np.array(data[:3], dtype=np.int)
+                # hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
                 if (self.grid.nx * self.grid.ny * self.grid.nz) != hdr[1]:
                     raise ValueError('Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '
                                      + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
@@ -284,7 +289,7 @@ class radmc3dData(object):
                                      + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz)))
                 else:
 
-                    data = np.fromfile(fname, count=-1, sep="\n", dtype=np.float64)
+                    # data = np.fromfile(fname, count=-1, sep="\n", dtype=np.float64)
                     # data = np.fromfile(fname, count=-1, sep="\n", dtype=np.float64)
                     if data.shape[0] == hdr[1] + 2:
                         data = np.reshape(data[2:], [1, self.grid.nz, self.grid.ny, self.grid.nx])
@@ -552,7 +557,6 @@ class radmc3dData(object):
                 self.grid = radmc3dGrid()
                 self.grid.readGrid(old=old)
 
-        print('Reading dust density')
         #
         # Read radmc3d output
         #
@@ -565,26 +569,22 @@ class radmc3dData(object):
                 if fname == '':
                     fname = 'dust_density.inp'
 
+            print('Reading '+fname)
             self.rhodust = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         #
         # Read the output of the previous 2d version of the code
         #
         else:
-            with open('dustdens.inp', 'r') as rfile:
+            fname = 'dustdens.inp'
+            print('Reading '+fname)
 
-                dum = rfile.readline().split()
-                ndust = int(dum[0])
-                nr = int(dum[1])
-                nt = int(dum[2])
-
-                rfile.readline()
-                self.rhodust = np.zeros([nr, nt * 2, 1, ndust], dtype=float)
-
-                for idust in range(ndust):
-                    for ix in range(nr):
-                        for iy in range(nt):
-                            self.rhodust[ix, iy, 0, idust] = float(rfile.readline())
-                            self.rhodust[ix, self.grid.ny - 1 - iy, 0, idust] = self.rhodust[ix, iy, 0, idust]
+            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+            # 4 element header: Nr of dust species, nr, ntheta, ?
+            hdr = np.array(data[:4], dtype=np.int)
+            data = np.reshape(data[4:], [hdr[1], hdr[2], 1, hdr[0]])
+            self.rhodust = np.zeros([hdr[1], hdr[2]*2, 1, hdr[0]], dtype=np.float64)
+            self.rhodust[:, :hdr[2], 0, :] = data[:, :, 0, :]
+            self.rhodust[:, hdr[2]:, 0, :] = data[:, ::-1, 0, :]
 
         return True
 
@@ -614,8 +614,6 @@ class radmc3dData(object):
                 self.grid = radmc3dGrid()
                 self.grid.readGrid(old=old)
 
-        print('Reading dust temperature')
-
         if not old:
             if binary:
                 if fname == '':
@@ -624,23 +622,27 @@ class radmc3dData(object):
                 if fname == '':
                     fname = 'dust_temperature.dat'
 
+            print('Reading '+fname)
+
             self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
         else:
-            with open('dusttemp_final.dat', 'r') as rfile:
-                dum = rfile.readline().split()
-                ndust = int(dum[0])
-                nr = int(dum[1])
-                nt = int(dum[2])
 
-                rfile.readline()
-                self.dusttemp = np.zeros([nr, nt * 2, 1, ndust], dtype=float)
+            fname = 'dusttemp_final.dat'
+            print('Reading '+fname)
 
-                for idust in range(ndust):
-                    rfile.readline()
-                    for ix in range(nr):
-                        for iy in range(nt):
-                            self.dusttemp[ix, iy, 0, idust] = float(rfile.readline())
-                            self.dusttemp[ix, self.grid.ny - 1 - iy, 0, idust] = self.dusttemp[ix, iy, 0, idust]
+            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+            # 4 element header: Nr of dust species, nr, ntheta, ?
+            hdr = np.array(data[:4], dtype=np.int)
+            data = data[4:]
+            self.dusttemp = np.zeros([hdr[1], hdr[2]*2, 1, hdr[0]], dtype=np.float64)
+
+            ncell = hdr[1] * hdr[2]
+            for idust in range(hdr[0]):
+                # We need to get rid of the dust species index that is written inbetween the
+                # temperature arrays
+                data = data[1:]
+                self.dusttemp[:, :hdr[2], 0, idust] = np.reshape(data[:ncell], [hdr[1], hdr[2]])
+            self.dusttemp[:, hdr[2]:, 0, :] = self.dusttemp[:, :hdr[2], 0, :][:, ::-1, :]
 
         return True
 
@@ -672,7 +674,7 @@ class radmc3dData(object):
             if fname == '':
                 fname = 'gas_velocity.binp'
 
-            print('Reading gas velocity')
+            print('Reading '+fname)
             if os.path.isfile(fname):
                 # If we have an octree grid
                 if isinstance(self.grid, radmc3dOctree):
@@ -721,43 +723,27 @@ class radmc3dData(object):
             if fname == '':
                 fname = 'gas_velocity.inp'
 
-            with open(fname, 'r') as rfile:
+            print('Reading ' + fname)
 
-                print('Reading gas velocity')
-                dum = rfile.readline()
-                dum = int(rfile.readline())
+            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+            # Two element header 1 - iformat, 2 - Nr of cells
+            hdr = np.array(data[:2], dtype=np.int)
 
-                # If we have an octree grid
-                if octree:
-                    if self.grid.nLeaf != dum:
-                        raise ValueError('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
-                                         + ' nr cells in ' + fname + ' : ' + ("%d" % dum) + '\n '
-                                         + ' nr of cells in amr_grid.inp : '
-                                         + ("%d" % self.grid.nLeaf))
-
-                    self.gasvel = np.zeros([dum, 3], dtype=np.float64)
-                    for i in range(dum):
-                        val = rfile.readline().split()
-                        self.gasvel[i, 0] = float(dum[0])
-                        self.gasvel[i, 1] = float(dum[1])
-                        self.gasvel[i, 2] = float(dum[2])
-                else:
-
-                    if (self.grid.nx * self.grid.ny * self.grid.nz) != dum:
-                        raise ValueError('Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '
-                                         + ' nr cells in ' + fname + ' : ' + ("%d" % dum) + '\n '
-                                         + ' nr of cells in amr_grid.inp : '
-                                         + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz)))
-
-                    self.gasvel = np.zeros([self.grid.nx, self.grid.ny, self.grid.nz, 3], dtype=np.float64)
-
-                    for k in range(self.grid.nz):
-                        for j in range(self.grid.ny):
-                            for i in range(self.grid.nx):
-                                dum = rfile.readline().split()
-                                self.gasvel[i, j, k, 0] = float(dum[0])
-                                self.gasvel[i, j, k, 1] = float(dum[1])
-                                self.gasvel[i, j, k, 2] = float(dum[2])
+            if octree:
+                if self.grid.nLeaf != hdr[1]:
+                    msg = 'Number of cells in ' + fname + ' is different from that in amr_grid.inp'\
+                          + ' nr cells in ' + fname + ' : ' + ("%d" % dum) + '\n '\
+                          + ' nr of cells in amr_grid.inp : ' +  ("%d" % self.grid.nLeaf)
+                    warnings.warn(msg, RuntimeWarning)
+                self.gasvel = np.reshape(data[2:], [hdr[1], 3])
+            else:
+                if (self.grid.nx * self.grid.ny * self.grid.nz) != hdr[1]:
+                    msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp ' \
+                          + ' nr cells in ' + fname + ' : ' + ("%d" % dum) + '\n '\
+                          + ' nr of cells in amr_grid.inp : '\
+                          + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz))
+                    warnings.warn(msg, RuntimeWarning)
+                self.gasvel = np.reshape(data[2:], [self.grid.nx, self.grid.ny, self.grid.nz, 3])
 
         return True
 
