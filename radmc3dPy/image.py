@@ -685,6 +685,9 @@ class radmc3dImage(object):
                 fname = 'image.dat'
 
             self.filename = fname
+            print('Reading ' + fname)
+
+
             with open(fname, 'r') as rfile:
 
                 dum = rfile.readline().split()
@@ -743,6 +746,8 @@ class radmc3dImage(object):
 
                 if fname is None:
                     fname = 'image.out'
+
+                print('Reading '+ fname)
 
                 self.filename = fname
                 with open(fname, 'r') as rfile:

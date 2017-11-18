@@ -202,9 +202,6 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname=None, wgrid_fname=None, old=Fal
     Returns an instance of the radmc3dGrid (for regular grid) or radmc3dOctree (for octree AMR) class
     """
 
-
-
-
     grid = None
 
     if sgrid:
@@ -228,7 +225,6 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname=None, wgrid_fname=None, old=Fal
         if grid is None:
             grid = radmc3dGrid()
         grid.readWavelengthGrid(fname=wgrid_fname, old=old)
-
 
     return grid
 
@@ -317,7 +313,6 @@ def readSpectrum(fname='', old=False):
             # Read the number of wavelengths
             nwav = int(rfile.readline())
             rfile.readline()
-            cc = 29979245800.
 
             res = np.zeros([nwav, 2], dtype=float)
             for iwav in range(nwav):
@@ -2289,4 +2284,3 @@ def plotScatmat(opac=None, var='z11', idust=0, iwav=None, wav=None, xvar='ang', 
     ax.set_title(title)
 
     return p
-
