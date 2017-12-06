@@ -2095,10 +2095,10 @@ def plotDustOpac(opac=None, var='kabs', idust=0, ax=None, xlabel=None, ylabel=No
             ylabel = r'$\kappa_{\rm ext}$ [cm$^2$/g]'
 
     elif var.lower().strip() == 'g':
-        if opac.g[idust].size != x.size:
+        if opac.phase_g[idust].size != x.size:
             msg = 'opac.g['+("%d" % idust)+'] has a different number of elements than opac.wav['+("%d" % idust)+']'
             raise ValueError(msg)
-        y = opac.g[idust]
+        y = opac.phase_g[idust]
         if ylabel is None:
             ylabel = r'g$_{\rm HG}$'
     else:

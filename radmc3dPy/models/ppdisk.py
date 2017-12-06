@@ -327,13 +327,32 @@ def getGasDensity(grid=None, ppar=None):
                 ii = (rcyl[iy, :] < ppar['rin']) | (rcyl[iy, :] > ppar['rdisk'])
                 sigma[ii, iy, :] = 0.0
 
+
+    import fargoPy
+    res = fargoPy.get_fargo_data()
+
+    #ii = (grid.x/ppar['planet_orbit'] < res['rc'][0])
+    r0 = res['rc'][0] * ppar['planet_orbit']
+    sigma0 = res['sigma'][:, 0].mean()
+
+    dummy_sigma = sigma0 * (grid.x/r0)**ppar['sigma_power_exp_in']
+
+    for ix in range(grid.nx):
+        if (grid.x/ppar['planet_orbit'] < res['rc'][0]):
+            sigma_hydro = []
+
     z0 = np.zeros([grid.nx, grid.nz, grid.ny], dtype=np.float64)
     rho = np.zeros([grid.nx, grid.ny, grid.nz], dtype=np.float64)
     for iz in range(grid.nz):
         for iy in range(grid.ny):
+            rho[:, iy, iz] = sigma_hydro[:, iz] / (hp[:, iy, iz] * np.sqrt(2.0*np.pi))
+
+
             rho[:, iy, iz] = sigma[:, iy, iz] / (hp[:, iy, iz] * np.sqrt(2.0*np.pi)) * \
                               np.exp(-0.5 * ((zz[iy, :])-z0[:, iz, iy])*((zz[iy, :])-z0[:, iz, iy])
                                      / (hp[:, iy, iz]*hp[:, iy, iz])) + ppar['bgdens']
+
+
 
     # Normalize the disk to mdisk if it is given instead of sig0
     if 'mdisk' in ppar:
