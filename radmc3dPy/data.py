@@ -206,91 +206,94 @@ class radmc3dData(object):
         Returns a numpy Ndarray with the scalar field
         """
 
-        if binary:
-            if octree:
-                hdr = np.fromfile(fname, count=4, dtype=int)
-                if hdr[2] != self.grid.nLeaf:
-                    print(hdr[1], self.grid.nLeaf)
-                    raise ValueError('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
-                                     + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
-                                     + ' nr of cells in amr_grid.inp : '
-                                     + ("%d" % self.grid.nLeaf))
-
-                if hdr[1] == 8:
-                    data = np.fromfile(fname, count=-1, dtype=np.float64)
-                elif hdr[1] == 4:
-                    data = np.fromfile(fname, count=-1, dtype=np.float32)
-                else:
-                    raise TypeError('Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte '
-                                    + 'floats or 8 byte doubles. The precision in the file header is '
-                                    + ("%d" % hdr[1]))
-
-                if data.shape[0] == (hdr[2] + 3):
-                    data = np.reshape(data[3:], [self.grid.nLeaf, 1], order='f')
-                elif data.shape[0] == (hdr[2] * hdr[3] + 4):
-                    data = np.reshape(data[4:], [self.grid.nLeaf, hdr[3]], order='f')
-
-            else:
+        data = None
+        with open(fname, 'r') as rfile:
+            if binary:
+                # Read the header
                 # hdr[0] = format number
                 # hdr[1] = data precision (4=single, 8=double)
                 # hdr[2] = nr of cells
                 # hdr[3] = nr of dust species
-                hdr = np.fromfile(fname, count=4, dtype=int)
-                if hdr[2] != (self.grid.nx * self.grid.ny * self.grid.nz):
-                    raise ValueError('Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '
-                                     + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
-                                     + ' nr of cells in amr_grid.inp : '
-                                     + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz)))
+                hdr = np.fromfile(rfile, count=4, dtype=np.int64)
 
-                if hdr[1] == 8:
-                    data = np.fromfile(fname, count=-1, dtype=np.float64)
-                elif hdr[1] == 4:
-                    data = np.fromfile(fname, count=-1, dtype=np.float32)
+                if octree:
+                    if hdr[2] != self.grid.nLeaf:
+                        print(hdr[1], self.grid.nLeaf)
+                        msg = ('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
+                               + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
+                               + ' nr of cells in amr_grid.inp : ' + ("%d" % self.grid.nLeaf))
+                        raise ValueError(msg)
+
+                    if hdr[1] == 8:
+                        data = np.fromfile(rfile, count=-1, dtype=np.float64)
+                    elif hdr[1] == 4:
+                        data = np.fromfile(rfile, count=-1, dtype=np.float32)
+                    else:
+                        msg = 'Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte ' \
+                              + 'floats or 8 byte doubles. The precision in the file header is ' + ("%d" % hdr[1])
+                        raise TypeError(msg)
+
+                    if data.shape[0] == hdr[2]:
+                        data = np.reshape(data, [self.grid.nLeaf, 1], order='f')
+                    elif data.shape[0] == hdr[2] * hdr[3]:
+                        data = np.reshape(data, [self.grid.nLeaf, hdr[3]], order='f')
+
                 else:
-                    raise TypeError('Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte '
-                                    + 'floats or 8 byte doubles. The precision in the file header is '
-                                    + ("%d" % hdr[1]))
+                    if hdr[2] != (self.grid.nx * self.grid.ny * self.grid.nz):
+                        msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp ' \
+                              + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n ' \
+                              + ' nr of cells in amr_grid.inp : ' \
+                              + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz))
+                        raise ValueError(msg)
 
-                if data.shape[0] == (hdr[2] + 3):
-                    data = np.reshape(data[3:], [1, self.grid.nz, self.grid.ny, self.grid.nx])
-                elif data.shape[0] == (hdr[2] * hdr[3] + 4):
-                    data = np.reshape(data[4:], [hdr[3], self.grid.nz, self.grid.ny, self.grid.nx])
+                    if hdr[1] == 8:
+                        data = np.fromfile(rfile, count=-1, dtype=np.float64)
+                    elif hdr[1] == 4:
+                        data = np.fromfile(rfile, count=-1, dtype=np.float32)
+                    else:
+                        msg = 'Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte ' \
+                              + 'floats or 8 byte doubles. The precision in the file header is ' \
+                              + ("%d" % hdr[1])
+                        raise TypeError(msg)
 
-                # data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
-                # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC-3D
-                # uses Fortran-order
-                data = np.swapaxes(data, 0, 3)
-                data = np.swapaxes(data, 1, 2)
+                    if data.shape[0] == hdr[2]:
+                        data = np.reshape(data, [1, self.grid.nz, self.grid.ny, self.grid.nx])
+                    elif data.shape[0] == hdr[2] * hdr[3]:
+                        data = np.reshape(data, [hdr[3], self.grid.nz, self.grid.ny, self.grid.nx])
 
-        else:
-            if octree:
-                data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
-                hdr = np.array(data[:3], dtype=np.int)
-                data = data[3:]
-                #hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
-
-                if hdr[1] != self.grid.nLeaf:
-                    raise ValueError('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
-                                     + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '
-                                     + ' nr of cells in amr_grid.inp : '
-                                     + ("%d" % self.grid.nLeaf))
-
-                data = data.reshape([hdr[1], hdr[2]], order='f')
-
+                    # data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+                    # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC-3D
+                    # uses Fortran-order
+                    data = np.swapaxes(data, 0, 3)
+                    data = np.swapaxes(data, 1, 2)
             else:
-                data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
-                hdr = np.array(data[:3], dtype=np.int)
-                # hdr = np.fromfile(fname, count=3, sep='\n', dtype=int)
-                if (self.grid.nx * self.grid.ny * self.grid.nz) != hdr[1]:
-                    raise ValueError('Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '
-                                     + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
-                                     + ' nr of cells in amr_grid.inp : '
-                                     + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz)))
+                hdr = np.fromfile(rfile, count=3, sep=" ", dtype=np.int64)
+
+                if octree:
+                    if hdr[1] != self.grid.nLeaf:
+                        msg = 'Number of cells in ' + fname + ' is different from that in amr_grid.inp' \
+                              + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
+                              + ' nr of cells in amr_grid.inp : ' + ("%d" % self.grid.nLeaf)
+                        raise ValueError(msg)
+
+                    data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
+                    data = data.reshape([hdr[1], hdr[2]], order='f')
+
                 else:
-                    if data.shape[0] == hdr[1] + 2:
-                        data = np.reshape(data[2:], [1, self.grid.nz, self.grid.ny, self.grid.nx])
-                    elif data.shape[0] == hdr[1] * hdr[2] + 3:
-                        data = np.reshape(data[3:], [hdr[2], self.grid.nz, self.grid.ny, self.grid.nx])
+                    if hdr[1] != (self.grid.nx * self.grid.ny * self.grid.nz):
+                        print(hdr)
+                        msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '\
+                              + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
+                              + ' nr of cells in amr_grid.inp : '\
+                              + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz))
+                        raise ValueError(msg)
+
+                    data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
+                    if data.shape[0] == hdr[1]:
+                        data = np.reshape(data, [1, self.grid.nz, self.grid.ny, self.grid.nx])
+                    elif data.shape[0] == hdr[1] * hdr[2]:
+                        data = np.reshape(data, [hdr[2], self.grid.nz, self.grid.ny, self.grid.nx])
+
                     # We need to change the axis orders as Numpy always reads  in C-order while RADMC-3D
                     # uses Fortran-order
                     data = np.swapaxes(data, 0, 3)
@@ -728,14 +731,14 @@ class radmc3dData(object):
             if octree:
                 if self.grid.nLeaf != hdr[1]:
                     msg = 'Number of cells in ' + fname + ' is different from that in amr_grid.inp'\
-                          + ' nr cells in ' + fname + ' : ' + ("%d" % dum) + '\n '\
+                          + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
                           + ' nr of cells in amr_grid.inp : ' +  ("%d" % self.grid.nLeaf)
                     warnings.warn(msg, RuntimeWarning)
                 self.gasvel = np.reshape(data[2:], [hdr[1], 3])
             else:
                 if (self.grid.nx * self.grid.ny * self.grid.nz) != hdr[1]:
                     msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp ' \
-                          + ' nr cells in ' + fname + ' : ' + ("%d" % dum) + '\n '\
+                          + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
                           + ' nr of cells in amr_grid.inp : '\
                           + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz))
                     warnings.warn(msg, RuntimeWarning)
