@@ -385,8 +385,9 @@ def getGasAbundance(grid=None, ppar=None, ispec=''):
         try: 
             data = analyze.readData(ddens=True, dtemp=True, binary=False)
         except:
-            raise RuntimeError('Gas abundance cannot be calculated as the required dust density and/or temperature '
-                               + 'could not be read in binary or in formatted ascii format.')
+            msg = 'Gas abundance cannot be calculated as the required dust density and/or temperature '\
+                  + 'could not be read in binary or in formatted ascii format.'
+            raise RuntimeError(msg)
 
     # Calculate continuum optical depth 
     data.getTau(axis='xy', wav=0.55)

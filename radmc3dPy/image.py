@@ -345,7 +345,8 @@ class radmc3dImage(object):
         for i in delim:
             ind = dum.find(i)
             if ind <= 0:
-                raise ValueError('coord keyword has a wrong format. The format should be coord="0h10m05s -10d05m30s"')
+                msg = 'coord keyword has a wrong format. The format should be coord="0h10m05s -10d05m30s"'
+                raise ValueError(msg)
             ra.append(float(dum[:ind]))
             dum = dum[ind + 1:]
 
@@ -354,7 +355,8 @@ class radmc3dImage(object):
         for i in delim:
             ind = dum.find(i)
             if ind <= 0:
-                raise ValueError('coord keyword has a wrong format. The format should be coord="0h10m05s -10d05m30s"')
+                msg = 'coord keyword has a wrong format. The format should be coord="0h10m05s -10d05m30s"'
+                raise ValueError(msg)
             dec.append(float(dum[:ind]))
             dum = dum[ind + 1:]
 
@@ -559,16 +561,16 @@ class radmc3dImage(object):
         # I/O error handling
         if nu0 is None:
             if wav0 is None:
-                raise ValueError('Unknown nu0 and wav0. Neither the rest frequency (nu0) nor the rest wavelength (wav0)'
-                                 + ' of the line is specified.')
+                msg = 'Unknown nu0 and wav0. Neither the rest frequency (nu0) nor the rest wavelength (wav0)'\
+                      + ' of the line is specified.'
+                raise ValueError(msg)
             else:
                 nu0 = nc.cc / wav0 * 1e4
 
         if len(self.image.shape) != 3:
-            raise ValueError('Wrong image shape. Channel map calculation requires a three dimensional array with '
-                             + '[Nx,  Ny,  Nnu] dimensions. The current image has the shape of '
-                             + str(len(self.image.shape)))
-
+            msg = 'Wrong image shape. Channel map calculation requires a three dimensional array with '\
+                  + '[Nx,  Ny,  Nnu] dimensions. The current image has the shape of ' + str(len(self.image.shape))
+            raise ValueError(msg)
         mmap = self.getMomentMap(moment=moment, nu0=nu0, wav0=wav0)
 
         if moment > 0:
@@ -608,7 +610,8 @@ class radmc3dImage(object):
 
         if vclip is not None:
             if len(vclip) != 2:
-                raise ValueError('Wrong shape in vclip. vclip should be a two element list with (clipmin, clipmax)')
+                msg = 'Wrong shape in vclip. vclip should be a two element list with (clipmin, clipmax)'
+                raise ValueError(msg)
             else:
                 mmap = mmap.clip(vclip[0], vclip[1])
 
@@ -641,15 +644,16 @@ class radmc3dImage(object):
         # I/O error handling
         if nu0 is None:
             if wav0 is None:
-                raise ValueError('Unknown nu0 and wav0. Neither the rest frequency (nu0) nor the rest wavelength (wav0)'
-                                 + ' of the line is specified.')
+                msg = 'Unknown nu0 and wav0. Neither the rest frequency (nu0) nor the rest wavelength (wav0)' \
+                      + ' of the line is specified.'
+                raise ValueError(msg)
             else:
                 nu0 = nc.cc / wav0 * 1e4
 
         if len(self.image.shape) != 3:
-            raise ValueError('Wrong image shape. Channel map calculation requires a three dimensional array with '
-                             + '[Nx,  Ny,  Nnu] dimensions. The current image has the shape of '
-                             + str(len(self.image.shape)))
+            msg = 'Wrong image shape. Channel map calculation requires a three dimensional array with '\
+                  + '[Nx,  Ny,  Nnu] dimensions. The current image has the shape of ' + str(len(self.image.shape))
+            raise ValueError(msg)
 
         # First calculate the velocity field
         v_kms = nc.cc * (nu0 - self.freq) / nu0 / 1e5
@@ -1047,7 +1051,8 @@ def getPSF(nx=None, ny=None, psfType='gauss', pscale=None, fwhm=None, pa=None, t
 
         # Check whether scipy was successfully imported
         if not spc:
-            raise ImportError('scipy.special was not imported. PSF calculation is limited to Gaussian only.')
+            msg = 'scipy.special was not imported. PSF calculation is limited to Gaussian only.'
+            raise ImportError(msg)
 
         # Unit conversion
         x_rad = x / 3600. / 180. * np.pi
@@ -1151,8 +1156,9 @@ def plotPolDir(image=None, arcsec=False, au=False, dpc=None, ifreq=0, cmask_rad=
     #
 
     if not image.stokes:
-        raise ValueError('The image is not a full stokes image. Polarisation direction can only be displayed if '
-                         + 'the full stokes vector is present at every pixel of the image')
+        msg = 'The image is not a full stokes image. Polarisation direction can only be displayed if '\
+              + 'the full stokes vector is present at every pixel of the image'
+        raise ValueError(msg)
 
     if cmask_rad is not None:
         dum_image = cmask(image, rad=cmask_rad, au=au, arcsec=arcsec, dpc=dpc)
@@ -1450,7 +1456,8 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                 cb_label = 'S' + r'$_\nu$' + ' [Jy/beam]'
 
         else:
-            raise ValueError('Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"')
+            msg = 'Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"'
+            raise ValueError(msg)
 
         # Select the coordinates of the data
         if au:
@@ -1571,7 +1578,8 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
 
         if bunit == 'snu':
             if dpc is None:
-                raise ValueError('Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"')
+                msg = 'Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"'
+                raise ValueError(msg)
             else:
                 psize = image.getPixelSize()
                 conv = psize / (dpc * nc.pc**2) * 1e23
@@ -1626,7 +1634,8 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
                 cb_label = 'S' + r'$_\nu$' + ' [Jy/pixel]'
 
         else:
-            raise ValueError('Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"')
+            msg = 'Unknown bunit: ' + bunit + ' Allowed values are "norm", "inu", "snu"'
+            raise ValueError(msg)
 
         # Select the coordinates of the data
         x = image.phii
@@ -1667,7 +1676,8 @@ def plotImage(image=None, arcsec=False, au=False, log=False, dpc=None, maxlog=No
             if rlog:
                 plt.yscale('log')
         else:
-            raise ValueError('Unknown projection. Accepted values for projection keyword are "polar" or "cartesian".')
+            msg = 'Unknown projection. Accepted values for projection keyword are "polar" or "cartesian".'
+            raise ValueError(msg)
 
         plt.xlabel(xlab)
         plt.ylabel(ylab)
@@ -1757,35 +1767,42 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
     # The basic keywords that should be set
     #
     if npix is None:
-        raise ValueError('Unkonwn npix. Number of pixels must be set.')
+        msg = 'Unkonwn npix. Number of pixels must be set.'
+        raise ValueError(msg)
 
     if incl is None:
-        raise ValueError('Unkonwn incl. Inclination angle must be set.')
+        msg = 'Unkonwn incl. Inclination angle must be set.'
+        raise ValueError(msg)
 
     if wav is None:
         if (lambdarange is None) & (nlam is None):
             if vkms is None:
                 if (widthkms is None) & (linenlam is None):
-                    raise ValueError('Neither wavelength nor velocity is specified at which the image '
-                                     + 'should be calculated')
+                    msg = 'Neither wavelength nor velocity is specified at which the image should be calculated'
+                    raise ValueError(msg)
                 else:
                     if iline is None:
-                        raise ValueError('Unknown iline. widthkms, linenlam keywords are set indicating that a line '
-                                         + 'channel map should be calculated, but the iline keyword is not specified')
+                        msg = 'Unknown iline. widthkms, linenlam keywords are set indicating that a line '\
+                              + 'channel map should be calculated, but the iline keyword is not specified'
+                        raise ValueError(msg)
             else:
                 if iline is None:
-                    raise ValueError('Unknown iline. vkms keyword is set indicating that a line channel map should be'
-                                     + 'calculated, but the iline keyword is not specified')
+                    msg = 'Unknown iline. vkms keyword is set indicating that a line channel map should be'\
+                          + 'calculated, but the iline keyword is not specified'
+                    raise ValueError(msg)
     else:
         if lambdarange is not None:
-            raise ValueError('Either lambdarange or wav should be set but not both')
+            msg = 'Either lambdarange or wav should be set but not both'
+            raise ValueError(msg)
 
     if lambdarange is not None:
         if len(lambdarange) != 2:
-            raise ValueError('lambdarange must have two and only two elements')
+            msg = 'lambdarange must have two and only two elements'
+            raise ValueError(msg)
 
     if sizeau is None:
-        raise ValueError('Unknown sizeau.')
+        msg = 'Unknown sizeau.'
+        raise ValueError(msg)
 
     #
     # Kees' fix for the case when a locally compiled radmc3d exists in the current directory
@@ -1820,8 +1837,9 @@ def makeImage(npix=None, incl=None, wav=None, sizeau=None, phi=None, posang=None
 
     if pointau is not None:
         if len(pointau) != 3:
-            raise ValueError(' pointau should be a list of 3 elements corresponding to the  cartesian coordinates '
-                             + 'of the image center')
+            msg = ' pointau should be a list of 3 elements corresponding to the  cartesian coordinates of the ' \
+                  + 'image center'
+            raise ValueError(msg)
         else:
             com = com + ' pointau ' + str(pointau[0]) + ' ' + str(pointau[1]) + ' ' + str(pointau[2])
     else:
@@ -1887,7 +1905,8 @@ def cmask(im=None, rad=0.0, au=False, arcsec=False, dpc=None):
 
     if au:
         if arcsec:
-            raise ValueError(' Either au or arcsec should be set, but not both of them')
+            msg = ' Either au or arcsec should be set, but not both of them'
+            raise ValueError(msg)
 
         crad = rad * nc.au
     else:

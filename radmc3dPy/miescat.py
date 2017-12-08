@@ -391,13 +391,16 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
     # Load the optical constants
     #
     if matdens is None:
-        raise ValueError("Unknown material density matdens")
+        msg = "Unknown material density matdens"
+        raise ValueError(msg)
 
     if agraincm is None:
-        raise ValueError("Unknown grain size agraincm")
+        msg = "Unknown grain size agraincm"
+        raise ValueError(msg)
 
     if lamcm is None:
-        raise ValueError("Unknown wavelength grid lamcm")
+        msg = "Unknown wavelength grid lamcm"
+        raise ValueError(msg)
 
     if theta is None:
         angles = np.array([0., 90., 180.])  # Minimalistic angular s
@@ -749,3 +752,5 @@ def write_radmc3d_kappa_file(package=None, name=None):
                                                      package['kscat'][i],
                                                      package['gscat'][i]))
         f.write('\n')
+
+

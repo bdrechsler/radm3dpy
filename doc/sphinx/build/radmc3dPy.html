@@ -929,7 +929,7 @@ models to save time.</p>
 
 <dl class="function">
 <dt id="radmc3dPy.analyze.readGrid">
-<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readGrid</code><span class="sig-paren">(</span><em>sgrid=True</em>, <em>wgrid=True</em>, <em>sgrid_fname='amr_grid.inp'</em>, <em>wgrid_fname='wavelength_micron.inp'</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readGrid" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">readGrid</code><span class="sig-paren">(</span><em>sgrid=True</em>, <em>wgrid=True</em>, <em>sgrid_fname=None</em>, <em>wgrid_fname=None</em>, <em>old=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.readGrid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the spatial and frequency grid.
 This function is an interface to radmc3dGrid.readGrid().</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -952,9 +952,13 @@ This function is an interface to radmc3dGrid.readGrid().</p>
 <blockquote>
 <div><p>File containing the wavelength grid (default: wavelength_micron.inp)</p>
 </div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns an instance of the radmc3dGrid (for regular grid) or radmc3dOctree (for octree AMR) class</p>
+<p><strong>old</strong> : bool</p>
+<blockquote>
+<div><p>If True the format of the old 2D version of radmc3d (radmc) will be used</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<p><strong>&#8212;&#8212;-</strong></p>
+<p class="last"><strong>Returns an instance of the radmc3dGrid (for regular grid) or radmc3dOctree (for octree AMR) class</strong></p>
 </td>
 </tr>
 </tbody>
@@ -1946,6 +1950,240 @@ If omitted &#8216;microturbulence.inp&#8217; (if binary=True &#8216;microturbuul
 <div class="section" id="module-radmc3dPy.dustopac">
 <span id="radmc3dpy-dustopac-module"></span><h2>radmc3dPy.dustopac module<a class="headerlink" href="#module-radmc3dPy.dustopac" title="Permalink to this headline">¶</a></h2>
 <p>This module contains classes for handling dust opacities</p>
+<dl class="function">
+<dt id="radmc3dPy.dustopac.computeDustOpacMie">
+<code class="descclassname">radmc3dPy.dustopac.</code><code class="descname">computeDustOpacMie</code><span class="sig-paren">(</span><em>fname=''</em>, <em>matdens=None</em>, <em>agraincm=None</em>, <em>lamcm=None</em>, <em>theta=None</em>, <em>logawidth=None</em>, <em>wfact=3.0</em>, <em>na=20</em>, <em>chopforward=0.0</em>, <em>errtol=0.01</em>, <em>verbose=False</em>, <em>extrapolate=False</em>, <em>return_type=1</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.dustopac.computeDustOpacMie" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute dust opacity with Mie theory based on the optical constants
+in the optconst_file. Optionally also the scattering phase function
+in terms of the Mueller matrix elements can be computed. To smear out
+the resonances that appear due to the perfect sphere shape, you can
+optionally smear out the grain size distribution a bit with setting
+the width of a Gaussian grain size distribution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fname</strong> : str</p>
+<blockquote>
+<div><p>File name of the optical constants file. This file
+should contain three columns: first the wavelength
+in micron, then the n-coefficient and then the
+k-coefficient. See Jena optical constants database:
+<a class="reference external" href="http://www.astro.uni-jena.de/Laboratory/Database/databases.html">http://www.astro.uni-jena.de/Laboratory/Database/databases.html</a></p>
+</div></blockquote>
+<p><strong>matdens</strong> : float</p>
+<blockquote>
+<div><p>Material density in g/cm^3</p>
+</div></blockquote>
+<p><strong>agraincm</strong> : float</p>
+<blockquote>
+<div><p>Grain radius in cm</p>
+</div></blockquote>
+<p><strong>lamcm</strong> : ndarray</p>
+<blockquote>
+<div><p>Wavelength grid in cm</p>
+</div></blockquote>
+<p><strong>theta</strong> : ndarray, optional</p>
+<blockquote>
+<div><p>Angular grid (a numpy array) between 0 and 180
+which are the scattering angle sampling points at
+which the scattering phase function is computed.</p>
+</div></blockquote>
+<p><strong>logawidth</strong> : float, optional</p>
+<blockquote>
+<div><p>If set, the size agrain will instead be a
+sample of sizes around agrain. This helps to smooth out
+the strong wiggles in the phase function and opacity
+of spheres at an exact size. Since in Nature it rarely
+happens that grains all have exactly the same size, this
+is quite natural. The value of logawidth sets the width
+of the Gauss in ln(agrain), so for logawidth&lt;&lt;1 this
+give a real width of logawidth*agraincm.</p>
+</div></blockquote>
+<p><strong>wfact</strong> : float</p>
+<blockquote>
+<div><p>Grid width of na sampling points in units
+of logawidth. The Gauss distribution of grain sizes is
+cut off at agrain * exp(wfact*logawidth) and
+agrain * exp(-wfact*logawidth). Default = 3</p>
+</div></blockquote>
+<p><strong>na</strong> : int</p>
+<blockquote>
+<div><p>Number of size sampling points (if logawidth set, default=20)</p>
+</div></blockquote>
+<p><strong>chopforward</strong> : float</p>
+<blockquote>
+<div><p>If &gt;0 this gives the angle (in degrees from forward)
+within which the scattering phase function should be
+kept constant, essentially removing the strongly peaked
+forward scattering. This is useful for large grains
+(large ratio 2*pi*agraincm/lamcm) where the forward
+scattering peak is extremely strong, yet extremely
+narrow. If we are not interested in very forward-peaked
+scattering (e.g. only relevant when modeling e.g. the
+halo around the moon on a cold winter night), this will
+remove this component and allow a lower angular grid
+resolution for the theta grid.</p>
+</div></blockquote>
+<p><strong>errtol</strong> : float</p>
+<blockquote>
+<div><p>Tolerance of the relative difference between kscat
+and the integral over the zscat Z11 element over angle.
+If this tolerance is exceeded, a warning is given.</p>
+</div></blockquote>
+<p><strong>verbose</strong> : bool</p>
+<blockquote>
+<div><p>If set to True, the code will give some feedback so
+that one knows what it is doing if it becomes slow.</p>
+</div></blockquote>
+<p><strong>extrapolate</strong> : bool</p>
+<blockquote>
+<div><p>If set to True, then if the wavelength grid lamcm goes
+out of the range of the wavelength grid of the
+optical constants file, then it will make a suitable
+extrapolation: keeping the optical constants constant
+for lamcm &lt; minimum, and extrapolating log-log for
+lamcm &gt; maximum.</p>
+</div></blockquote>
+<p><strong>return_type</strong> : {0, 1}</p>
+<blockquote>
+<div><p>If 0 a dictionary is returned (original return type)
+if 1 an instance of radmc3dDustOpac will be returned</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dictionary with the following keys:</p>
+<blockquote class="last">
+<div><ul>
+<li><dl class="first docutils">
+<dt>kabs <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Absorption opacity kappa_abs_nu (a numpy array) in
+units of cm^2/gram</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>ksca <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Scattering opacity kappa_abs_nu (a numpy array) in
+units of cm^2/gram</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>gsca <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The &lt;cos(theta)&gt; g-factor of scattering</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>theta <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if theta is given at input)</span></dt>
+<dd><p class="first last">The theta grid itself (just a copy of what was given)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>zscat <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if theta is given at input)</span></dt>
+<dd><p class="first">The components of the scattering Mueller matrix
+Z_ij for each wavelength and each scattering angel.
+The normalization of Z is such that kscat can be
+reproduced (as can be checked) by the integral:
+2*pi*int_{-1}^{+1}Z11(mu)dmu=kappa_scat.
+For symmetry reasons only 6 elements of the Z
+matrix are returned: Z11, Z12, Z22, Z33, Z34, Z44.
+Note that Z21 = Z12 and Z43 = -Z34.
+The scattering matrix is normalized such that
+if a plane wave with Stokes flux</p>
+<blockquote>
+<div><p>Fin = (Fin_I,Fin_Q,Fin_U,Fin_V)</p>
+</div></blockquote>
+<p>hits a dust grain (which has mass mgrain), then
+the scattered flux</p>
+<blockquote>
+<div><p>Fout = (Fout_I,Fout_Q,Fout_U,Fout_V)</p>
+</div></blockquote>
+<p>at distance r from the grain at angle theta
+is given by</p>
+<blockquote>
+<div><p>Fout(theta) = (mgrain/r^2) * Zscat . Fin</p>
+</div></blockquote>
+<p class="last">where . is the matrix-vector multiplication.
+Note that the Stokes components must be such
+that the horizontal axis in the &#8220;image&#8221; is
+pointing in the scattering plane. This means
+that radiation with Fin_Q &lt; 0 is scattered well,
+because it is vertically polarized (along the
+scattering angle axis), while radiation with
+Fin_Q &gt; 0 is scatterd less well because it
+is horizontally polarized (along the scattering
+plane).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>kscat_from_z11 <span class="classifier-delimiter">:</span> <span class="classifier">ndarray  (optional, only if theta is given at input)</span></dt>
+<dd><p class="first last">The kscat computed from the (above mentioned)
+integral of Z11 over all angles. This should be
+nearly identical to kscat if the angular grid
+is sufficiently fine. If there are strong
+differences, this is an indication that the
+angular gridding (the theta grid) is not fine
+enough. But you should have then automatically
+gotten a warning message as well (see errtol).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>wavmic <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if extrapolate is set to True)</span></dt>
+<dd><p class="first last">The original wavelength grid from the optical constants file,
+with possibly an added extrapolated</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>ncoef <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if extrapolate is set to True)</span></dt>
+<dd><p class="first last">The optical constant n at that grid</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>kcoef <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if extrapolate is set to True)</span></dt>
+<dd><p class="first last">The optical constant k at that grid</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>agr <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if logawidth is not None)</span></dt>
+<dd><p class="first last">Grain sizes</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>wgt <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if logawidth is not None)</span></dt>
+<dd><p class="first last">The averaging weights of these grain (not the masses!)
+The sum of wgt.sum() must be 1.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>zscat_nochop <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if chopforward &gt; 0)</span></dt>
+<dd><p class="first last">The zscat before the forward scattering was chopped off</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>kscat_nochop <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (optional, only if chopforward &gt; 0)</span></dt>
+<dd><p class="first last">The kscat originally from the bhmie code</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="radmc3dPy.dustopac.radmc3dDustOpac">
 <em class="property">class </em><code class="descclassname">radmc3dPy.dustopac.</code><code class="descname">radmc3dDustOpac</code><a class="headerlink" href="#radmc3dPy.dustopac.radmc3dDustOpac" title="Permalink to this definition">¶</a></dt>
@@ -2041,6 +2279,9 @@ If omitted &#8216;microturbulence.inp&#8217; (if binary=True &#8216;microturbuul
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.dustopac.radmc3dDustOpac.writeMasterOpac" title="radmc3dPy.dustopac.radmc3dDustOpac.writeMasterOpac"><code class="xref py py-obj docutils literal"><span class="pre">writeMasterOpac</span></code></a>([ext,&nbsp;therm,&nbsp;...])</td>
 <td>Writes the master opacity file &#8216;dustopac.inp&#8217;.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.dustopac.radmc3dDustOpac.writeOpac" title="radmc3dPy.dustopac.radmc3dDustOpac.writeOpac"><code class="xref py py-obj docutils literal"><span class="pre">writeOpac</span></code></a>([fname,&nbsp;ext,&nbsp;idust,&nbsp;scatmat])</td>
+<td>Writes dust opacities to file</td>
 </tr>
 </tbody>
 </table>
@@ -2313,6 +2554,39 @@ scattering using the full scattering matrix and stokes vectors.</p>
 <p><strong>old</strong> : bool, optional</p>
 <blockquote class="last">
 <div><p>If set to True the file format of the previous, 2D version of radmc will be used</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radmc3dPy.dustopac.radmc3dDustOpac.writeOpac">
+<code class="descname">writeOpac</code><span class="sig-paren">(</span><em>fname=None</em>, <em>ext=None</em>, <em>idust=None</em>, <em>scatmat=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.dustopac.radmc3dDustOpac.writeOpac" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes dust opacities to file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fname</strong> : str</p>
+<blockquote>
+<div><p>Name of the file to write the dust opacties into</p>
+</div></blockquote>
+<p><strong>ext</strong> : str</p>
+<blockquote>
+<div><p>If fname is not specified, the output file name will be generated as dustkappa_EXT.inp or
+dustkapscatmat_EXT.inp depending on the file format</p>
+</div></blockquote>
+<p><strong>idust</strong> : int</p>
+<blockquote>
+<div><p>Dust species index whose opacities should be written to file</p>
+</div></blockquote>
+<p><strong>scatmat</strong> : bool</p>
+<blockquote class="last">
+<div><p>If True the full scattering matrix will be written to file on top of the opacities (i.e.
+the file name should be dustkapscatmat_EXT.inp). If False only the dust opacities and the
+asymmetry parameter (if present) will be written to file (dustkappa_EXT.inp type files)</p>
 </div></blockquote>
 </td>
 </tr>
@@ -3555,7 +3829,7 @@ of wavelength.</p>
 
 <dl class="function">
 <dt id="radmc3dPy.miescat.write_radmc3d_scatmat_file">
-<code class="descclassname">radmc3dPy.miescat.</code><code class="descname">write_radmc3d_scatmat_file</code><span class="sig-paren">(</span><em>package=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.miescat.write_radmc3d_scatmat_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">radmc3dPy.miescat.</code><code class="descname">write_radmc3d_scatmat_file</code><span class="sig-paren">(</span><em>package=None</em>, <em>name=None</em>, <em>comment=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.miescat.write_radmc3d_scatmat_file" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>The RADMC-3D radiative transfer package</dt>
 <dd><a class="reference external" href="http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/">http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/</a></dd>
@@ -5177,7 +5451,7 @@ set by wbound</p>
 
 <dl class="method">
 <dt id="radmc3dPy.reggrid.radmc3dGrid.readWavelengthGrid">
-<code class="descname">readWavelengthGrid</code><span class="sig-paren">(</span><em>fname=''</em>, <em>old=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.reggrid.radmc3dGrid.readWavelengthGrid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readWavelengthGrid</code><span class="sig-paren">(</span><em>fname=None</em>, <em>old=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.reggrid.radmc3dGrid.readWavelengthGrid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the wavelength grid</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -6379,7 +6653,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Nov 06, 2017.
+      Last updated on Dec 08, 2017.
 
     </p>
   </div>

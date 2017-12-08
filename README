@@ -11,14 +11,26 @@ INSTALLATION
 
 radmc3dPy can be installed in two ways:
 
-1) Standard python install with distutils (sudo/root privileges are needed)
+1) Standard global python install with distutils (sudo/root privileges are needed)
 
     $>python setup.py install
 
 This will install radmc3dPy to the standard python directory (/usr/..../site-packages or
     /opt/..../site-packages for a standard python installation in most unix/linux systems)
 
-2) Manual install
+2) Standard local python install with distutils (without root privileges)
+    
+    $>python setup.py install --user
+
+    This will install radmc3dPy to $HOME/.local/lib/python3.X/site-packages or 
+    $HOME/.local/lib/python2.X/site-packages depending on the python version used.
+
+    Alternatively it is also possible to install radmc3dPy to an arbitrary directory by using the --prefix option:
+    
+    $>python setup.py install --prefix=DIR
+
+
+3) Manual install
 
     Add the directory where this file is located to the PYTHONPATH environment variable, and
     that is it. The best way to do so is in the .bashrc or .csrc files so it will automatically

@@ -370,8 +370,7 @@ class radmc3dPar(object):
         # Dust opacity
         #
         self.setPar(['lnk_fname',
-                     "['/disk2/juhasz/Data/JPDOC/astrosil/astrosil_WD2001_new.lnk', "
-                     "'/disk2/juhasz/Data/JPDOC/carbon/A/cel600.lnk']",
+                     "['/disk2/juhasz/Data/JPDOC/astrosil/astrosil_WD2001_new.lnk']",
                      ' ', 'Dust opacity'])
         self.setPar(['gdens', '[3.6, 1.8]', ' Bulk density of the materials in g/cm^3', 'Dust opacity'])
         self.setPar(['gsmin', '0.1', ' Minimum grain size', 'Dust opacity'])
@@ -392,7 +391,7 @@ class radmc3dPar(object):
                                        'zscat Z11 element over angle.', 'Dust opacity'])
         self.setPar(['verbose', 'False', ' If set to True, the code will give some feedback so that one knows what it '
                                          'is doing if it becomes slow.', 'Dust opacity'])
-        self.setPar(['extrapolate', 'False', ' If True extrapolates for wavelengths outside the ones covered by the '
+        self.setPar(['extrapolate', 'True', ' If True extrapolates for wavelengths outside the ones covered by the '
                                              'optical constants', 'Dust opacity'])
 
         self.setPar(['mixabun', '[0.75, 0.25]', ' Mass fractions of the dust componetns to be mixed', 'Dust opacity'])

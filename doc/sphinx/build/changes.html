@@ -176,22 +176,25 @@
 <p><strong>v0.30</strong></p>
 <ul class="simple">
 <li>Python3 compatibility</li>
-<li>Integration of Mie-scattering code for dust opacity calculation</li>
-<li>New module (sphtool) for re-gridding 3D Smoothed Particle Hydrodynamics (SPH) simulations to regular or AMR grids,
+<li>Integration of Kees&#8217; Mie-scattering code (<a class="reference internal" href="radmc3dPy.html#module-radmc3dPy.miescat" title="radmc3dPy.miescat"><code class="xref py py-mod docutils literal"><span class="pre">radmc3dPy.miescat</span></code></a>, meth:<cite>radmc3dPy.dustopac.radmc3dDustOpac.computeDustOpacMie</cite>) for dust opacity calculation</li>
+<li>New package (<a class="reference external" href="http://www.ast.cam.ac.uk/~juhasz/sphtoolDoc/index.html">sphtool</a>) for re-gridding 3D Smoothed Particle Hydrodynamics (SPH) simulations to regular or AMR grids,
 including some basic visualisation of the SPH simulations</li>
-<li>Possibility for modular module setup (i.e. generation of grids, variables, radiation sources, etc independently of each other)</li>
-<li>Functions to plot dust opacities, and scattering matrix elements</li>
+<li>Possibility for modular module setup (i.e. generation of grids, variables, radiation sources, etc independently of each other) using the new
+class <a class="reference internal" href="radmc3dPy.html#radmc3dPy.setup.radmc3dModel" title="radmc3dPy.setup.radmc3dModel"><code class="xref py py-class docutils literal"><span class="pre">radmc3dModel</span></code></a>.</li>
+<li>Functions to plot dust opacities (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotDustOpac" title="radmc3dPy.analyze.plotDustOpac"><code class="xref py py-func docutils literal"><span class="pre">radmc3dPy.analyze.plotDustOpac()</span></code></a>), and scattering matrix elements (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotScatmat" title="radmc3dPy.analyze.plotScatmat"><code class="xref py py-func docutils literal"><span class="pre">radmc3dPy.analyze.plotScatmat()</span></code></a>)</li>
+<li>New function (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.dustopac.radmc3dDustOpac.writeOpac" title="radmc3dPy.dustopac.radmc3dDustOpac.writeOpac"><code class="xref py py-meth docutils literal"><span class="pre">radmc3dPy.dustopac.radmc3dDustOpac.writeOpac()</span></code></a>) to write dust opacities to file</li>
 <li>Internal structural changes (splitting the analyze module to smaller modules, for easier maintenance, but all previous functionality
 of the analyze module is kept intact)</li>
+<li>Numpy&#8217;s fromfile() function is now used for reading dust opacities in <a class="reference internal" href="radmc3dPy.html#radmc3dPy.dustopac.radmc3dDustOpac" title="radmc3dPy.dustopac.radmc3dDustOpac"><code class="xref py py-class docutils literal"><span class="pre">radmc3dPy.dustopac.radmc3dDustOpac</span></code></a>, which makes the file reading less sensitive to the presence of empty lines in the file dust opacity files</li>
 </ul>
 <p><strong>v0.29</strong></p>
 <ul class="simple">
-<li>Octree AMR support (read and write grid and data fields, generate models with an octree grid)</li>
-<li>Plot 2D contour maps of data fields along axis aligned slices (show the cell boundaries for AMR models)</li>
-<li>Plot the polarisation direction for full stokes images (thanks Kees!)</li>
-<li>Read molecular data files (thanks Kees!)</li>
-<li>Plot spectrum (thanks Kees!)</li>
-<li>Functions to calculate dust and gas mass in a model</li>
+<li>Octree AMR support (read and write grid and data fields, generate models with an octree grid, see Octree tutorial)</li>
+<li>Plot 2D contour maps of data fields along axis aligned slices showing also the cell boundaries for AMR models (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotSlice2D" title="radmc3dPy.analyze.plotSlice2D"><code class="xref py py-func docutils literal"><span class="pre">radmc3dPy.analyze.plotSlice2D()</span></code></a>)</li>
+<li>Plot the polarisation direction for full stokes images (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.image.plotImage" title="radmc3dPy.image.plotImage"><code class="xref py py-func docutils literal"><span class="pre">radmc3dPy.image.plotImage()</span></code></a> thanks Kees!)</li>
+<li>Read molecular data files (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.readMol" title="radmc3dPy.analyze.readMol"><code class="xref py py-func docutils literal"><span class="pre">radmc3dPy.analyze.readMol()</span></code></a> thanks Kees!)</li>
+<li>Plot spectrum (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.analyze.plotSpectrum" title="radmc3dPy.analyze.plotSpectrum"><code class="xref py py-func docutils literal"><span class="pre">radmc3dPy.analyze.plotSpectrum()</span></code></a> thanks Kees!)</li>
+<li>Functions to calculate dust and gas mass in a model (<a class="reference internal" href="radmc3dPy.html#radmc3dPy.data.radmc3dData.getDustMass" title="radmc3dPy.data.radmc3dData.getDustMass"><code class="xref py py-meth docutils literal"><span class="pre">radmc3dPy.data.radmc3dData.getDustMass()</span></code></a>, <a class="reference internal" href="radmc3dPy.html#radmc3dPy.data.radmc3dData.getGasMass" title="radmc3dPy.data.radmc3dData.getGasMass"><code class="xref py py-meth docutils literal"><span class="pre">radmc3dPy.data.radmc3dData.getGasMass()</span></code></a>)</li>
 <li>Updated tutorials for models using an octree AMR grid</li>
 </ul>
 </div>
@@ -219,7 +222,7 @@ of the analyze module is kept intact)</li>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Nov 06, 2017.
+      Last updated on Dec 08, 2017.
 
     </p>
   </div>
