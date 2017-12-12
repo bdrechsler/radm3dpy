@@ -15,6 +15,10 @@ include python_examples/run_simple_1_binary/*
 include python_examples/run_spher1d_1/*
 include python_examples/run_spher2d_1/*
 include python_examples/run_test_scattering_1/*
+include python_examples/run_ppdisk_dust+gas_custom_setup/*
+include python_examples/run_sph_octree_amr/*
+include python_examples/run_sph_regular_grid/*
+
 
 include radmc3dPy/models/lines_nlte_lvg_1d_1.py
 include radmc3dPy/models/ppdisk.py
