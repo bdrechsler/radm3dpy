@@ -117,9 +117,9 @@ class radmc3dData(object):
             if binary:
                 if octree:
                     if len(data.shape) == 1:
-                        hdr = np.array([1, 8, data.shape[0], 1], dtype=np.int)
+                        hdr = np.array([1, 8, data.shape[0], 1], dtype=np.int64)
                     elif len(data.shape) == 2:
-                        hdr = np.array([1, 8, data.shape[0], data.shape[1]], dtype=np.int)
+                        hdr = np.array([1, 8, data.shape[0], data.shape[1]], dtype=np.int64)
                     else:
                         raise ValueError('Incorrect shape. Data stored in an Octree-type grid should have 1 or 2 '
                                          + 'dimensions, with the second dimension being the dust species. '
@@ -129,10 +129,11 @@ class radmc3dData(object):
                     data.flatten(order='f').tofile(wfile)
                 else:
                     if len(data.shape) == 3:
-                        hdr = np.array([1, 8, self.grid.nx * self.grid.ny * self.grid.nz], dtype=int)
+                        hdr = np.array([1, 8, self.grid.nx * self.grid.ny * self.grid.nz], dtype=np.int64)
                         hdr.tofile(wfile)
                     elif len(data.shape) == 4:
-                        hdr = np.array([1, 8, self.grid.nx * self.grid.ny * self.grid.nz, data.shape[3]], dtype=int)
+                        hdr = np.array([1, 8, self.grid.nx * self.grid.ny * self.grid.nz, data.shape[3]],
+                                       dtype=np.int64)
                         hdr.tofile(wfile)
                     # Now we need to flatten the dust density array since the Ndarray.tofile function writes the
                     # array always in C-order while we need Fortran-order to be written
@@ -151,9 +152,9 @@ class radmc3dData(object):
             else:
                 if octree:
                     if len(data.shape) == 1:
-                        hdr = np.array([1, data.shape[0], 1], dtype=np.int)
+                        hdr = np.array([1, data.shape[0], 1], dtype=np.int64)
                     elif len(data.shape) == 2:
-                        hdr = np.array([1, data.shape[0], data.shape[1]], dtype=np.int)
+                        hdr = np.array([1, data.shape[0], data.shape[1]], dtype=np.int64)
                     else:
                         raise ValueError('Incorrect shape. Data stored in an Octree-type grid should have 1 or 2 '
                                          + 'dimensions, with the second dimension being the dust species. '
@@ -185,7 +186,7 @@ class radmc3dData(object):
                                          + ' The data to be written has a dimension of ' + ("%d" % len(data.shape))
                                          + '\n No data has been written')
 
-    def _scalarfieldReader(self, fname='', binary=True, octree=False):
+    def _scalarfieldReader(self, fname='', binary=True, octree=False, ndim=3):
         """Reads a scalar field from file.
 
         Parameters
@@ -200,6 +201,8 @@ class radmc3dData(object):
         octree : bool
                 If True data will be read from an octree model and will be stored in a 1D numpy array
 
+        ndim   : int
+                Number of dimension of the data field (3 for gas variables, 4 for dust)
         Returns
         -------
 
@@ -214,8 +217,10 @@ class radmc3dData(object):
                 # hdr[1] = data precision (4=single, 8=double)
                 # hdr[2] = nr of cells
                 # hdr[3] = nr of dust species
-                hdr = np.fromfile(rfile, count=4, dtype=np.int64)
-
+                if ndim == 3:
+                    hdr = np.fromfile(rfile, count=3, dtype=np.int64)
+                else:
+                    hdr = np.fromfile(rfile, count=4, dtype=np.int64)
                 if octree:
                     if hdr[2] != self.grid.nLeaf:
                         print(hdr[1], self.grid.nLeaf)
@@ -233,10 +238,21 @@ class radmc3dData(object):
                               + 'floats or 8 byte doubles. The precision in the file header is ' + ("%d" % hdr[1])
                         raise TypeError(msg)
 
-                    if data.shape[0] == hdr[2]:
-                        data = np.reshape(data, [self.grid.nLeaf, 1], order='f')
-                    elif data.shape[0] == hdr[2] * hdr[3]:
-                        data = np.reshape(data, [self.grid.nLeaf, hdr[3]], order='f')
+                    if ndim == 3:
+                        if data.shape[0] == hdr[2]:
+                            data = np.reshape(data, [self.grid.nLeaf, 1], order='f')
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
+
+                    else:
+                        if data.shape[0] == hdr[2] * hdr[3]:
+                            data = np.reshape(data, [self.grid.nLeaf, hdr[3]], order='f')
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
 
                 else:
                     if hdr[2] != (self.grid.nx * self.grid.ny * self.grid.nz):
@@ -256,10 +272,20 @@ class radmc3dData(object):
                               + ("%d" % hdr[1])
                         raise TypeError(msg)
 
-                    if data.shape[0] == hdr[2]:
-                        data = np.reshape(data, [1, self.grid.nz, self.grid.ny, self.grid.nx])
-                    elif data.shape[0] == hdr[2] * hdr[3]:
-                        data = np.reshape(data, [hdr[3], self.grid.nz, self.grid.ny, self.grid.nx])
+                    if ndim == 3:
+                        if data.shape[0] == hdr[2]:
+                            data = np.reshape(data, [1, self.grid.nz, self.grid.ny, self.grid.nx])
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
+                    else:
+                        if data.shape[0] == hdr[2] * hdr[3]:
+                            data = np.reshape(data, [hdr[3], self.grid.nz, self.grid.ny, self.grid.nx])
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
 
                     # data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
                     # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC-3D
@@ -267,7 +293,10 @@ class radmc3dData(object):
                     data = np.swapaxes(data, 0, 3)
                     data = np.swapaxes(data, 1, 2)
             else:
-                hdr = np.fromfile(rfile, count=3, sep=" ", dtype=np.int64)
+                if ndim == 3:
+                    hdr = np.fromfile(rfile, count=3, sep=" ", dtype=np.int64)
+                else:
+                    hdr = np.fromfile(rfile, count=4, sep=" ", dtype=np.int64)
 
                 if octree:
                     if hdr[1] != self.grid.nLeaf:
@@ -277,11 +306,29 @@ class radmc3dData(object):
                         raise ValueError(msg)
 
                     data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
-                    data = data.reshape([hdr[1], hdr[2]], order='f')
+
+                    if ndim == 3:
+                        if data.shape[0] == hdr[2]:
+                            data = np.reshape(data, [self.grid.nLeaf, 1], order='f')
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
+
+                    else:
+                        if data.shape[0] == hdr[2] * hdr[3]:
+                            data = np.reshape(data, [self.grid.nLeaf, hdr[3]], order='f')
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
+
+                    # if ndim == 3:
+                    #
+                    #     data = data.reshape([hdr[1], hdr[2]], order='f')
 
                 else:
                     if hdr[1] != (self.grid.nx * self.grid.ny * self.grid.nz):
-                        print(hdr)
                         msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '\
                               + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
                               + ' nr of cells in amr_grid.inp : '\
@@ -289,12 +336,23 @@ class radmc3dData(object):
                         raise ValueError(msg)
 
                     data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
-                    if data.shape[0] == hdr[1]:
-                        data = np.reshape(data, [1, self.grid.nz, self.grid.ny, self.grid.nx])
-                    elif data.shape[0] == hdr[1] * hdr[2]:
-                        data = np.reshape(data, [hdr[2], self.grid.nz, self.grid.ny, self.grid.nx])
+                    if ndim == 3:
+                        if data.shape[0] == hdr[1]:
+                            data = np.reshape(data, [1, self.grid.nz, self.grid.ny, self.grid.nx])
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
+                    else:
+                        if data.shape[0] == hdr[1] * hdr[2]:
+                            data = np.reshape(data, [hdr[2], self.grid.nz, self.grid.ny, self.grid.nx])
+                        else:
+                            msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
+                                  'indicated in the file header'
+                            raise ValueError(msg)
 
-                    # We need to change the axis orders as Numpy always reads  in C-order while RADMC-3D
+                    # data = reshape(data, [hdr[3],self.grid.nz,self.grid.ny,self.grid.nx])
+                    # We need to change the axis orders as Numpy always writes binaries in C-order while RADMC-3D
                     # uses Fortran-order
                     data = np.swapaxes(data, 0, 3)
                     data = np.swapaxes(data, 1, 2)
@@ -569,7 +627,7 @@ class radmc3dData(object):
                     fname = 'dust_density.inp'
 
             print('Reading '+fname)
-            self.rhodust = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+            self.rhodust = self._scalarfieldReader(fname=fname, binary=binary, octree=octree, ndim=4)
         #
         # Read the output of the previous 2d version of the code
         #
@@ -579,7 +637,7 @@ class radmc3dData(object):
 
             data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
             # 4 element header: Nr of dust species, nr, ntheta, ?
-            hdr = np.array(data[:4], dtype=np.int)
+            hdr = np.array(data[:4], dtype=np.int64)
             data = np.reshape(data[4:], [hdr[1], hdr[2], 1, hdr[0]])
             self.rhodust = np.zeros([hdr[1], hdr[2]*2, 1, hdr[0]], dtype=np.float64)
             self.rhodust[:, :hdr[2], 0, :] = data[:, :, 0, :]
@@ -623,7 +681,7 @@ class radmc3dData(object):
 
             print('Reading '+fname)
 
-            self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+            self.dusttemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree, ndim=4)
         else:
 
             fname = 'dusttemp_final.dat'
@@ -631,7 +689,7 @@ class radmc3dData(object):
 
             data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
             # 4 element header: Nr of dust species, nr, ntheta, ?
-            hdr = np.array(data[:4], dtype=np.int)
+            hdr = np.array(data[:4], dtype=np.int64)
             data = data[4:]
             self.dusttemp = np.zeros([hdr[1], hdr[2]*2, 1, hdr[0]], dtype=np.float64)
 
@@ -676,44 +734,45 @@ class radmc3dData(object):
             print('Reading '+fname)
             if os.path.isfile(fname):
                 # If we have an octree grid
-                if isinstance(self.grid, radmc3dOctree):
-                    hdr = np.fromfile(fname, count=3, dtype=int)
-                    if hdr[2] != self.grid.nLeaf:
-                        raise ValueError('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
-                                         + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
-                                         + ' nr of cells in amr_grid.inp : '
-                                         + ("%d" % self.grid.nLeaf))
+                with open(fname, 'r') as rfile:
+                    if isinstance(self.grid, radmc3dOctree):
+                        hdr = np.fromfile(rfile, count=3, dtype=np.int64)
+                        if hdr[2] != self.grid.nLeaf:
+                            raise ValueError('Number of cells in ' + fname + ' is different from that in amr_grid.inp'
+                                             + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
+                                             + ' nr of cells in amr_grid.inp : '
+                                             + ("%d" % self.grid.nLeaf))
 
-                    if hdr[1] == 8:
-                        self.gasvel = np.fromfile(fname, count=-1, dtype=np.float64)
-                    elif hdr[1] == 4:
-                        self.gasvel = np.fromfile(fname, count=-1, dtype=float)
+                        if hdr[1] == 8:
+                            self.gasvel = np.fromfile(rfile, count=-1, dtype=np.float64)
+                        elif hdr[1] == 4:
+                            self.gasvel = np.fromfile(rfile, count=-1, dtype=np.float32)
+                        else:
+                            raise TypeError(
+                                'Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte '
+                                + 'floats or 8 byte doubles. The precision in the file header is '
+                                + ("%d" % hdr[1]))
+                        self.gasvel = np.reshape(self.gasvel, [self.nLeaf, 3], order='f')
+
                     else:
-                        raise TypeError(
-                            'Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte '
-                            + 'floats or 8 byte doubles. The precision in the file header is '
-                            + ("%d" % hdr[1]))
-                    self.gasvel = np.reshape(self.gasvel[3:], [self.nLeaf, 3], order='f')
+                        hdr = np.fromfile(rfile, count=3, dtype=np.int64)
+                        if hdr[2] != self.grid.nx * self.grid.ny * self.grid.nz:
+                            raise ValueError('Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '
+                                             + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
+                                             + ' nr of cells in amr_grid.inp : '
+                                             + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz)))
 
-                else:
-                    hdr = np.fromfile(fname, count=3, dtype=int)
-                    if hdr[2] != self.grid.nx * self.grid.ny * self.grid.nz:
-                        raise ValueError('Number of grid cells in ' + fname + ' is different from that in amr_grid.inp '
-                                         + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[2]) + '\n '
-                                         + ' nr of cells in amr_grid.inp : '
-                                         + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz)))
-
-                    if hdr[1] == 8:
-                        self.gasvel = np.fromfile(fname, count=-1, dtype=np.float64)
-                    elif hdr[1] == 4:
-                        self.gasvel = np.fromfile(fname, count=-1, dtype=float)
-                    else:
-                        raise TypeError(
-                            'Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte '
-                            + 'floats or 8 byte doubles. The precision in the file header is '
-                            + ("%d" % hdr[1]))
-                    self.gasvel = np.reshape(self.gasvel[3:], [self.grid.nz, self.grid.ny, self.grid.nx, 3])
-                    self.gasvel = np.swapaxes(self.gasvel, 0, 2)
+                        if hdr[1] == 8:
+                            self.gasvel = np.fromfile(rfile, count=-1, dtype=np.float64)
+                        elif hdr[1] == 4:
+                            self.gasvel = np.fromfile(rfile, count=-1, dtype=float)
+                        else:
+                            raise TypeError(
+                                'Unknown datatype/precision in ' + fname + '. RADMC-3D binary files store 4 byte '
+                                + 'floats or 8 byte doubles. The precision in the file header is '
+                                + ("%d" % hdr[1]))
+                        self.gasvel = np.reshape(self.gasvel, [self.grid.nz, self.grid.ny, self.grid.nx, 3])
+                        self.gasvel = np.swapaxes(self.gasvel, 0, 2)
             else:
                 raise FileNotFoundError(fname + 'was not found')
 
@@ -722,27 +781,33 @@ class radmc3dData(object):
             if fname == '':
                 fname = 'gas_velocity.inp'
 
-            print('Reading ' + fname)
+            if os.path.isfile(fname):
 
-            data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
-            # Two element header 1 - iformat, 2 - Nr of cells
-            hdr = np.array(data[:2], dtype=np.int)
+                print('Reading ' + fname)
+                with open(fname, 'r') as rfile:
+                    # Two element header 1 - iformat, 2 - Nr of cells
+                    hdr = np.fromfile(rfile, count=2, sep=" ", dtype=np.float64)
+                    #hdr = np.array(data[:2], dtype=np.int64)
+                    if octree:
+                        if self.grid.nLeaf != hdr[1]:
+                            msg = 'Number of cells in ' + fname + ' is different from that in amr_grid.inp'\
+                                  + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
+                                  + ' nr of cells in amr_grid.inp : ' +  ("%d" % self.grid.nLeaf)
+                            raise RuntimeError(msg)
+                        data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
+                        self.gasvel = np.reshape(data, [hdr[1], 3])
+                    else:
+                        if (self.grid.nx * self.grid.ny * self.grid.nz) != hdr[1]:
+                            msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp ' \
+                                  + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
+                                  + ' nr of cells in amr_grid.inp : '\
+                                  + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz))
+                            raise RuntimeError(msg)
+                        data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
+                        self.gasvel = np.reshape(data, [self.grid.nx, self.grid.ny, self.grid.nz, 3])
 
-            if octree:
-                if self.grid.nLeaf != hdr[1]:
-                    msg = 'Number of cells in ' + fname + ' is different from that in amr_grid.inp'\
-                          + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
-                          + ' nr of cells in amr_grid.inp : ' +  ("%d" % self.grid.nLeaf)
-                    warnings.warn(msg, RuntimeWarning)
-                self.gasvel = np.reshape(data[2:], [hdr[1], 3])
             else:
-                if (self.grid.nx * self.grid.ny * self.grid.nz) != hdr[1]:
-                    msg = 'Number of grid cells in ' + fname + ' is different from that in amr_grid.inp ' \
-                          + ' nr cells in ' + fname + ' : ' + ("%d" % hdr[1]) + '\n '\
-                          + ' nr of cells in amr_grid.inp : '\
-                          + ("%d" % (self.grid.nx * self.grid.ny * self.grid.nz))
-                    warnings.warn(msg, RuntimeWarning)
-                self.gasvel = np.reshape(data[2:], [self.grid.nx, self.grid.ny, self.grid.nz, 3])
+                raise FileNotFoundError(fname + 'was not found')
 
         return True
 
@@ -778,7 +843,7 @@ class radmc3dData(object):
             if fname == '':
                 fname = 'microturbulence.inp'
 
-        self.vturb = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+        self.vturb = self._scalarfieldReader(fname=fname, binary=binary, octree=octree, ndim=3)
         if octree:
             self.vturb = np.squeeze(self.vturb)
 
@@ -813,7 +878,7 @@ class radmc3dData(object):
             fname = 'numberdens_' + ispec + '.inp'
 
         print('Reading gas density (' + fname + ')')
-        self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+        self.ndens_mol = self._scalarfieldReader(fname=fname, binary=binary, octree=octree, ndim=3)
         if octree:
             self.ndens_mol = np.squeeze(self.ndens_mol)
 
@@ -852,7 +917,7 @@ class radmc3dData(object):
             if fname == '':
                 fname = 'gas_temperature.inp'
 
-        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree)
+        self.gastemp = self._scalarfieldReader(fname=fname, binary=binary, octree=octree, ndim=3)
         if octree:
             self.gastemp = np.squeeze(self.gastemp)
 
@@ -1041,11 +1106,11 @@ class radmc3dData(object):
                     # Check if the gas velocity contains the full tree or only the leaf nodes
                     #
                     if self.gasvel.shape[0] == self.grid.nLeaf:
-                        hdr = np.array([1, 8, self.gasvel.shape[0]], dtype=int)
+                        hdr = np.array([1, 8, self.gasvel.shape[0]], dtype=np.int64)
                         hdr.tofile(wfile)
                         self.gasvel.flatten(order='f').tofile(wfile)
                     else:
-                        hdr = np.array([1, 8, self.grid.nLeaf], dtype=int)
+                        hdr = np.array([1, 8, self.grid.nLeaf], dtype=np.int64)
                         hdr.tofile(wfile)
                         dummy = self.grid.convArrTree2Leaf(self.gasvel)
                         dummy.flatten(order='f').tofile(wfile)

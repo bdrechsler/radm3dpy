@@ -210,7 +210,8 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname=None, wgrid_fname=None, old=Fal
         # Check the grid type
         #
         if not old:
-            sgrid_fname = 'amr_grid.inp'
+            if sgrid_fname is None:
+                sgrid_fname = 'amr_grid.inp'
             hdr = np.fromfile(sgrid_fname, count=7, sep="\n", dtype=np.int)
             if hdr[1] == 0:
                 grid = radmc3dGrid()
@@ -224,6 +225,10 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname=None, wgrid_fname=None, old=Fal
     if wgrid:
         if grid is None:
             grid = radmc3dGrid()
+
+        if sgrid_fname is None:
+            sgrid_fname = 'amr_grid.inp'
+
         grid.readWavelengthGrid(fname=wgrid_fname, old=old)
 
     return grid
