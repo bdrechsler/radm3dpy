@@ -1415,7 +1415,7 @@ class radmc3dData(object):
         # Calculate the volume of each grid cell
         vol = self.grid.getCellVolume()
         # Dustmass in each grid cell
-        if len(self.rhodust) > 3:
+        if len(self.rhodust.shape) > 3:
             if idust >= 0:
                 mass = vol * self.rhodust[:, :, :, idust]
             else:
@@ -1431,8 +1431,8 @@ class radmc3dData(object):
             surf[ix, :] = diff_r2[ix] * diff_phi
 
         # Now get the surface density
-        dum = np.squeeze(mass.sum(1))
-        self.sigmadust = dum / np.squeeze(surf)
+        dum = mass.sum(1)
+        self.sigmadust = dum / surf
 
     def getSigmaGas(self):
         """Calculates the gas surface density.

@@ -328,7 +328,7 @@ def readSpectrum(fname='', old=False):
     return res
 
 
-def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=None, mstar=None):
+def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=None, mstar=None, mu=None):
     """Calculates the vertical hydrostatic equilibrium
 
     Parameters
@@ -348,23 +348,45 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
     ispec_tgas  : int
                   Index of dust species whose temperature is taken to be the gas temperature
 
-    gsize       : ndarray
+    gsize       : ndarray, optional
                   Dust grain sizes - If specified, the gas temperature is calculated as the average temperature
                   of all dust grains in the grid cell weighted by the total surface area of dust grains with given
                   size - NOTE: this approach assumes that all dust grains of a given size have the same bulk density
 
+    mu          : float, optional
+                  Mean molecular weight (default: 2.3)
     Returns
     -------
     Returns an ndarray with the dust density
     """
 
-    # Fix the mean molecular weight to 2.3
-    mu = 2.3
+    if data.grid.crd_sys != 'sph':
+        msg = 'Vertical hydrostatic equlibrium structure iteration has been implemented for spherical grids only ' \
+              '(i.e. no cartesian grid yet).'
+        raise RuntimeError(msg)
+
+    if isinstance(data.grid, radmc3dOctree):
+        msg = 'Vertical hydrostatic equilibrium structure iteration has been implemented for regular grids only ' \
+               '(i.e. no Octree AMR yet)'
+        raise RuntimeError(msg)
+
+    if mu is None:
+        # Fix the mean molecular weight to 2.3
+        mu = 2.3
+
+    if isinstance(gsize, float) | isinstance(gsize, np.float64):
+        if data.rhodust.shape[3] == 1:
+            gsize = [gsize]
+        else:
+            msg = 'The input data contains more than one dust species, but only a single grain size is given. ' \
+                  'The number of grain sizes in gsize and data should match.'
+            raise ValueError(msg)
 
     # Pre-calculate some constants
     A = mu * nc.mp * nc.gg * mstar / nc.kk
     cost = np.cos(data.grid.y)
     costi = np.cos(data.grid.yi)
+
 
     if mstar is None:
         raise ValueError('Unkonwn mstar. \n The stellar mass is required to calculate the '
@@ -377,6 +399,28 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
     else:
         if isinstance(idust, int) | isinstance(idust, float):
             idust = [int(idust)]
+
+    #
+    # Calculate the initial surface density
+    #
+
+    # Get the cell volumes
+    vol = data.grid.getCellVolume()
+    # Calculate the surface of each grid facet in the midplane
+    surf = np.zeros([data.grid.nx, data.grid.nz], dtype=np.float64)
+    diff_r2 = (data.grid.xi[1:] ** 2 - data.grid.xi[:-1] ** 2) * 0.5
+    diff_phi = data.grid.zi[1:] - data.grid.zi[:-1]
+    for ix in range(data.grid.nx):
+        surf[ix, :] = diff_r2[ix] * diff_phi
+
+    mass = np.zeros([data.grid.nx, data.grid.nz, data.rhodust.shape[3]], dtype=np.float64)
+    sigma_init = np.zeros([data.grid.nx, data.grid.nz, data.rhodust.shape[3]], dtype=np.float64)
+    for i in range(data.rhodust.shape[3]):
+        mass[:, :, i] = (vol * data.rhodust[:, :, :, i]).sum(1)
+        sigma_init[:, :, i] = mass[:, :, i] / surf
+
+    # mass = np.array([(vol * data.rhodust[:, :, :, i]).sum(1) for i in idust])
+    # sigma_init = mass / surf
 
     # To improve the smoothness of the temperature structure, if the density structure is
     #  symmetric to the disk midplane we use T_new(theta) = T_new(pi-theta) = 0.5 * (T(theta) + T(pi-theta))
@@ -392,25 +436,28 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
                 dusttemp_dummy[:, iy, :, :] = 0.5 * (data.dusttemp[:, iy, :, :]
                                                      + data.dusttemp[:, data.grid.ny - 1 - iy, :, :])
                 dusttemp_dummy[:, data.grid.ny - 1 - iy, :, :] = dusttemp_dummy[:, iy, :, :]
-    # Calculate the vertical hydrostatic equilibrium for the two half space (z<0, z>0) separately
-    else:
-        dusttemp_dummy = data.dusttemp[:, :, :, ispec_tgas]
+
+    # Take the temperature of the dust component that represents the gas temperature
+    dusttemp_dummy = data.dusttemp[:, :, :, ispec_tgas]
 
     # rho_new = np.zeros(data.rhodust.shape, dtype=np.float64)
     rho_new = np.array(data.rhodust)
 
-    if len(gsize) != 0:
-        dusttemp = np.zeros([data.grid.nx, data.grid.ny, data.grid.nz], dtype=np.float64)
-        w = np.zeros(data.rhodust.shape, dtype=np.float64)
-        for ispec in idust:
-            w[:, :, :, ispec] = gsize[ispec] ** 2 * (data.rhodust[:, :, :, ispec] / gsize[ispec] ** 3)
+    if gsize is not None:
+        if len(gsize) != 0:
+            dusttemp = np.zeros([data.grid.nx, data.grid.ny, data.grid.nz], dtype=np.float64)
+            w = np.zeros(data.rhodust.shape, dtype=np.float64)
+            for ispec in idust:
+                w[:, :, :, ispec] = gsize[ispec] ** 2 * (data.rhodust[:, :, :, ispec] / gsize[ispec] ** 3)
 
-        wnorm = w.sum(3)
-        for ispec in idust:
-            w[:, :, :, ispec] = w[:, :, :, ispec] / wnorm
+            wnorm = w.sum(3)
+            for ispec in idust:
+                w[:, :, :, ispec] = w[:, :, :, ispec] / wnorm
 
-        for ispec in idust:
-            dusttemp = dusttemp + data.dusttemp[:, :, :, ispec] * w[:, :, :, ispec]
+            for ispec in idust:
+                dusttemp = dusttemp + data.dusttemp[:, :, :, ispec] * w[:, :, :, ispec]
+        else:
+            dusttemp = np.array(dusttemp_dummy)
     else:
         dusttemp = np.array(dusttemp_dummy)
 
@@ -447,46 +494,52 @@ def getDensVstruct(data=None, vmean_temp=False, ispec_tgas=0, gsize=None, idust=
 
                     rho_new = rho_new.clip(1e-90, 1e90)
 
-                    # Now re-normalize the surface density to the input value
-                    sigma = (data.rhodust[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
-                    sigma_new = (rho_new[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
-
-                    rho_new[ir, :, ip, ispec] = rho_new[ir, :, ip, ispec] * sigma / sigma_new
+                    # # Now re-normalize the surface density to the input value
+                    # sigma = (data.rhodust[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
+                    # sigma_new = (rho_new[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
+                    #
+                    # rho_new[ir, :, ip, ispec] = rho_new[ir, :, ip, ispec] * sigma / sigma_new
 
             else:
                 for ip in range(data.grid.nz):
-                    # dlgrho = np.log(data.rhodust[ir, 1:, ip, ispec]) - np.log(data.rhodust[ir, :-1, ip, ispec])
-                    # if len(ispec_weights) != 0:
-                    #     temp = (dusttemp[ir, :, ip, ispec] * ispec_weights).sum()
-                    # else:
-                    #     temp = dusttemp[ir, :, ip, ispec]
-
                     temp = dusttemp[ir, :, ip]
                     dlgtemp = np.log(temp[1:]) - np.log(temp[:-1])
                     zpt = z / temp
                     zpt = 0.5 * (zpt[1:] + zpt[:-1])
 
                     # Calculate the normalized (rho[z=0] = 1.0) density
-                    rho_new[ir, data.grid.ny / 2 - 1, ip, ispec] = 1.0
-                    rho_new[ir, data.grid.ny / 2, ip, ispec] = 1.0
+                    rho_new[ir, int(data.grid.ny / 2) - 1, ip, ispec] = 1.0
+                    rho_new[ir, int(data.grid.ny / 2), ip, ispec] = 1.0
 
+                    #
+                    # From the midplane to the north pole
+                    #
                     for it in range(int(data.grid.ny / 2), 0, -1):
                         rho_new[ir, it - 1, ip, ispec] = rho_new[ir, it, ip, ispec] \
-                                                         * np.exp(-(const * zpt[it] + dlgtemp[it] / dz[it]) * dz[it])
-                    for it in range(int(data.grid.ny / 2), data.grid.ny - 1, -1):
+                                                         * np.exp(-(const * zpt[it - 1] + dlgtemp[it - 1] / dz[it - 1])
+                                                                  * dz[it - 1])
+                    #
+                    # From the midplane to the north pole
+                    #
+                    for it in range(int(data.grid.ny / 2), data.grid.ny):
                         rho_new[ir, it, ip, ispec] = rho_new[ir, it - 1, ip, ispec] \
                                                      * np.exp((const * zpt[it - 1] + dlgtemp[it - 1]
                                                                / dz[it - 1]) * dz[it - 1])
 
-                    rho_new = rho_new.clip(1e-90, 1e90)
+                    # # Now re-normalize the surface density to the input value
+                    # sigma = (data.rhodust[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
+                    # sigma_new = (rho_new[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
+                    #
+                    # rho_new[ir, :, ip, ispec] = rho_new[ir, :, ip, ispec] * sigma / sigma_new
+                    # rho_new = rho_new.clip(1e-90, 1e90)
 
-                    # Now re-normalize the surface density to the input value
-                    sigma = (data.rhodust[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
-                    sigma_new = (rho_new[ir, :, ip, ispec] * (zi[1:] - zi[:-1])).sum()
 
-                    rho_new[ir, :, ip, ispec] = rho_new[ir, :, ip, ispec] * sigma / sigma_new
-
-            print(rho_new[ir, int(data.grid.ny / 2) - 1, ip, ispec])
+        # Renormalize the density
+        mass = (vol * rho_new[:, :, :, ispec]).sum(1)
+        sigma = mass / surf
+        for it in range(data.grid.ny):
+            rho_new[:, it, :, ispec] *= (sigma_init[:, :, ispec] / sigma)
+        rho_new[:, it, :, ispec].clip(1e-90, 1e+90)
 
     return rho_new
 

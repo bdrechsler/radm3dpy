@@ -275,7 +275,6 @@ def getGasDensity(grid=None, ppar=None):
             for iz in range(grid.nz):
                 sigma[:, :, iz] = dum
         else:
-            # dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
             if 'sigma_type' in ppar:
                 if ppar['sigma_type'] == 0:
                     dum1 = 1.0 * (rcyl/ppar['rdisk'])**ppar['plsig1']
@@ -300,10 +299,6 @@ def getGasDensity(grid=None, ppar=None):
                         # Adding the smoothed inner rim
                         sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
                         dum2 = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
-
-                    # # Adding the smoothed inner rim
-                    # sig_srim = 1.0 * (ppar['srim_rout']*ppar['rin'] / ppar['rdisk'])**ppar['plsig1']
-                    # dum2     = sig_srim * (rcyl / (ppar['srim_rout']*ppar['rin']))**ppar['srim_plsig']
 
                     p = -5.0
                     dum = (dum1**p + dum2**p)**(1./p)

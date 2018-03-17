@@ -9,7 +9,7 @@ juhasz@ast.cam.ac.uk
 INSTALLATION
 ------------
 
-radmc3dPy can be installed in two ways:
+radmc3dPy can be installed in three ways:
 
 1) Standard global python install with distutils (sudo/root privileges are needed)
 
