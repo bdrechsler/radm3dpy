@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>radmc3dPy package &mdash; radmc3dPy 0.30.0 documentation</title>
+  <title>radmc3dPy package &mdash; radmc3dPy 0.30 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="radmc3dPy 0.30.0 documentation" href="index.html"/> 
+    <link rel="top" title="radmc3dPy 0.30 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -366,7 +366,7 @@ be resolved.</p>
 
 <dl class="function">
 <dt id="radmc3dPy.analyze.getDensVstruct">
-<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">getDensVstruct</code><span class="sig-paren">(</span><em>data=None</em>, <em>vmean_temp=False</em>, <em>ispec_tgas=0</em>, <em>gsize=None</em>, <em>idust=None</em>, <em>mstar=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.getDensVstruct" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">radmc3dPy.analyze.</code><code class="descname">getDensVstruct</code><span class="sig-paren">(</span><em>data=None</em>, <em>vmean_temp=False</em>, <em>ispec_tgas=0</em>, <em>gsize=None</em>, <em>idust=None</em>, <em>mstar=None</em>, <em>mu=None</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.analyze.getDensVstruct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the vertical hydrostatic equilibrium</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -392,15 +392,19 @@ be resolved.</p>
 <blockquote>
 <div><p>Index of dust species whose temperature is taken to be the gas temperature</p>
 </div></blockquote>
-<p><strong>gsize</strong> : ndarray</p>
+<p><strong>gsize</strong> : ndarray, optional</p>
 <blockquote>
 <div><p>Dust grain sizes - If specified, the gas temperature is calculated as the average temperature
 of all dust grains in the grid cell weighted by the total surface area of dust grains with given
 size - NOTE: this approach assumes that all dust grains of a given size have the same bulk density</p>
 </div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns an ndarray with the dust density</p>
+<p><strong>mu</strong> : float, optional</p>
+<blockquote>
+<div><p>Mean molecular weight (default: 2.3)</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<p><strong>&#8212;&#8212;-</strong></p>
+<p class="last"><strong>Returns an ndarray with the dust density</strong></p>
 </td>
 </tr>
 </tbody>
@@ -6652,8 +6656,8 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Attila Juhasz.
-      Last updated on Dec 08, 2017.
+        &copy; Copyright 2014-2018, Attila Juhasz.
+      Last updated on Mar 17, 2018.
 
     </p>
   </div>
@@ -6675,7 +6679,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.30.0',
+            VERSION:'0.30',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
