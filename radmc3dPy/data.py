@@ -502,9 +502,17 @@ class radmc3dData(object):
                 if not opac.ext:
                     return -1
                 else:
-                    kabs = 10. ** np.interp(np.log10(np.array(wav)), np.log10(opac.wav[0]), np.log10(opac.kabs[0]))
+                    if opac.wav[0][-1] > opac.wav[0][0]:
+                        kabs = 10. ** np.interp(np.log10(np.array(wav)), np.log10(opac.wav[0]), np.log10(opac.kabs[0]))
+                    else:
+                        kabs = 10. ** np.interp(np.log10(np.array(wav)), np.log10(opac.wav[0][::-1]),
+                                                np.log10(opac.kabs[0][::-1]))
                 if opac.ksca[0][0] > 0:
-                    ksca = 10. ** np.interp(np.log10(np.array(wav)), np.log10(opac.wav[0]), np.log10(opac.ksca[0]))
+                    if opac.wav[0][-1] > opac.wav[0][0]:
+                        ksca = 10. ** np.interp(np.log10(np.array(wav)), np.log10(opac.wav[0]), np.log10(opac.ksca[0]))
+                    else:
+                        ksca = 10. ** np.interp(np.log10(np.array(wav)), np.log10(opac.wav[0][::-1]),
+                                                np.log10(opac.ksca[0][::-1]))
                 else:
                     ksca = np.array(kabs) * 0.
 
