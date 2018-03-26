@@ -646,7 +646,9 @@ class radmc3dData(object):
             data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
             # 4 element header: Nr of dust species, nr, ntheta, ?
             hdr = np.array(data[:4], dtype=np.int64)
-            data = np.reshape(data[4:], [hdr[1], hdr[2], 1, hdr[0]])
+            data = np.reshape(data[4:], [hdr[0], hdr[1], hdr[2]])
+            data = np.moveaxis(data, 0, -1)[:, :, np.newaxis, :]
+
             self.rhodust = np.zeros([hdr[1], hdr[2]*2, 1, hdr[0]], dtype=np.float64)
             self.rhodust[:, :hdr[2], 0, :] = data[:, :, 0, :]
             self.rhodust[:, hdr[2]:, 0, :] = data[:, ::-1, 0, :]
