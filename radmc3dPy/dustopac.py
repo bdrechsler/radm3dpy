@@ -163,17 +163,17 @@ class radmc3dDustOpac(object):
                 wfile.write('%d\n' % self.nang[idust])
                 wfile.write('\n')
                 for i in range(self.nwav[idust]):
-                    wfile.write('%13.6e %13.6e %13.6e %13.6e\n' % (self.wav[idust][i],
+                    wfile.write('%16.9e %16.9e %16.9e %16.9e\n' % (self.wav[idust][i],
                                                                    self.kabs[idust][i],
                                                                    self.ksca[idust][i],
                                                                    self.phase_g[idust][i]))
                 wfile.write('\n')
                 for j in range(self.nang[idust]):
-                    wfile.write('%13.6e\n' % (self.scatang[idust][j]))
+                    wfile.write('%16.9e\n' % (self.scatang[idust][j]))
                 wfile.write('\n')
                 for i in range(self.nwav[idust]):
                     for j in range(self.nang[idust]):
-                        wfile.write('%13.6e %13.6e %13.6e %13.6e %13.6e %13.6e\n' % (self.z11[idust][i, j],
+                        wfile.write('%16.9e %16.9e %16.9e %16.9e %16.9e %16.9e\n' % (self.z11[idust][i, j],
                                                                                      self.z12[idust][i, j],
                                                                                      self.z22[idust][i, j],
                                                                                      self.z33[idust][i, j],
@@ -194,17 +194,17 @@ class radmc3dDustOpac(object):
                 if self.ksca[idust].mean() != -999.:
                     if self.phase_g[idust].mean() != -999.:
                         for i in range(self.nwav[idust]):
-                            wfile.write('%13.6e %13.6e %13.6e %13.6e\n' % (self.wav[idust][i],
+                            wfile.write('%16.9e %16.9e %16.9e %16.9e\n' % (self.wav[idust][i],
                                                                            self.kabs[idust][i],
                                                                            self.ksca[idust][i],
                                                                            self.phase_g[idust][i]))
                     else:
                         for i in range(self.nwav[idust]):
-                            wfile.write('%13.6e %13.6e %13.6e\n' % (self.wav[idust][i], self.kabs[idust][i],
+                            wfile.write('%16.9e %16.9e %16.9e\n' % (self.wav[idust][i], self.kabs[idust][i],
                                                                            self.ksca[idust][i]))
                 else:
                     for i in range(self.nwav[idust]):
-                        wfile.write('%13.6e %13.6e \n' % (self.wav[idust][i], self.kabs[idust][i]))
+                        wfile.write('%16.9e %16.9e \n' % (self.wav[idust][i], self.kabs[idust][i]))
 
                 wfile.write('\n')
 
