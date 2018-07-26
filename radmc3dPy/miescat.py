@@ -113,7 +113,7 @@ def bhmie(x=None, refrel=None, theta=None):
     pi1 = np.zeros(nang, dtype=np.float64) + 1.0
     tau = np.zeros(nang, dtype=np.float64)
     #
-    # Compute a alternative to x
+    # Compute an alternative to x
     #
     y = x * refrel
     #
@@ -213,7 +213,7 @@ def bhmie(x=None, refrel=None, theta=None):
     gsca = 2 * gsca / Qsca
     Qsca = (2.0 / (x * x)) * Qsca
     Qext = (4.0 / (x * x)) * S1[0].real
-    Qback = (abs(S1[-1]) / x) ** 2 / np.pi
+    Qback = (abs(S1[-1]) / x)**2 / np.pi
     Qabs = Qext - Qsca
     #
     # Return results
