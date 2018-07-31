@@ -532,7 +532,6 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
         if chopforward > 0:
             zscat_nochop = np.zeros((nlam, nang, 6))
             kscat_nochop = np.zeros(nlam)
-
     #
     # Set error flag to False
     #

@@ -9,8 +9,6 @@ juhasz@ast.cam.ac.uk
 INSTALLATION
 ------------
 
-radmc3dPy can be installed in three ways:
-
 1) Standard global python install with distutils (sudo/root privileges are needed)
 
     $>python setup.py install
@@ -29,21 +27,6 @@ This will install radmc3dPy to the standard python directory (/usr/..../site-pac
     
     $>python setup.py install --prefix=DIR
 
-
-3) Manual install
-
-    Add the directory where this file is located to the PYTHONPATH environment variable, and
-    that is it. The best way to do so is in the .bashrc or .csrc files so it will automatically
-    be loaded at every shell startup. I.e. for bash add the following line to the 
-    .bashrc file
-
-    export PYTHONPATH=${PYTHONPATH}:ABSOLUTE-PATH-TO-THIS-DIRECTORY
-
-    or for c-shell add the following line to the .csrc file:
-
-    setenv PYTHONPATH ${PYTHONPATH}:ABSOLUTE-PATH-TO-THIS-DIRECTORY
-
-   
 REQUIREMENTS:
 -------------
 

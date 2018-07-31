@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+try:
+    from numpy.distutils.core import setup, Extension
+
+    ext = Extension(name = 'radmc3dPy._bhmie',
+                    sources = ['radmc3dPy/bhmie.f90'])
+
+except:
+    msg = "numpy.distutils.core could not be imported. It is required to build the fast, fortran version of the mie scattering code, bhmie.\n"
+    msg = "Falling back to the slower python version"
+    print(msg)
+    ext = None
+    from distutils.core import setup
+
 import os, sys
 from subprocess import Popen, PIPE
 
@@ -18,7 +30,6 @@ def findFiles(src_dir, *wildcards):
 
     foundList = []
     for i in range(len(dirList)):
-        #if (os.path.isdir(dirList[i])&(dirList[i].strip()!=src_dir)):
         if os.path.isdir(dirList[i]):
             # Find the appropriate files within each directory
             fileList = []
@@ -62,10 +73,23 @@ for i in range(len(python_files)):
 
         packageNames.append(str(txt))
 
-setup(name='radmc3dPy',
-        version='0.30',
-      description='Python module for RADMC3D',
-      author='Attila Juhasz',
-      author_email='juhasz@ast.cam.ac.uk',
-      packages=packageNames)
+
+if ext is not None:
+    setup(name='radmc3dPy',
+          version='0.30',
+          requires=['numpy', 'scipy', 'matplotlib', 'astropy'], 
+          description='Python module for RADMC3D',
+          author='Attila Juhasz',
+          author_email='juhasz@ast.cam.ac.uk',
+          packages=packageNames,
+          ext_modules=[ext])
+else:
+    setup(name='radmc3dPy',
+          version='0.30',
+          requires=['numpy', 'scipy', 'matplotlib', 'astropy'], 
+          description='Python module for RADMC3D',
+          author='Attila Juhasz',
+          author_email='juhasz@ast.cam.ac.uk',
+          packages=packageNames)
+
 
