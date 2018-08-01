@@ -14,211 +14,213 @@ except ImportError:
 
 import warnings
 
-# import math
 from scipy.interpolate import interp1d
 
+try:
+    from ._bhmie import bhmie
+except:
+    print("Fast (Fortran90) Mie-scattering module could not be imported. Falling back to the slower Python version.")
+    def bhmie(x=None, refrel=None, theta=None):
+        """
+        The famous Bohren and Huffman Mie scattering code.
+        This version was ported to Python from the f77 code from Bruce
+        Draine, which can be downloaded from:
+          https://www.astro.princeton.edu/~draine/scattering.html
+        The code originates from the book by Bohren & Huffman (1983) on
+        "Absorption and Scattering of Light by Small Particles".
+        This python version was created by Cornelis Dullemond,
+        February 2017.
 
-def bhmie(x=None, refrel=None, theta=None):
-    """
-    The famous Bohren and Huffman Mie scattering code.
-    This version was ported to Python from the f77 code from Bruce
-    Draine, which can be downloaded from:
-      https://www.astro.princeton.edu/~draine/scattering.html
-    The code originates from the book by Bohren & Huffman (1983) on
-    "Absorption and Scattering of Light by Small Particles".
-    This python version was created by Cornelis Dullemond,
-    February 2017.
+        Parameters
+        ----------
 
-    Parameters
-    ----------
+        x           : ndarray
+                      Size parameter (2*pi*radius_grain/lambda)
 
-    x           : ndarray
-                  Size parameter (2*pi*radius_grain/lambda)
+        refrel      : complex
+                      Complex index of refraction (example: 1.5 + 0.01*1j)
 
-    refrel      : complex
-                  Complex index of refraction (example: 1.5 + 0.01*1j)
+        theta       : ndarray
+                      Scattering angles between 0 and 180 deg
 
-    theta       : ndarray
-                  Scattering angles between 0 and 180 deg
+        Returns
+        -------
+        A list with the following elements:
 
-    Returns
-    -------
-    A list with the following elements:
+            * [0] S1    : ndarray
+                          Complex phase function S1 (E perpendicular to scattering plane) as a function of theta
 
-        * [0] S1    : ndarray
-                      Complex phase function S1 (E perpendicular to scattering plane) as a function of theta
+            * [1] S2    : ndarray
+                          Complex phase function S1 (E parallel to scattering plane) as a function of theta
 
-        * [1] S2    : ndarray
-                      Complex phase function S1 (E parallel to scattering plane) as a function of theta
+            * [2] Qext  : ndarray
+                          Efficiency factor for extinction (C_ext/pi*a**2)
 
-        * [2] Qext  : ndarray
-                      Efficiency factor for extinction (C_ext/pi*a**2)
+            * [3] Qsca  : ndarray
+                          Efficiency factor for scatterin(C_sca/pi*a**2)
 
-        * [3] Qsca  : ndarray
-                      Efficiency factor for scatterin(C_sca/pi*a**2)
+            * [4] Qback : ndarray
+                          Backscattering efficiency ((dC_sca/domega)/pi*a**2 )
+                          Note, this is (1/4*pi) smaller than the "radar backscattering efficiency" - see Bohren &
+                          Huffman 1983 pp. 120-123]
 
-        * [4] Qback : ndarray
-                      Backscattering efficiency ((dC_sca/domega)/pi*a**2 )
-                      Note, this is (1/4*pi) smaller than the "radar backscattering efficiency" - see Bohren &
-                      Huffman 1983 pp. 120-123]
+            * [5] gsca  :  <cos(theta)> for scattering
+        """
 
-        * [5] gsca  :  <cos(theta)> for scattering
-    """
+        if x is None:
+            msg = 'Unknown scattering parameter x.'
+            raise ValueError(msg)
 
-    if x is None:
-        msg = 'Unknown scattering parameter x.'
-        raise ValueError(msg)
+        if x.size == 0:
+            msg = 'Scattering parameter x has zero elements'
+            raise ValueError(msg)
 
-    if x.size == 0:
-        msg = 'Scattering parameter x has zero elements'
-        raise ValueError(msg)
+        if refrel is None:
+            msg = 'Unknown refractive index refrel.'
+            raise ValueError(msg)
 
-    if refrel is None:
-        msg = 'Unknown refractive index refrel.'
-        raise ValueError(msg)
+        if theta is None:
+            msg = 'Unknown scattering angle theta.'
+            raise ValueError(msg)
 
-    if theta is None:
-        msg = 'Unknown scattering angle theta.'
-        raise ValueError(msg)
+        if theta.shape[0] == 0:
+            msg = 'Scattering angle theta has zero elements'
+            raise ValueError(msg)
 
-    if theta.shape[0] == 0:
-        msg = 'Scattering angle theta has zero elements'
-        raise ValueError(msg)
-
-    #
-    # First check that the theta array goes from 0 to 180 or
-    # 180 to 0, and store which is 0 and which is 180
-    #
-
-    if theta[0] != 0:
-        msg = "First element of scattering angle array is not 0. Scattering angle grid must extend from 0 to 180 " \
-              "degrees."
-        raise ValueError(msg)
-    if theta[-1] != 180:
-        msg = "Last element of scattering angle array is not 180. Scattering angle grid must extend from 0 to 180 " \
-              "degrees."
-        raise ValueError(msg)
-
-    nang = len(theta)
-    #
-    # Allocate the complex phase functions with double precision
-    #
-    S1 = np.zeros(nang, dtype=np.complex128)
-    S2 = np.zeros(nang, dtype=np.complex128)
-    #
-    # Allocate and initialize arrays for the series expansion iteration
-    #
-    pi = np.zeros(nang, dtype=np.float64)
-    pi0 = np.zeros(nang, dtype=np.float64)
-    pi1 = np.zeros(nang, dtype=np.float64) + 1.0
-    tau = np.zeros(nang, dtype=np.float64)
-    #
-    # Compute an alternative to x
-    #
-    y = x * refrel
-    #
-    # Determine at which n=nstop to terminate the series expansion
-    #
-    xstop = x + 4 * x ** 0.3333 + 2.0
-    nstop = int(np.floor(xstop))
-    #
-    # Determine the start of the logarithmic derivatives iteration
-    #
-    nmx = int(np.floor(np.max([xstop, abs(y)])) + 15)
-    #
-    # Compute the mu = cos(theta*pi/180.) for all scattering angles
-    #
-    mu = np.cos(theta * np.pi / 180.)
-    #
-    # Now calculate the logarithmic derivative dlog by downward recurrence
-    # beginning with initial value 0.+0j at nmx-1
-    #
-    dlog = np.zeros(nmx, dtype=np.complex128)
-    for n in range(nmx - 1):
-        en = float(nmx - n)
-        dlog[nmx - n - 2] = en / y - 1.0 / (dlog[nmx - n - 1] + en / y)
-    #
-    # In preparation for the series expansion, reset some variables
-    #
-    psi0 = np.cos(x)
-    psi1 = np.sin(x)
-    chi0 = -np.sin(x)
-    chi1 = np.cos(x)
-    xi1 = psi1 - chi1 * 1j
-    p = -1.0
-    Qsca = 0.0
-    gsca = 0.0
-    an = 0j
-    bn = 0j
-    #
-    # Riccati-Bessel functions with real argument x
-    # calculated by upward recurrence. This is where the
-    # series expansion is done
-    #
-    for n in range(nstop):
         #
-        # Basic calculation of the iteration
+        # First check that the theta array goes from 0 to 180 or
+        # 180 to 0, and store which is 0 and which is 180
         #
-        en = float(n + 1)
-        fn = (2 * en + 1.0) / (en * (en + 1.0))
-        psi = (2 * en - 1.0) * psi1 / x - psi0
-        chi = (2 * en - 1.0) * chi1 / x - chi0
-        xi = psi - chi * 1j
-        an1 = an
-        bn1 = bn
-        dum = dlog[n] / refrel + en / x
-        an = (dum * psi - psi1) / (dum * xi - xi1)
-        dum = dlog[n] * refrel + en / x
-        bn = (dum * psi - psi1) / (dum * xi - xi1)
+
+        if theta[0] != 0:
+            msg = "First element of scattering angle array is not 0. Scattering angle grid must extend from 0 to 180 " \
+                  "degrees."
+            raise ValueError(msg)
+        if theta[-1] != 180:
+            msg = "Last element of scattering angle array is not 180. Scattering angle grid must extend from 0 to 180 " \
+                  "degrees."
+            raise ValueError(msg)
+
+        nang = len(theta)
         #
-        # Add contributions to Qsca and gsca
+        # Allocate the complex phase functions with double precision
         #
-        Qsca += (2 * en + 1.0) * (abs(an) ** 2 + abs(bn) ** 2)
-        dum = (2 * en + 1.0) / (en * (en + 1.0))
-        gsca += dum * (an.real * bn.real + an.imag * bn.imag)
-        dum = (en - 1.0) * (en + 1.0) / en
-        gsca += dum * (an1.real * an.real + an1.imag * an.imag +
-                       bn1.real * bn.real + bn1.imag * bn.imag)
+        S1 = np.zeros(nang, dtype=np.complex128)
+        S2 = np.zeros(nang, dtype=np.complex128)
         #
-        # Now contribute to scattering intensity pattern as a function of angle
+        # Allocate and initialize arrays for the series expansion iteration
         #
-        pi[:] = pi1[:]
-        tau[:] = en * np.abs(mu[:]) * pi[:] - (en + 1.0) * pi0[:]
+        pi = np.zeros(nang, dtype=np.float64)
+        pi0 = np.zeros(nang, dtype=np.float64)
+        pi1 = np.zeros(nang, dtype=np.float64) + 1.0
+        tau = np.zeros(nang, dtype=np.float64)
         #
-        # For mu>=0
+        # Compute an alternative to x
         #
-        idx = mu >= 0
-        S1[idx] += fn * (an * pi[idx] + bn * tau[idx])
-        S2[idx] += fn * (an * tau[idx] + bn * pi[idx])
+        y = x * refrel
         #
-        # For mu<0
+        # Determine at which n=nstop to terminate the series expansion
         #
-        p = -p
-        idx = mu < 0
-        S1[idx] += fn * p * (an * pi[idx] - bn * tau[idx])
-        S2[idx] += fn * p * (bn * pi[idx] - an * tau[idx])
+        xstop = x + 4 * x ** 0.3333 + 2.0
+        nstop = int(np.floor(xstop))
         #
-        # Now prepare for the next iteration
+        # Determine the start of the logarithmic derivatives iteration
         #
-        psi0 = psi1
-        psi1 = psi
-        chi0 = chi1
-        chi1 = chi
+        nmx = int(np.floor(np.max([xstop, abs(y)])) + 15)
+        #
+        # Compute the mu = cos(theta*pi/180.) for all scattering angles
+        #
+        mu = np.cos(theta * np.pi / 180.)
+        #
+        # Now calculate the logarithmic derivative dlog by downward recurrence
+        # beginning with initial value 0.+0j at nmx-1
+        #
+        dlog = np.zeros(nmx, dtype=np.complex128)
+        for n in range(nmx - 1):
+            en = float(nmx - n)
+            dlog[nmx - n - 2] = en / y - 1.0 / (dlog[nmx - n - 1] + en / y)
+        #
+        # In preparation for the series expansion, reset some variables
+        #
+        psi0 = np.cos(x)
+        psi1 = np.sin(x)
+        chi0 = -np.sin(x)
+        chi1 = np.cos(x)
         xi1 = psi1 - chi1 * 1j
-        pi1[:] = ((2 * en + 1.0) * np.abs(mu[:]) * pi[:] - (en + 1.0) * pi0[:]) / en
-        pi0[:] = pi[:]
-    #
-    # Now do the final calculations
-    #
-    gsca = 2 * gsca / Qsca
-    Qsca = (2.0 / (x * x)) * Qsca
-    Qext = (4.0 / (x * x)) * S1[0].real
-    Qback = (abs(S1[-1]) / x)**2 / np.pi
-    Qabs = Qext - Qsca
-    #
-    # Return results
-    #
-    return [S1, S2, Qext, Qabs, Qsca, Qback, gsca]
+        p = -1.0
+        Qsca = 0.0
+        gsca = 0.0
+        an = 0j
+        bn = 0j
+        #
+        # Riccati-Bessel functions with real argument x
+        # calculated by upward recurrence. This is where the
+        # series expansion is done
+        #
+        for n in range(nstop):
+            #
+            # Basic calculation of the iteration
+            #
+            en = float(n + 1)
+            fn = (2 * en + 1.0) / (en * (en + 1.0))
+            psi = (2 * en - 1.0) * psi1 / x - psi0
+            chi = (2 * en - 1.0) * chi1 / x - chi0
+            xi = psi - chi * 1j
+            an1 = an
+            bn1 = bn
+            dum = dlog[n] / refrel + en / x
+            an = (dum * psi - psi1) / (dum * xi - xi1)
+            dum = dlog[n] * refrel + en / x
+            bn = (dum * psi - psi1) / (dum * xi - xi1)
+            #
+            # Add contributions to Qsca and gsca
+            #
+            Qsca += (2 * en + 1.0) * (abs(an) ** 2 + abs(bn) ** 2)
+            dum = (2 * en + 1.0) / (en * (en + 1.0))
+            gsca += dum * (an.real * bn.real + an.imag * bn.imag)
+            dum = (en - 1.0) * (en + 1.0) / en
+            gsca += dum * (an1.real * an.real + an1.imag * an.imag +
+                           bn1.real * bn.real + bn1.imag * bn.imag)
+            #
+            # Now contribute to scattering intensity pattern as a function of angle
+            #
+            pi[:] = pi1[:]
+            tau[:] = en * np.abs(mu[:]) * pi[:] - (en + 1.0) * pi0[:]
+            #
+            # For mu>=0
+            #
+            idx = mu >= 0
+            S1[idx] += fn * (an * pi[idx] + bn * tau[idx])
+            S2[idx] += fn * (an * tau[idx] + bn * pi[idx])
+            #
+            # For mu<0
+            #
+            p = -p
+            idx = mu < 0
+            S1[idx] += fn * p * (an * pi[idx] - bn * tau[idx])
+            S2[idx] += fn * p * (bn * pi[idx] - an * tau[idx])
+            #
+            # Now prepare for the next iteration
+            #
+            psi0 = psi1
+            psi1 = psi
+            chi0 = chi1
+            chi1 = chi
+            xi1 = psi1 - chi1 * 1j
+            pi1[:] = ((2 * en + 1.0) * np.abs(mu[:]) * pi[:] - (en + 1.0) * pi0[:]) / en
+            pi0[:] = pi[:]
+        #
+        # Now do the final calculations
+        #
+        gsca = 2 * gsca / Qsca
+        Qsca = (2.0 / (x * x)) * Qsca
+        Qext = (4.0 / (x * x)) * S1[0].real
+        Qback = (abs(S1[-1]) / x)**2 / np.pi
+        Qabs = Qext - Qsca
+        #
+        # Return results
+        #
+        return [S1, S2, Qext, Qabs, Qsca, Qback, gsca]
 
 
 def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
@@ -472,10 +474,12 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
                                                              (np.log(wavmic[0]) - np.log(wavmic[1])))])
                 wavmic = np.append([wmax], wavmic)
     else:
-        if lamcm.min() <= wavmic.min()*1e4:
+        if lamcm.min() < wavmic.min()*1e-4:
+            print(lamcm.min(), wavmic.min()*1e4)
             raise ValueError("Wavelength range out of range of the optical constants file")
 
-        if lamcm.max() >= wavmic.max()*1e-4:
+        if lamcm.max() > wavmic.max()*1e-4:
+            print(lamcm.min(), wavmic.min()*1e4)
             raise ValueError("Wavelength range out of range of the optical constants file")
 
     # Interpolate
@@ -560,6 +564,7 @@ def compute_opac_mie(fname='', matdens=None, agraincm=None, lamcm=None,
             # Compute x
             #
             x = 2*np.pi*agr[l]/lamcm[i]
+
             #
             # Call the bhmie code
             #
