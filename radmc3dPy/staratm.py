@@ -81,7 +81,6 @@ def getAtmModel(teff=0., logg=None, mstar=None, lstar=None, rstar=None, iwav=Non
                              ' thus either logg or mstar should be set.')
         logg = np.log10(nc.gg * mstar / rstar**2)
 
-
     #
     # Get the atmosphere model
     #
@@ -110,6 +109,7 @@ def getAtmModel(teff=0., logg=None, mstar=None, lstar=None, rstar=None, iwav=Non
         ilnu[ii] = f0 * (iwav[ii] / wmax)**(-2.)
 
     return {'wav': iwav, 'lnu': ilnu}
+
 
 def getSpectrumKurucz(teff=None, logg=None, mstar=None, lstar=None, rstar=None, modeldir=None, wav=None):
     """
@@ -463,6 +463,7 @@ def readKuruczGrid(fname=''):
 
     return {'wav': wav, 'inu': inu, 'inucont': inucont, 'teff': teff_grid, 'logg': logg_grid, 'nwav': nwav}
 
+
 def readAmesDustySpectrum(fname=''):
     """
     Reads the Ames-Dusty model atmosphere
@@ -509,7 +510,6 @@ def readAmesDustySpectrum(fname=''):
     logg = np.float(fname_tags[1]) * 100.
     mph = np.float(fname_tags[2]) * 100.
 
-
     wav = []
     inu = []
     bnu = []
@@ -541,6 +541,7 @@ def readAmesDustySpectrum(fname=''):
     nwav = wav.shape[0]
 
     return {'teff': teff, 'logg': logg, 'mph': mph, 'nwav': nwav, 'wav': wav, 'inu': inu, 'bnu': bnu}
+
 
 def readNextGenSpectrum(fname=''):
     """
@@ -618,6 +619,7 @@ def readNextGenSpectrum(fname=''):
 
     return {'teff': teff, 'logg': logg, 'mph': mph, 'nwav': nwav, 'wav': wav, 'inu': inu, 'bnu': bnu}
 
+
 def rebinSpectrum(wav=None, fnu=None, iwav=None):
     """
     Rebins the spectrum to a coarser wavelength grid
@@ -657,7 +659,6 @@ def rebinSpectrum(wav=None, fnu=None, iwav=None):
 
     ifnu = np.zeros(iiwav.shape[0] - 1, dtype=float)
     for i in range(iiwav.shape[0] - 1):
-        #print(i, iiwav.shape[0])
         ii = ((wav > iiwav[i]) & (wav <= iiwav[i + 1]))
         if ii.__contains__(True):
             x = wav[ii]
@@ -665,6 +666,7 @@ def rebinSpectrum(wav=None, fnu=None, iwav=None):
             ifnu[i] = (0.5 * (x[1:] - x[:-1]) * (y[1:] + y[:-1])).sum() / (iiwav[i + 1] - iiwav[i])
 
     return ifnu
+
 
 def getSpectrumNextGen(teff=None, logg=None, mstar=None, lstar=None, rstar=None, modeldir=None, wav=None):
     """

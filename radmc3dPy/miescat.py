@@ -18,8 +18,9 @@ from scipy.interpolate import interp1d
 
 try:
     from ._bhmie import bhmie
-except:
+except ImportError:
     print("Fast (Fortran90) Mie-scattering module could not be imported. Falling back to the slower Python version.")
+
     def bhmie(x=None, refrel=None, theta=None):
         """
         The famous Bohren and Huffman Mie scattering code.
