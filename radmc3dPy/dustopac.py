@@ -488,7 +488,6 @@ class radmc3dDustOpac(object):
         old         : bool, optional
                       If set to True the file format of the previous, 2D version of radmc will be used
         """
-
         #
         # Create the wavelength grid if it is not specified
         #
@@ -592,8 +591,9 @@ class radmc3dDustOpac(object):
                         extrapolate = False
 
                     # Get the grain sizes in micrometer
-                    gsize = ppar['gsmin'] + (ppar['gsmax'] / ppar['gsmin'])**(
-                        np.arange(ppar['ngs'], dtype=np.float64) / (float() - 1.))
+                    gsize = ppar['gsmin'] * (ppar['gsmax'] / ppar['gsmin'])**(
+                        np.arange(ppar['ngs'], dtype=np.float64) / (float(ppar['ngs']) - 1.))
+
 
                     for igs in range(ppar['ngs']):
                         o = computeDustOpacMie(fname=ppar['lnk_fname'][idust], matdens=ppar['gdens'][idust],
@@ -719,11 +719,16 @@ class radmc3dDustOpac(object):
                 else:
                     extrapolate = False
 
+                # Get the grain sizes in micrometer
+                gsize = ppar['gsmin'] * (ppar['gsmax'] / ppar['gsmin'])**(
+                        np.arange(ppar['ngs'], dtype=np.float64) / (float(ppar['ngs']) - 1.))
+
                 ext = []
                 therm = []
                 for igs in range(ppar['ngs']):
+                    print('Computing dust opacities for grain size : ', gsize[igs])
                     o = computeDustOpacMie(fname='opt_const.dat', matdens=ppar['gdens'][0],
-                                             agraincm=ppar['gsmin'] * 1e-4, lamcm=wav * 1e-4, theta=theta,
+                                             agraincm=gsize[igs] * 1e-4, lamcm=wav * 1e-4, theta=theta,
                                              logawidth=logawidth, wfact=wfact, na=na, chopforward=chopforward,
                                              errtol=errtol, verbose=verbose, extrapolate=extrapolate, return_type=1)
 
