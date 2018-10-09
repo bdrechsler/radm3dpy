@@ -1721,7 +1721,7 @@ def computeDustOpacMie(fname='', matdens=None, agraincm=None, lamcm=None,
         opac.nwav = [nlam]
         opac.nfreq = [nlam]
         opac.nang = [nang]
-        opac.wav = [lamcm*1e-4]
+        opac.wav = [lamcm*1e4]
         opac.scatang = [angles]
         opac.freq = [nc.cc/lamcm]
         opac.kabs = [kabs]
