@@ -1,6 +1,6 @@
 """
  RADMC-3D Python module
- (c) Attila Juhasz, 2011-2017
+ (c) Attila Juhasz, 2011-2018
 
 """
 from radmc3dPy import analyze
@@ -19,7 +19,7 @@ from radmc3dPy import reggrid
 from radmc3dPy import setup
 from radmc3dPy import staratm
 
-__version__ = "0.30"
+__version__ = "0.30.1"
 __author__ = "Attila Juhasz"
 __copyright__ = "Copyright (C) 2011-2018 Attila Juhasz"
 __all__ = ["analyze", "crd_trans", "data", "dustopac","image","miescat", "models", "molecule", "natconst", "octree",

@@ -8,6 +8,11 @@ You can find below links to download the various versions of radmc3dPy
 
 **Latest stable version**
 
+* :download:`v0.30.1 <radmc3dPy-0.30.1.tar.gz>`
+    
+    *New features*
+
+        * New Fortran implementation of the Mie-code with Python interface (f2Py) replacing the pure Python implementation. 
 
 * :download:`v0.30 <radmc3dPy-0.30.tar.gz>`
     
