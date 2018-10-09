@@ -1014,7 +1014,7 @@ class radmc3dData(object):
         else:
             self._scalarfieldWriter(data=self.dusttemp, fname=fname, binary=binary, octree=False)
 
-    def writeGasDens(self, fname='', ispec='', binary=True, octree=False):
+    def writeGasDens(self, fname=None, ispec='', binary=True, octree=False):
         """Writes the gas density.
 
         Parameters
@@ -1035,22 +1035,22 @@ class radmc3dData(object):
         octree  : bool, optional
                   If the data is defined on an octree-like AMR
         """
-        if ispec == '':
-            raise ValueError('Unknown ispec. Without knowing the name of the gas species the gas density '
-                             + 'cannot be written, as the filename "numberdens_ispec.inp" cannot be generated.')
-        else:
-            if fname == '':
-                if binary:
-                    fname = 'numberdens_' + ispec + '.binp'
-                else:
-                    fname = 'numberdens_' + ispec + '.inp'
 
-            print('Writing ' + fname)
-            if octree:
-                self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.ndens_mol), fname=fname, binary=binary,
-                                        octree=True)
+        if fname is None:
+            if ispec == '':
+                raise ValueError('Unknown ispec. Without knowing the name of the gas species the gas density '
+                                 + 'cannot be written, as the filename "numberdens_ispec.inp" cannot be generated.')
+            if binary:
+                fname = 'numberdens_' + ispec + '.binp'
             else:
-                self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary, octree=False)
+                fname = 'numberdens_' + ispec + '.inp'
+
+        print('Writing ' + fname)
+        if octree:
+            self._scalarfieldWriter(data=self.grid.convArrTree2Leaf(self.ndens_mol), fname=fname, binary=binary,
+                                    octree=True)
+        else:
+            self._scalarfieldWriter(data=self.ndens_mol, fname=fname, binary=binary, octree=False)
 
     def writeGasTemp(self, fname='', binary=True, octree=False):
         """Writes the gas temperature.
