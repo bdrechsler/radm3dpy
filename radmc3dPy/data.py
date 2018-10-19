@@ -294,9 +294,9 @@ class radmc3dData(object):
                     data = np.swapaxes(data, 1, 2)
             else:
                 if ndim == 3:
-                    hdr = np.fromfile(rfile, count=3, sep=" ", dtype=np.int64)
+                    hdr = np.fromfile(rfile, count=2, sep=" ", dtype=np.int64)
                 else:
-                    hdr = np.fromfile(rfile, count=4, sep=" ", dtype=np.int64)
+                    hdr = np.fromfile(rfile, count=3, sep=" ", dtype=np.int64)
 
                 if octree:
                     if hdr[1] != self.grid.nLeaf:
