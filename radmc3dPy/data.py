@@ -308,7 +308,7 @@ class radmc3dData(object):
                     data = np.fromfile(rfile, count=-1, sep=" ", dtype=np.float64)
 
                     if ndim == 3:
-                        if data.shape[0] == hdr[2]:
+                        if data.shape[0] == hdr[1]:
                             data = np.reshape(data, [self.grid.nLeaf, 1], order='f')
                         else:
                             msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
@@ -316,11 +316,12 @@ class radmc3dData(object):
                             raise ValueError(msg)
 
                     else:
-                        if data.shape[0] == hdr[2] * hdr[3]:
-                            data = np.reshape(data, [self.grid.nLeaf, hdr[3]], order='f')
+                        if data.shape[0] == hdr[1] * hdr[2]:
+                            data = np.reshape(data, [self.grid.nLeaf, hdr[2]], order='f')
                         else:
                             msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
-                                  'indicated in the file header'
+                                  'indicated in the file header. (' + str(data.shape[0]) + ' vs ' + \
+                                  str(hdr2[1]*hdr[2]) + ')'
                             raise ValueError(msg)
 
                     # if ndim == 3:
