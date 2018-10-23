@@ -870,7 +870,7 @@ class radmc3dImage(object):
                     imag = self.image[:, :, istokes, 0]
                     f_imag = np.fft.fft2(imag)
                     f_cimag = f_psf * f_imag
-                    cimage[:, :, istokes, 0] = np.abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                    cimage[:, :, istokes, 0] = np.real(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
             else:
                 # If we have a simple Gaussian PSF it will be wavelength independent so we can take it out from the
                 # frequency loop
@@ -887,7 +887,7 @@ class radmc3dImage(object):
                             imag = self.image[:, :, istokes, ifreq]
                             f_imag = np.fft.fft2(imag)
                             f_cimag = f_psf * f_imag
-                            cimage[:, :, istokes, ifreq] = np.abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                            cimage[:, :, istokes, ifreq] = np.real(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
                 # If we have an Airy-PSF calculated from the aperture size(s) and wavelenght, the PSF will depend
                 # on the frequency so it has to be re-calculated for each wavelength
@@ -904,7 +904,7 @@ class radmc3dImage(object):
                             imag = self.image[:, :, istokes, ifreq]
                             f_imag = np.fft.fft2(imag)
                             f_cimag = f_psf * f_imag
-                            cimage[:, :, istokes, ifreq] = np.abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                            cimage[:, :, istokes, ifreq] = np.real(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
         else:
             # If we have a simple Gaussian PSF it will be wavelength independent so we can take it out from the
@@ -921,7 +921,7 @@ class radmc3dImage(object):
                     imag = self.image[:, :, ifreq]
                     f_imag = np.fft.fft2(imag)
                     f_cimag = f_psf * f_imag
-                    cimage[:, :, ifreq] = np.abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                    cimage[:, :, ifreq] = np.real(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
             # If we have an Airy-PSF calculated from the aperture size(s) and wavelenght, the PSF will depend
             # on the frequency so it has to be re-calculated for each wavelength
@@ -937,7 +937,7 @@ class radmc3dImage(object):
                     imag = self.image[:, :, ifreq]
                     f_imag = np.fft.fft2(imag)
                     f_cimag = f_psf * f_imag
-                    cimage[:, :, ifreq] = np.abs(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
+                    cimage[:, :, ifreq] = np.real(np.fft.ifftshift(np.fft.ifft2(f_cimag)))
 
         # cimage = squeeze(cimage)
 
