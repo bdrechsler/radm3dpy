@@ -220,7 +220,9 @@ def readGrid(sgrid=True, wgrid=True, sgrid_fname=None, wgrid_fname=None, old=Fal
             else:
                 raise ValueError('Unsupported amr_style' + ("%d" % hdr[1]) + '\n '
                                  + 'Only regular (0) or octree-like (1) AMR styles are supported')
-        grid.readSpatialGrid(fname=sgrid_fname, old=old)
+            grid.readSpatialGrid(fname=sgrid_fname)
+        else: 
+            grid.readSpatialGrid(fname=sgrid_fname, old=old)
 
     if wgrid:
         if grid is None:

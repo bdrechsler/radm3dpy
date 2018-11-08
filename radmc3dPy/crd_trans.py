@@ -91,7 +91,7 @@ def vtransSph2Cart(crd=None, v=None, reverse=False):
     """
 
     # NOTE!!!!! The velocities in the spherical system are not angular velocities!!!!
-    # v[1] = dphi/dt * r
+    # v[1] = dphi/dt * r * sin(theta)
     # v[2] = dtheta/dt * r
 
     if crd is None:
