@@ -8,7 +8,7 @@ The first step to install radmc3dPy is to download the source of the latest vers
 
 Once you obtained the source you need to extract the tarball::
 
-    $>tar -xzvf radmc3dPy-0.30.1.tar.gz
+    $>tar -xzvf radmc3dPy-0.30.2.tar.gz
 
 There are two ways of installing radmc3dPy using distutils, depending on the
 write access of Python's global site-packages directory. 

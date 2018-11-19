@@ -8,13 +8,28 @@ You can find below links to download the various versions of radmc3dPy
 
 **Latest stable version**
 
-* :download:`v0.30.1 <radmc3dPy-0.30.1.tar.gz>`
+* :download:`v0.30.2 <radmc3dPy-0.30.2.tar.gz>`
     
-    *New features*
+    *Important bugfixes*
 
-        * New Fortran implementation of the Mie-code with Python interface (f2Py) replacing the pure Python implementation. 
+        * When scalarfields (e.g. dust density) was read from a data file in ascii format, the file header was read wrong, 
+          which may resulted in a RuntimeException due to inconsistency in data size between the mesh and the scalar
+          data.
+        * When scalarfields defined on an octree AMR mesh were read from a file in ascii format the header had an indexing
+          error, which may resulted in a RuntimeException due to inconsistency in data size between the mesh and the scalar
+          data.
+        * Image convolution always returned positive pixel values. While images calculated in total intensity (i.e. Stokes I),
+          should always be positive, this is not true for the other Stokes parameters. This might have resulted in wrong
+          intensity values when images with full stokes parameters were convolved. 
+        * Axis labels in the plotSpectrum() function were drawn wrong.
 
 **Previous versions**
+
+    * :download:`v0.30.1 <radmc3dPy-0.30.1.tar.gz>`
+        
+        *New features*
+
+            * New Fortran implementation of the Mie-code with Python interface (f2Py) replacing the pure Python implementation. 
 
     * :download:`v0.30 <radmc3dPy-0.30.tar.gz>`
         

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>radmc3dPy package &mdash; radmc3dPy 0.30.1 documentation</title>
+  <title>radmc3dPy package &mdash; radmc3dPy 0.30.2 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="radmc3dPy 0.30.1 documentation" href="index.html"/> 
+    <link rel="top" title="radmc3dPy 0.30.2 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                0.30.1
+                0.30.2
               </div>
             
           
@@ -785,11 +785,11 @@ will be used.</p>
 </div></blockquote>
 <p><strong>ev</strong> : bool</p>
 <blockquote>
-<div><p>True &#8211;&gt; frequency in electronvolt (default=Hz)</p>
+<div><p>True &#8211;&gt; energy in electronvolt (default=Hz)</p>
 </div></blockquote>
 <p><strong>kev</strong> : bool</p>
 <blockquote>
-<div><p>True &#8211;&gt; frequency in kiloelectronvolt (default=Hz)</p>
+<div><p>True &#8211;&gt; energy in kiloelectronvolt (default=Hz)</p>
 </div></blockquote>
 <p><strong>micron</strong> : bool</p>
 <blockquote>
@@ -1374,7 +1374,7 @@ generating a legacy vtk file for visualization.</dd>
 <tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.data.radmc3dData.readDustTemp" title="radmc3dPy.data.radmc3dData.readDustTemp"><code class="xref py py-obj docutils literal"><span class="pre">readDustTemp</span></code></a>([fname,&nbsp;binary,&nbsp;octree,&nbsp;old])</td>
 <td>Reads the dust temperature.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.data.radmc3dData.readGasDens" title="radmc3dPy.data.radmc3dData.readGasDens"><code class="xref py py-obj docutils literal"><span class="pre">readGasDens</span></code></a>([ispec,&nbsp;binary,&nbsp;octree])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#radmc3dPy.data.radmc3dData.readGasDens" title="radmc3dPy.data.radmc3dData.readGasDens"><code class="xref py py-obj docutils literal"><span class="pre">readGasDens</span></code></a>([fname,&nbsp;ispec,&nbsp;binary,&nbsp;octree])</td>
 <td>Reads the gas density.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#radmc3dPy.data.radmc3dData.readGasTemp" title="radmc3dPy.data.radmc3dData.readGasTemp"><code class="xref py py-obj docutils literal"><span class="pre">readGasTemp</span></code></a>([fname,&nbsp;binary,&nbsp;octree])</td>
@@ -1569,7 +1569,7 @@ The number of elements in the list should be equal to that in the idust keyword<
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.readDustDens">
-<code class="descname">readDustDens</code><span class="sig-paren">(</span><em>fname=''</em>, <em>binary=True</em>, <em>old=False</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readDustDens" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readDustDens</code><span class="sig-paren">(</span><em>fname=None</em>, <em>binary=True</em>, <em>old=False</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readDustDens" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the dust density.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1600,7 +1600,7 @@ The number of elements in the list should be equal to that in the idust keyword<
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.readDustTemp">
-<code class="descname">readDustTemp</code><span class="sig-paren">(</span><em>fname=''</em>, <em>binary=True</em>, <em>octree=False</em>, <em>old=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readDustTemp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readDustTemp</code><span class="sig-paren">(</span><em>fname=None</em>, <em>binary=True</em>, <em>octree=False</em>, <em>old=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readDustTemp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the dust temperature.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1630,7 +1630,7 @@ The number of elements in the list should be equal to that in the idust keyword<
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.readGasDens">
-<code class="descname">readGasDens</code><span class="sig-paren">(</span><em>ispec=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readGasDens" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readGasDens</code><span class="sig-paren">(</span><em>fname=None</em>, <em>ispec=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readGasDens" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the gas density.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1656,7 +1656,7 @@ The number of elements in the list should be equal to that in the idust keyword<
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.readGasTemp">
-<code class="descname">readGasTemp</code><span class="sig-paren">(</span><em>fname=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readGasTemp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readGasTemp</code><span class="sig-paren">(</span><em>fname=None</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readGasTemp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the gas temperature.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1683,7 +1683,7 @@ The number of elements in the list should be equal to that in the idust keyword<
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.readGasVel">
-<code class="descname">readGasVel</code><span class="sig-paren">(</span><em>fname=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readGasVel" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readGasVel</code><span class="sig-paren">(</span><em>fname=None</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readGasVel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the gas velocity.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1710,7 +1710,7 @@ If omitted &#8216;gas_velocity.inp&#8217; (if binary=True &#8216;gas_velocity.bi
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.readVTurb">
-<code class="descname">readVTurb</code><span class="sig-paren">(</span><em>fname=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readVTurb" title="Permalink to this definition">¶</a></dt>
+<code class="descname">readVTurb</code><span class="sig-paren">(</span><em>fname=None</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.readVTurb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the turbulent velocity field.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1793,7 +1793,7 @@ If omitted &#8216;microturbulence.inp&#8217; (if binary=True &#8216;microturbule
 
 <dl class="method">
 <dt id="radmc3dPy.data.radmc3dData.writeGasDens">
-<code class="descname">writeGasDens</code><span class="sig-paren">(</span><em>fname=''</em>, <em>ispec=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.writeGasDens" title="Permalink to this definition">¶</a></dt>
+<code class="descname">writeGasDens</code><span class="sig-paren">(</span><em>fname=None</em>, <em>ispec=''</em>, <em>binary=True</em>, <em>octree=False</em><span class="sig-paren">)</span><a class="headerlink" href="#radmc3dPy.data.radmc3dData.writeGasDens" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes the gas density.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -6657,7 +6657,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2014-2018, Attila Juhasz.
-      Last updated on Oct 09, 2018.
+      Last updated on Nov 19, 2018.
 
     </p>
   </div>
@@ -6679,7 +6679,7 @@ and the same effective temperature in erg/s/cm/cm/Hz/ster</dd>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.30.1',
+            VERSION:'0.30.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
