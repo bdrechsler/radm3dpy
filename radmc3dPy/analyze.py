@@ -578,10 +578,10 @@ def plotSpectrum(a, ev=False, kev=False, micron=False, jy=False, lsun=False,
                      [:,0] - wavelength in micrometer, or for line data the velocity in km/s
                      [:,1] - flux density in erg/s/cm/cm/Hz
     ev              : bool
-                     True --> frequency in electronvolt (default=Hz)
+                     True --> energy in electronvolt (default=Hz)
 
     kev             : bool 
-                     True --> frequency in kiloelectronvolt (default=Hz)
+                     True --> energy in kiloelectronvolt (default=Hz)
 
     micron          : bool
                      True --> wavelength in micron (default=Hz)
@@ -645,25 +645,25 @@ def plotSpectrum(a, ev=False, kev=False, micron=False, jy=False, lsun=False,
     # Default: frequency in Hz
     #
     xcoord = freq
-    xtitle = '$\lambda [\mu\mathrm{m}]$'
+    xtitle = r'$\nu [\mathrm{Hz}]$'
     #
     # If ev: electronvolt
     #
     if ev:
         xcoord = 4.13568842841e-15 * freq
-        xtitle = '$h\\nu [\mathrm{eV}]$'
+        xtitle = r'$h\nu [\mathrm{eV}]$'
     #
     # If kev: kiloelectronvolt
     #
     if kev:
         xcoord = 4.13568842841e-18 * freq
-        xtitle = '$h\\nu [\mathrm{KeV}]$'
+        xtitle = r'$h\nu [\mathrm{KeV}]$'
     #
     # If micron
     #
     if micron:
         xcoord = lam
-        xtitle = '$h\\nu [\mathrm{KeV}]$'
+        xtitle = r'$\lambda [\mu\mathrm{m}]$'
     #
     # Plot nuFnu or Fnu (same with Lnu)? And what about Fnu vs Lnu?
     #
